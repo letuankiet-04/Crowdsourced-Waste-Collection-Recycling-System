@@ -1,7 +1,7 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller;
 
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.AuthResponse;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.RegisterRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AuthResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.RegisterRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;

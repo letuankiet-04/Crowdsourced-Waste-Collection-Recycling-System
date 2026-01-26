@@ -1,4 +1,4 @@
-package com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto;
+package com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
