@@ -24,3 +24,9 @@ security:
   jwt:
     secret: ${JWT_SECRET:change-me-change-me-change-me-change-me}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+open:
+  api:
+    title: Crowdsourced Waste Collection Recycling System API
+    version: v1
+    description: API documentation for Crowdsourced Waste Collection Recycling System
