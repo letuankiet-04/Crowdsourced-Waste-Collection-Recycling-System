@@ -1,4 +1,4 @@
-package com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception;
+package com.team2.Crowdsourced_Waste_Collection_Recycling_System.config.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -1,14 +1,21 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.service;
 
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.LoginRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AuthResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.RegisterRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.*;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.mapper.UserMapper;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.*;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.config.security.JwtService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @Slf4j
@@ -34,6 +41,15 @@ public class AuthService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private JwtService jwtService;
+
+    @Autowired
+    private UserMapper userMapper;
 
     @Transactional
     public AuthResponse registerUser(RegisterRequest request) {
@@ -64,13 +80,8 @@ public class AuthService {
         User savedUser = userRepository.save(user);
         log.info("User registered successfully with ID: {}", savedUser.getId());
 
-        AuthResponse response = new AuthResponse();
-        response.setEmail(savedUser.getEmail());
-        response.setRole(role.getRoleCode());
+        AuthResponse response = userMapper.toAuthResponse(savedUser);
         response.setMessage("User registered successfully");
-        response.setId(savedUser.getId());
-        response.setFullName(savedUser.getFullName());
-        response.setPhone(savedUser.getPhone());
 
         // Create Citizen profile
         Citizen citizen = new Citizen();
@@ -86,8 +97,36 @@ public class AuthService {
         response.setDistrict(citizen.getDistrict());
         response.setCity(citizen.getCity());
         
+        response.setToken(jwtService.generateToken(savedUser.getEmail()));
         log.info("Citizen profile created for user ID: {}", savedUser.getId());
 
         return response;
+    }
+
+    public AuthResponse login(LoginRequest request) {
+        String email = request.getEmail();
+        if (email == null || email.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email is required");
+        }
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password is required");
+        }
+
+        try {
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, request.getPassword()));
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
+
+        AuthResponse response = userMapper.toAuthResponse(user);
+        response.setToken(jwtService.generateToken(user.getEmail()));
+        response.setMessage("Login successful");
+        return response;
+    }
+
+    public void logout() {
     }
 }
