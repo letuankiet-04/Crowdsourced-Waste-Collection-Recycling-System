@@ -60,7 +60,6 @@ public class AuthService {
             throw new RuntimeException("Email already in use");
         }
 
-        // Always default to CITIZEN for public registration
         String roleCode = "CITIZEN";
         
         Role role = roleRepository.findByRoleCode(roleCode)
