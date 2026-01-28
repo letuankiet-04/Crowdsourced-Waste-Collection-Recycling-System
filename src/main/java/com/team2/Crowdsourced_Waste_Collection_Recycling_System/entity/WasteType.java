@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class WasteType {
-
+  
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;

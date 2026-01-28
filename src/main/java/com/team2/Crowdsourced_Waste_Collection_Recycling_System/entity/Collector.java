@@ -1,25 +1,35 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity;
 
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import jakarta.persistence.OneToOne;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "collectors")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Collector {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @OneToOne
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", unique = true, nullable = false)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -29,14 +39,14 @@ public class Collector {
     @Column(name = "employee_code", length = 50)
     private String employeeCode;
 
-    @Column(name = "vehicle_type")
+    @Column(name = "vehicle_type", length = 50)
     private String vehicleType;
 
-    @Column(name = "vehicle_plate")
+    @Column(name = "vehicle_plate", length = 20)
     private String vehiclePlate;
 
-    @Column(length = 20)
-    private String status = "available";
+    @Column(name = "status", length = 20)
+    private String status;
 
     @Column(name = "current_latitude", precision = 10, scale = 8)
     private BigDecimal currentLatitude;
@@ -48,20 +58,20 @@ public class Collector {
     private LocalDateTime lastLocationUpdate;
 
     @Column(name = "total_collections")
-    private Integer totalCollections = 0;
+    private Integer totalCollections;
 
     @Column(name = "successful_collections")
-    private Integer successfulCollections = 0;
+    private Integer successfulCollections;
 
     @Column(name = "total_weight_collected", precision = 12, scale = 2)
-    private BigDecimal totalWeightCollected = BigDecimal.ZERO;
+    private BigDecimal totalWeightCollected;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @PrePersist
     void prePersist() {
-        if (status == null) {
+        if (status == null || status.isBlank()) {
             status = "available";
         }
         if (totalCollections == null) {
