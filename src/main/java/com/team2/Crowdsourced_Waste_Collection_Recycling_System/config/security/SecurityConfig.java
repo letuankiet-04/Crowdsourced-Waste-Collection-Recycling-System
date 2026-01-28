@@ -1,63 +1,93 @@
-package com.team2.Crowdsourced_Waste_Collection_Recycling_System.config.security;
-
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.UserRepository;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
-@Configuration
-public class SecurityConfig {
-    private final JwtAuthenticationFilter jwtFilter;
-    private final UserRepository userRepository;
-
-    public SecurityConfig(JwtAuthenticationFilter jwtFilter, UserRepository userRepository) {
-        this.jwtFilter = jwtFilter;
-        this.userRepository = userRepository;
-    }
-    @Bean
-    public UserDetailsService userDetailsService() {
-        return username -> userRepository.findByEmail(username)
-                .map(UserPrincipal::new)
-                .orElseThrow(() -> new RuntimeException("Username not found"));
-    }
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
-    @Bean
-    public DaoAuthenticationProvider authenticationProvider(UserDetailsService usd,
-                                                            PasswordEncoder pe ){
-        DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
-        daoAuthenticationProvider.setUserDetailsService(usd);
-        daoAuthenticationProvider.setPasswordEncoder(pe);
-        return daoAuthenticationProvider;
-    }
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration cfg)
-            throws Exception {
-        return cfg.getAuthenticationManager();
-    }
-
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, DaoAuthenticationProvider provider) throws Exception {
-        http.csrf(csrf -> csrf.disable());
-        http.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-        http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .anyRequest().authenticated()
-        );
-        http.authenticationProvider(provider);
-        http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
-        return http.build();
-    }
-}
+package com.team2.Crowdsourced_Waste_Collection_Recycling_System.config.security; 
+ 
+ import org.springframework.context.annotation.Bean; 
+ import org.springframework.context.annotation.Configuration; 
+ import org.springframework.security.authentication.AuthenticationManager; 
+ import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration; 
+ import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity; 
+ import org.springframework.security.config.annotation.web.builders.HttpSecurity; 
+ import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity; 
+ import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer; 
+ import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer; 
+ import org.springframework.security.config.http.SessionCreationPolicy; 
+ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder; 
+ import org.springframework.security.crypto.password.PasswordEncoder; 
+ import org.springframework.security.web.SecurityFilterChain; 
+ import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter; 
+ import org.springframework.web.cors.CorsConfiguration; 
+ import org.springframework.web.cors.CorsConfigurationSource; 
+ import org.springframework.web.cors.UrlBasedCorsConfigurationSource; 
+ 
+ import java.util.Arrays; 
+ import java.util.List; 
+ 
+ @Configuration 
+ @EnableWebSecurity 
+ @EnableMethodSecurity 
+ public class SecurityConfig { 
+ 
+     private final JwtAuthenticationFilter jwtAuthenticationFilter; 
+ 
+     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) { 
+         this.jwtAuthenticationFilter = jwtAuthenticationFilter; 
+     } 
+ 
+     @Bean 
+     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception { 
+         http 
+             .cors(cors -> cors.configurationSource(corsConfigurationSource())) 
+             .csrf(AbstractHttpConfigurer::disable) 
+             .authorizeHttpRequests(auth -> auth 
+                 .requestMatchers( 
+                         "/swagger-ui.html", 
+                         "/swagger-ui/**", 
+                         "/v3/api-docs/**", 
+                         "/v3/api-docs.yaml" 
+                 ).permitAll() 
+                 .requestMatchers("/api/auth/**").permitAll() 
+                 .requestMatchers("/api/citizen/**").hasRole("CITIZEN") 
+                 .requestMatchers("/api/enterprise/**").hasAnyRole("ENTERPRISE", "ENTERPRISE_ADMIN") 
+                 .requestMatchers("/api/collector/**").hasRole("COLLECTOR") 
+                 .requestMatchers("/api/admin/**").hasRole("ADMIN") 
+                 .anyRequest().authenticated() 
+             ) 
+             .sessionManagement(session -> session 
+                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS) 
+             ); 
+ 
+         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); 
+         
+         return http.build(); 
+     } 
+ 
+     @Bean 
+     public CorsConfigurationSource corsConfigurationSource() { 
+         CorsConfiguration configuration = new CorsConfiguration(); 
+         configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:5173")); // Allow frontend ports 
+         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS")); 
+         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type")); 
+         configuration.setAllowCredentials(true); 
+         
+         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource(); 
+         source.registerCorsConfiguration("/**", configuration); 
+         return source; 
+     } 
+ //ma hoa mat khau 
+     @Bean 
+     public PasswordEncoder passwordEncoder() { 
+         return new BCryptPasswordEncoder(); 
+     } 
+ //quan ly role 
+     @Bean 
+     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception { 
+         return authenticationConfiguration.getAuthenticationManager(); 
+     } 
+     //cho phep web hoat dong 
+     @Bean 
+     public WebSecurityCustomizer webSecurityCustomizer() { 
+         return  webSecurity -> { 
+             webSecurity.ignoring().requestMatchers("/actuator/**", "/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs/**"); 
+         }; 
+     } 
+ 
+ }
