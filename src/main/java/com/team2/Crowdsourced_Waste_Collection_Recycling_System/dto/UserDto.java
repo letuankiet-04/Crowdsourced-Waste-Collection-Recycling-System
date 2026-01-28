@@ -5,7 +5,6 @@ public class UserDto {
     private String email;
     private String fullName;
     private String roleCode;
-    private String avatarUrl;
     private String status;
 
     public UserDto() {
@@ -41,14 +40,6 @@ public class UserDto {
 
     public void setRoleCode(String roleCode) {
         this.roleCode = roleCode;
-    }
-
-    public String getAvatarUrl() {
-        return avatarUrl;
-    }
-
-    public void setAvatarUrl(String avatarUrl) {
-        this.avatarUrl = avatarUrl;
     }
 
     public String getStatus() {

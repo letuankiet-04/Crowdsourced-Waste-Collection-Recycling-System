@@ -4,6 +4,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.UserDto;
 
 public class AuthenResponse {
     private String token;
+    private String refreshToken;
     private String tokenType;
     private long expiresInMs;
     private UserDto user;
@@ -11,8 +12,9 @@ public class AuthenResponse {
     public AuthenResponse() {
     }
 
-    public AuthenResponse(String token, String tokenType, long expiresInMs, UserDto user) {
+    public AuthenResponse(String token, String refreshToken, String tokenType, long expiresInMs, UserDto user) {
         this.token = token;
+        this.refreshToken = refreshToken;
         this.tokenType = tokenType;
         this.expiresInMs = expiresInMs;
         this.user = user;
@@ -24,6 +26,14 @@ public class AuthenResponse {
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    public String getRefreshToken() {
+        return refreshToken;
+    }
+
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 
     public String getTokenType() {

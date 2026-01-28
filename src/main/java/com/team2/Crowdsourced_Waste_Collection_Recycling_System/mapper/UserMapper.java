@@ -19,5 +19,6 @@ public interface UserMapper {
     @Mapping(target = "lastLogin", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "avatarUrl", ignore = true)
     User toEntity(UserDto dto);
 }
