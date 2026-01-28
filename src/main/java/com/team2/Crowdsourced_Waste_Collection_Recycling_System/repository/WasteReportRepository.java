@@ -20,8 +20,6 @@ public interface WasteReportRepository extends JpaRepository<WasteReport, Intege
     
     List<WasteReport> findByWasteTypeId(Integer wasteTypeId);
     
-    List<WasteReport> findByDistrict(String district);
-    
     List<WasteReport> findByCity(String city);
     
     @Query("SELECT w FROM WasteReport w WHERE w.createdAt BETWEEN :startDate AND :endDate")
