@@ -1,25 +1,24 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.mapper;
 
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AuthResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.UserDto;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.User;
-import org.springframework.stereotype.Component;
+import org.mapstruct.InheritInverseConfiguration;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-@Component
-public class UserMapper {
+@Mapper(componentModel = "spring")
+public interface UserMapper {
 
-    public AuthResponse toAuthResponse(User user) {
-        if (user == null) {
-            return null;
-        }
-        AuthResponse response = new AuthResponse();
-        response.setId(user.getId());
-        response.setEmail(user.getEmail());
-        response.setFullName(user.getFullName());
-        response.setPhone(user.getPhone());
-        response.setStatus(user.getStatus());
-        if (user.getRole() != null) {
-            response.setRole(user.getRole().getRoleCode());
-        }
-        return response;
-    }
+    @Mapping(source = "role.roleCode", target = "roleCode")
+    UserDto toDto(User user);
+
+    @InheritInverseConfiguration(name = "toDto")
+    @Mapping(target = "role", ignore = true)
+    @Mapping(target = "passwordHash", ignore = true)
+    @Mapping(target = "phone", ignore = true)
+    @Mapping(target = "lastLogin", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "avatarUrl", ignore = true)
+    User toEntity(UserDto dto);
 }

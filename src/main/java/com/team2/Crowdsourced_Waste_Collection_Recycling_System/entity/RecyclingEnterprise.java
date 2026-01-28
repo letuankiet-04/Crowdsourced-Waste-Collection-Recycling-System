@@ -1,24 +1,24 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "recycling_enterprises")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class RecyclingEnterprise {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String name;
 
     @Column(length = 500)
@@ -37,10 +37,10 @@ public class RecyclingEnterprise {
     private String taxCode;
 
     @Column(length = 20)
-    private String status = "active";
+    private String status;
 
-    @Column(name = "total_collected_weight", precision = 12, scale = 2)
-    private BigDecimal totalCollectedWeight = BigDecimal.ZERO;
+    @Column(name = "total_collected_weight")
+    private BigDecimal totalCollectedWeight;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -50,7 +50,7 @@ public class RecyclingEnterprise {
 
     @PrePersist
     void prePersist() {
-        if (status == null) {
+        if (status == null || status.isBlank()) {
             status = "active";
         }
         if (totalCollectedWeight == null) {

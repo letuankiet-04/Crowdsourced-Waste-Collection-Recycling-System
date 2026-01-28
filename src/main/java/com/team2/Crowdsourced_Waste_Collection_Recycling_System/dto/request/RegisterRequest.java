@@ -1,43 +1,55 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonAlias;
 
-@Data
 public class RegisterRequest {
-    @NotBlank(message = "Email is required")
-    @Email(message = "Invalid email format")
+    @JsonAlias("username")
     private String email;
-
-    @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
-
-    @NotBlank(message = "Full name is required")
     private String fullName;
-
     private String phone;
+    private String roleCode;
 
-    // Role is optional, defaults to CITIZEN
-    private String role; 
-    
-    // Address fields
-    private String address;
-    private String ward;
-    private String district;
-    private String city;
+    public RegisterRequest() {
+    }
 
-    // Enterprise specific fields
-    private String enterpriseName;
-    private String taxCode;
-    private String licenseNumber;
+    public String getEmail() {
+        return email;
+    }
 
-    // Collector specific fields
-    private String vehicleType;
-    private String vehiclePlate;
-    
-    // Enterprise Admin specific fields
-    private Integer enterpriseId;
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getRoleCode() {
+        return roleCode;
+    }
+
+    public void setRoleCode(String roleCode) {
+        this.roleCode = roleCode;
+    }
 }
