@@ -1,6 +1,7 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller;
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AuthResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.LoginRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.RegisterRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.AuthService;
 import jakarta.validation.Valid;
@@ -26,5 +27,19 @@ public class AuthController {
         AuthResponse response = authService.registerUser(registerRequest);
         log.info("Registration successful for email: {}", response.getEmail());
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
+        log.info("Received login request for email: {}", loginRequest.getEmail());
+        AuthResponse response = authService.login(loginRequest);
+        log.info("Login successful for email: {}", response.getEmail());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout() {
+        authService.logout();
+        return ResponseEntity.noContent().build();
     }
 }
