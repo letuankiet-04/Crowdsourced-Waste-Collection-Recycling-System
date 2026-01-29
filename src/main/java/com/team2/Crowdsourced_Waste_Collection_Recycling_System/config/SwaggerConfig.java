@@ -33,7 +33,7 @@ public class SwaggerConfig {
         String securitySchemeName = "bearerAuth";
         return new OpenAPI()
                 .info(new Info().title(title).version(version).description(description))
-                .servers(List.of(new Server().url("http://localhost:8080").description("Local")))
+                .servers(List.of(new Server().url("http://localhost:8082").description("Local")))
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                 .components(new Components().addSecuritySchemes(
                         securitySchemeName,

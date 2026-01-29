@@ -15,7 +15,7 @@ spring:
         format_sql: true
 
 server:
-  port: 8082
+  port: 8080
 
 jwt:
   signerKey: "72d6236b1a543277ad6973b2693a14ab13c437f8749b185a301f5034bbe3de36"
