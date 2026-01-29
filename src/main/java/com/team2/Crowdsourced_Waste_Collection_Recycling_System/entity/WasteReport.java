@@ -1,31 +1,46 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity;
 
-import jakarta.persistence.*;
-import lombok.*;
+// mapped from table waste_reports
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "waste_reports")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class WasteReport {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false)
     private Integer id;
 
-    @Column(name = "report_code", unique = true, nullable = false, length = 20)
+    @Column(name = "report_code", nullable = false, unique = true, length = 20)
     private String reportCode;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "citizen_id", nullable = false)
     private Citizen citizen;
 
-    @Column(name = "waste_type_id", nullable = false)
-    private Integer wasteTypeId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "waste_type_id", nullable = false)
+    private WasteType wasteType;
 
     @Column(name = "description", length = 1000)
     private String description;
@@ -45,13 +60,24 @@ public class WasteReport {
     @Column(name = "ward", length = 100)
     private String ward;
 
+    @Column(name = "district", length = 100)
+    private String district;
+
     @Column(name = "city", length = 100)
     private String city;
 
+    @Lob
     @Column(name = "images", columnDefinition = "NVARCHAR(MAX)")
     private String images;
 
-    @Column(name = "status", length = 20, nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ai_suggested_type_id")
+    private WasteType aiSuggestedType;
+
+    @Column(name = "ai_confidence", precision = 5, scale = 2)
+    private BigDecimal aiConfidence;
+
+    @Column(name = "status", length = 20)
     private String status;
 
     @Column(name = "is_valid")
@@ -73,26 +99,9 @@ public class WasteReport {
     @Column(name = "quality_rating")
     private Integer qualityRating;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-        if (status == null) {
-            status = "pending";
-        }
-        if (pointsAwarded == null) {
-            pointsAwarded = 0;
-        }
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
 }

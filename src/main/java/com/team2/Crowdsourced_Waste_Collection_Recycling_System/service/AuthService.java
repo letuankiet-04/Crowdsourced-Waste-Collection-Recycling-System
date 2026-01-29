@@ -1,8 +1,10 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.service;
 
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.LoginRequest;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.RegisterRequest;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AuthenResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.*;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AuthenticationResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.IntrospectResponse;
+import com.nimbusds.jose.JOSEException;
+import java.text.ParseException;
 
 /**
  * Interface định nghĩa các nghiệp vụ xác thực người dùng.
@@ -10,23 +12,13 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Aut
  */
 public interface AuthService {
     
-    /**
-     * Đăng ký tài khoản người dùng mới.
-     * @param request Thông tin đăng ký (email, password, fullName, ...).
-     * @return Thông tin xác thực sau khi đăng ký thành công (token, user info).
-     */
-    AuthenResponse register(RegisterRequest request);
+    AuthenticationResponse register(RegisterRequest request);
     
-    /**
-     * Đăng nhập vào hệ thống.
-     * @param request Thông tin đăng nhập (email, password).
-     * @return Thông tin xác thực sau khi đăng nhập thành công.
-     */
-    AuthenResponse login(LoginRequest request);
+    AuthenticationResponse login(AuthenticationRequest request);
     
-    /**
-     * Đăng xuất khỏi hệ thống.
-     * Lưu ý: Với JWT stateless, đăng xuất chủ yếu được xử lý ở phía Client (xóa token).
-     */
-    void logout();
+    void logout(LogoutRequest request) throws ParseException, JOSEException;
+
+    AuthenticationResponse refreshToken(RefreshRequest request) throws ParseException, JOSEException;
+
+    IntrospectResponse introspect(IntrospectRequest request) throws JOSEException, ParseException;
 }
