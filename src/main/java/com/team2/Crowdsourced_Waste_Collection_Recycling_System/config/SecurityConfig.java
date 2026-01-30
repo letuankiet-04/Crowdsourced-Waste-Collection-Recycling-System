@@ -77,7 +77,7 @@ public class SecurityConfig {
 
     @Bean
     public CorsFilter corsFilter() {
-        // CORS: cho phép frontend gọi API (hiện đang mở toàn bộ origin/method/header)
+        // CORS: cho phép   ` frontend gọi API (hiện đang mở toàn bộ origin/method/header)
         CorsConfiguration corsConfiguration = new CorsConfiguration();
 
         corsConfiguration.addAllowedOrigin("*");
