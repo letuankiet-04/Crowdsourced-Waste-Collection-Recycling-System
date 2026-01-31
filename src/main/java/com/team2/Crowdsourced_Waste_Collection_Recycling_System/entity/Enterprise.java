@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -33,6 +34,12 @@ public class Enterprise {
     @Column(name = "address", length = 500)
     private String address;
 
+    @Column(name = "ward", length = 100)
+    private String ward;
+
+    @Column(name = "city", length = 100)
+    private String city;
+
     @Column(name = "phone", length = 20)
     private String phone;
 
@@ -44,6 +51,21 @@ public class Enterprise {
 
     @Column(name = "tax_code", length = 50)
     private String taxCode;
+
+    @Column(name = "capacity_kg_per_day", precision = 12, scale = 2)
+    private BigDecimal capacityKgPerDay;
+
+    @Lob
+    @Column(name = "supported_waste_type_codes", columnDefinition = "NVARCHAR(MAX)")
+    private String supportedWasteTypeCodes;
+
+    @Lob
+    @Column(name = "service_wards", columnDefinition = "NVARCHAR(MAX)")
+    private String serviceWards;
+
+    @Lob
+    @Column(name = "service_cities", columnDefinition = "NVARCHAR(MAX)")
+    private String serviceCities;
 
     @Column(name = "status", length = 20)
     private String status;
@@ -57,4 +79,3 @@ public class Enterprise {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 }
-

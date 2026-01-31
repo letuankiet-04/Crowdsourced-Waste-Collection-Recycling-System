@@ -44,7 +44,31 @@ CREATE TABLE role_permissions (
 );
 
 -- ============================================
--- 2. USERS
+-- 2. ENTERPRISE
+-- ============================================
+
+CREATE TABLE enterprise (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    name NVARCHAR(255) NOT NULL,
+    address NVARCHAR(500),
+    ward NVARCHAR(100),
+    city NVARCHAR(100),
+    phone NVARCHAR(20),
+    email NVARCHAR(255),
+    license_number NVARCHAR(100),
+    tax_code NVARCHAR(50),
+    capacity_kg_per_day DECIMAL(12,2),
+    supported_waste_type_codes NVARCHAR(MAX),
+    service_wards NVARCHAR(MAX),
+    service_cities NVARCHAR(MAX),
+    status NVARCHAR(20) DEFAULT 'active',
+    total_collected_weight DECIMAL(12,2) DEFAULT 0,
+    created_at DATETIME2 DEFAULT GETDATE(),
+    updated_at DATETIME2 DEFAULT GETDATE()
+);
+
+-- ============================================
+-- 3. USERS
 -- ============================================
 
 CREATE TABLE users (
@@ -55,6 +79,7 @@ CREATE TABLE users (
     phone NVARCHAR(20),
     avatar_url NVARCHAR(500),
     role_id INT NOT NULL FOREIGN KEY REFERENCES roles(id),
+    enterprise_id INT NULL FOREIGN KEY REFERENCES enterprise(id),
     status NVARCHAR(20) DEFAULT 'active',
     last_login DATETIME2,
     created_at DATETIME2 DEFAULT GETDATE(),
@@ -62,36 +87,19 @@ CREATE TABLE users (
 );
 
 -- ============================================
--- 3. CITIZENS
+-- 4. CITIZENS
 -- ============================================
 
 CREATE TABLE citizens (
     id INT PRIMARY KEY IDENTITY(1,1),
     user_id INT UNIQUE NOT NULL FOREIGN KEY REFERENCES users(id) ON DELETE CASCADE,
     address NVARCHAR(500),
+    phone NVARCHAR(20),
     ward NVARCHAR(100),
     city NVARCHAR(100),
     total_points INT DEFAULT 0,
     total_reports INT DEFAULT 0,
     valid_reports INT DEFAULT 0
-);
-
--- ============================================
--- 4. ENTERPRISE
--- ============================================
-
-CREATE TABLE enterprise (
-    id INT PRIMARY KEY IDENTITY(1,1),
-    name NVARCHAR(255) NOT NULL,
-    address NVARCHAR(500),
-    phone NVARCHAR(20),
-    email NVARCHAR(255),
-    license_number NVARCHAR(100),
-    tax_code NVARCHAR(50),
-    status NVARCHAR(20) DEFAULT 'active',
-    total_collected_weight DECIMAL(12,2) DEFAULT 0,
-    created_at DATETIME2 DEFAULT GETDATE(),
-    updated_at DATETIME2 DEFAULT GETDATE()
 );
 
 -- ============================================
@@ -137,14 +145,6 @@ CREATE TABLE waste_reports (
     quality_rating INT,
     created_at DATETIME2 DEFAULT GETDATE(),
     updated_at DATETIME2 DEFAULT GETDATE()
-);
-
-CREATE TABLE report_images (
-    id INT PRIMARY KEY IDENTITY(1,1),
-    report_id INT NOT NULL FOREIGN KEY REFERENCES waste_reports(id) ON DELETE CASCADE,
-    image_url NVARCHAR(500) NOT NULL,
-    image_type NVARCHAR(20) DEFAULT 'report',
-    uploaded_at DATETIME2 DEFAULT GETDATE()
 );
 
 -- ============================================
@@ -250,10 +250,6 @@ CREATE TABLE point_transactions (
     created_at DATETIME2 DEFAULT GETDATE()
 );
 
--- ============================================
--- 13. LEADERBOARD
--- ============================================
-
 CREATE TABLE leaderboard (
     id INT PRIMARY KEY IDENTITY(1,1),
     citizen_id INT NOT NULL FOREIGN KEY REFERENCES citizens(id),
@@ -290,37 +286,9 @@ CREATE TABLE feedbacks (
     resolution NVARCHAR(MAX),
     resolved_by INT FOREIGN KEY REFERENCES users(id),
     resolved_at DATETIME2,
+    responses NVARCHAR(MAX),
     created_at DATETIME2 DEFAULT GETDATE(),
     updated_at DATETIME2 DEFAULT GETDATE()
-);
-
-CREATE TABLE feedback_responses (
-    id INT PRIMARY KEY IDENTITY(1,1),
-    feedback_id INT NOT NULL FOREIGN KEY REFERENCES feedbacks(id) ON DELETE CASCADE,
-    responder_id INT NOT NULL FOREIGN KEY REFERENCES users(id),
-    response NVARCHAR(MAX) NOT NULL,
-    is_internal BIT DEFAULT 0,
-    attachments NVARCHAR(MAX),
-    created_at DATETIME2 DEFAULT GETDATE()
-);
-
--- ============================================
--- 15. COLLECTION STATISTICS
--- ============================================
-
-CREATE TABLE collection_statistics (
-    id INT PRIMARY KEY IDENTITY(1,1),
-    stat_date DATE NOT NULL,
-    enterprise_id INT FOREIGN KEY REFERENCES enterprise(id),
-    waste_type_id INT NOT NULL FOREIGN KEY REFERENCES waste_types(id),
-    city NVARCHAR(100),
-    total_reports INT DEFAULT 0,
-    total_collections INT DEFAULT 0,
-    total_weight_kg DECIMAL(12,2) DEFAULT 0,
-    total_points_awarded INT DEFAULT 0,
-    avg_collection_time_hours DECIMAL(5,2),
-    success_rate DECIMAL(5,2),
-    created_at DATETIME2 DEFAULT GETDATE()
 );
 
 
@@ -349,16 +317,13 @@ INSERT INTO roles (role_code, role_name, description) VALUES
 ('enterprise', N'Doanh nghiệp tái chế', N'Doanh nghiệp quản lý và điều phối thu gom'),
 ('admin', N'Quản trị viên', N'Quản trị hệ thống và giải quyết tranh chấp');
 
--- 2. PERMISSIONS
 INSERT INTO permissions (permission_code, permission_name, module, description) VALUES
--- Citizen
 ('report.create', N'Tạo báo cáo rác', 'report', N'Báo cáo rác với ảnh + GPS + mô tả'),
 ('report.view_own', N'Xem báo cáo của mình', 'report', N'Theo dõi trạng thái báo cáo'),
 ('report.classify_waste', N'Phân loại rác', 'report', N'Chọn loại rác khi tạo báo cáo'),
 ('points.view_own', N'Xem điểm thưởng', 'points', N'Xem lịch sử điểm thưởng'),
 ('leaderboard.view', N'Xem bảng xếp hạng', 'points', N'Xem xếp hạng theo khu vực'),
 ('feedback.create', N'Gửi phản hồi/khiếu nại', 'feedback', N'Khiếu nại khi thu gom không đúng'),
--- Enterprise
 ('enterprise.manage_capacity', N'Quản lý năng lực', 'enterprise', N'Đăng ký loại rác/công suất/khu vực'),
 ('enterprise.view_requests', N'Xem yêu cầu thu gom', 'collection', N'Xem yêu cầu trong phạm vi hoạt động'),
 ('enterprise.accept_reject', N'Chấp nhận/Từ chối', 'collection', N'Quyết định tiếp nhận yêu cầu'),
@@ -366,30 +331,44 @@ INSERT INTO permissions (permission_code, permission_name, module, description) 
 ('enterprise.track_realtime', N'Theo dõi thời gian thực', 'collection', N'Xem tiến độ và trạng thái'),
 ('enterprise.view_statistics', N'Xem báo cáo thống kê', 'statistics', N'Báo cáo khối lượng theo loại/khu vực/thời gian'),
 ('enterprise.manage_point_rules', N'Cấu hình quy tắc điểm', 'points', N'Tạo quy tắc tính điểm thưởng'),
--- Collector
 ('collection.view_assigned', N'Xem yêu cầu được gán', 'collection', N'Nhận yêu cầu từ Enterprise'),
 ('collection.update_status', N'Cập nhật trạng thái', 'collection', N'Assigned/On the way/Collected'),
 ('collection.confirm_complete', N'Xác nhận hoàn thành', 'collection', N'Upload ảnh xác nhận'),
 ('collection.view_history', N'Xem lịch sử công việc', 'collection', N'Xem số lượng đã hoàn thành'),
--- Admin
 ('admin.manage_users', N'Quản lý tài khoản', 'admin', N'Quản lý tài khoản và phân quyền'),
 ('admin.monitor_system', N'Giám sát hệ thống', 'admin', N'Giám sát hoạt động tổng thể'),
 ('admin.resolve_disputes', N'Giải quyết tranh chấp', 'feedback', N'Xử lý khiếu nại'),
 ('admin.view_all', N'Xem toàn bộ dữ liệu', 'admin', N'Truy cập tất cả báo cáo/thống kê');
 
--- 3. ROLE_PERMISSIONS
--- Citizen (role_id = 1)
-INSERT INTO role_permissions (role_id, permission_id) VALUES
-(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6);
--- Collector (role_id = 2)
-INSERT INTO role_permissions (role_id, permission_id) VALUES
-(2, 14), (2, 15), (2, 16), (2, 17);
--- Enterprise (role_id = 3)
-INSERT INTO role_permissions (role_id, permission_id) VALUES
-(3, 7), (3, 8), (3, 9), (3, 10), (3, 11), (3, 12), (3, 13);
--- Admin (role_id = 4) - All permissions
 INSERT INTO role_permissions (role_id, permission_id)
-SELECT 4, id FROM permissions;
+SELECT r.id, p.id
+FROM (VALUES
+    ('citizen','report.create'),
+    ('citizen','report.view_own'),
+    ('citizen','report.classify_waste'),
+    ('citizen','points.view_own'),
+    ('citizen','leaderboard.view'),
+    ('citizen','feedback.create'),
+    ('collector','collection.view_assigned'),
+    ('collector','collection.update_status'),
+    ('collector','collection.confirm_complete'),
+    ('collector','collection.view_history'),
+    ('enterprise','enterprise.manage_capacity'),
+    ('enterprise','enterprise.view_requests'),
+    ('enterprise','enterprise.accept_reject'),
+    ('enterprise','enterprise.assign_collector'),
+    ('enterprise','enterprise.track_realtime'),
+    ('enterprise','enterprise.view_statistics'),
+    ('enterprise','enterprise.manage_point_rules')
+) v(role_code, permission_code)
+JOIN roles r ON r.role_code = v.role_code
+JOIN permissions p ON p.permission_code = v.permission_code;
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+CROSS JOIN permissions p
+WHERE r.role_code = 'admin';
 
 -- 4. WASTE TYPES
 INSERT INTO waste_types (code, name, description, category, base_points, is_recyclable) VALUES
@@ -402,29 +381,29 @@ INSERT INTO waste_types (code, name, description, category, base_points, is_recy
 ('HAZARDOUS', N'Nguy hại', N'Hóa chất, thuốc trừ sâu, pin lithium', 'hazardous', 0, 0);
 
 -- 5. ENTERPRISE
-INSERT INTO enterprise (name, address, phone, email, license_number, tax_code) VALUES
-(N'Công ty TNHH Tái chế Xanh', N'123 Nguyễn Văn Linh, Q.7, TP.HCM', '028-1234-5678', 'info@taichexanh.vn', 'GP-2024-001', '0312345678'),
-(N'Công ty CP Môi trường Sạch', N'456 Lê Văn Việt, Q.9, TP.HCM', '028-8765-4321', 'contact@moitruongsach.vn', 'GP-2024-002', '0387654321'),
-(N'Doanh nghiệp Tái chế Phương Nam', N'789 Điện Biên Phủ, Q.Bình Thạnh, TP.HCM', '028-5555-6666', 'phuongnam@recycle.vn', 'GP-2024-003', '0355556666');
+INSERT INTO enterprise (name, address, ward, city, phone, email, license_number, tax_code, capacity_kg_per_day, supported_waste_type_codes, service_wards, service_cities) VALUES
+(N'Công ty TNHH Tái chế Xanh', N'123 Nguyễn Văn Linh, Q.7, TP.HCM', N'Phường Tân Phong', N'TP.HCM', '028-1234-5678', 'info@taichexanh.vn', 'GP-2024-001', '0312345678', 2000, '["PLASTIC","PAPER","METAL"]', '["Phường Bến Nghé","Phường Bến Thành","Phường Tân Định"]', '["TP.HCM"]'),
+(N'Công ty CP Môi trường Sạch', N'456 Lê Văn Việt, Q.9, TP.HCM', N'Phường Hiệp Phú', N'TP.HCM', '028-8765-4321', 'contact@moitruongsach.vn', 'GP-2024-002', '0387654321', 1500, '["PLASTIC","ELECTRONIC","GLASS"]', '["Phường 15","Phường 6"]', '["TP.HCM"]'),
+(N'Doanh nghiệp Tái chế Phương Nam', N'789 Điện Biên Phủ, Q.Bình Thạnh, TP.HCM', N'Phường 21', N'TP.HCM', '028-5555-6666', 'phuongnam@recycle.vn', 'GP-2024-003', '0355556666', 1000, '["PAPER","ORGANIC"]', '["Phường 6","Phường 15"]', '["TP.HCM"]');
 
 -- 6. USERS
 -- Password hash = 'password123' (bcrypt)
-INSERT INTO users (email, password_hash, full_name, phone, role_id, status) VALUES
+INSERT INTO users (email, password_hash, full_name, phone, role_id, enterprise_id, status) VALUES
 -- Admin
-('admin@wastemanagement.vn', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Nguyễn Văn Admin', '0901234567', 4, 'active'),
+('admin@wastemanagement.vn', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Nguyễn Văn Admin', '0901234567', 4, NULL, 'active'),
 -- Enterprise Admins
-('manager1@taichexanh.vn', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Trần Thị Lan', '0902345678', 3, 'active'),
-('manager2@moitruongsach.vn', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Lê Văn Hùng', '0903456789', 3, 'active'),
+('manager1@taichexanh.vn', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Trần Thị Lan', '0902345678', 3, 1, 'active'),
+('manager2@moitruongsach.vn', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Lê Văn Hùng', '0903456789', 3, 2, 'active'),
 -- Collectors
-('collector1@taichexanh.vn', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Phạm Văn Minh', '0904567890', 2, 'active'),
-('collector2@taichexanh.vn', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Ngô Thị Hoa', '0905678901', 2, 'active'),
-('collector3@moitruongsach.vn', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Hoàng Văn Nam', '0906789012', 2, 'active'),
+('collector1@taichexanh.vn', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Phạm Văn Minh', '0904567890', 2, 1, 'active'),
+('collector2@taichexanh.vn', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Ngô Thị Hoa', '0905678901', 2, 1, 'active'),
+('collector3@moitruongsach.vn', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Hoàng Văn Nam', '0906789012', 2, 2, 'active'),
 -- Citizens
-('citizen1@gmail.com', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Võ Thị Mai', '0907890123', 1, 'active'),
-('citizen2@gmail.com', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Đặng Văn Tùng', '0908901234', 1, 'active'),
-('citizen3@gmail.com', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Bùi Thị Hương', '0909012345', 1, 'active'),
-('citizen4@gmail.com', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Lý Văn Đức', '0900123456', 1, 'active'),
-('citizen5@gmail.com', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Trịnh Thị Nga', '0911234567', 1, 'active');
+('citizen1@gmail.com', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Võ Thị Mai', '0907890123', 1, NULL, 'active'),
+('citizen2@gmail.com', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Đặng Văn Tùng', '0908901234', 1, NULL, 'active'),
+('citizen3@gmail.com', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Bùi Thị Hương', '0909012345', 1, NULL, 'active'),
+('citizen4@gmail.com', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Lý Văn Đức', '0900123456', 1, NULL, 'active'),
+('citizen5@gmail.com', '$2a$10$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', N'Trịnh Thị Nga', '0911234567', 1, NULL, 'active');
 
 -- 8. COLLECTORS
 INSERT INTO collectors (user_id, enterprise_id, employee_code, vehicle_type, vehicle_plate, status) VALUES
@@ -492,7 +471,6 @@ INSERT INTO point_transactions (citizen_id, report_id, collection_request_id, ru
 (2, 2, 2, 4, 20, 'bonus', N'Bonus chất lượng cao', 300, '2025-01-15 11:50:00'),
 (4, NULL, NULL, NULL, 50, 'bonus', N'Bonus người dùng mới', 320, '2025-01-10 10:00:00');
 
--- 17. LEADERBOARD
 INSERT INTO leaderboard (citizen_id, ward, city, period_type, period_start, period_end, total_points, total_reports, valid_reports, total_weight_kg, rank_position) VALUES
 (4, N'Phường 15', N'TP.HCM', 'monthly', '2025-01-01', '2025-01-31', 320, 30, 28, 125.5, 1),
 (2, N'Phường Bến Thành', N'TP.HCM', 'monthly', '2025-01-01', '2025-01-31', 280, 25, 22, 98.2, 2),
@@ -507,19 +485,12 @@ INSERT INTO feedbacks (feedback_code, citizen_id, collection_request_id, feedbac
 ('FB-20250116-001', 2, 2, 'suggestion', N'Đề xuất thêm điểm', N'Đề xuất tăng điểm thưởng cho rác điện tử vì khó thu gom', 'normal', 'pending', NULL, '2025-01-16 09:30:00');
 
 -- 19. FEEDBACK RESPONSES
-INSERT INTO feedback_responses (feedback_id, responder_id, response, is_internal, created_at) VALUES
-(1, 1, N'Cảm ơn bạn đã phản hồi tích cực! Chúng tôi sẽ tiếp tục cải thiện dịch vụ.', 0, '2025-01-15 14:00:00'),
-(2, 1, N'Đang kiểm tra với đơn vị thu gom. Sẽ phản hồi trong 24h.', 0, '2025-01-15 16:00:00'),
-(2, 1, N'Lưu ý: Khu vực Q.1 đang quá tải, cần điều phối thêm collector.', 1, '2025-01-15 16:05:00');
-
--- 20. COLLECTION STATISTICS
-INSERT INTO collection_statistics (stat_date, enterprise_id, waste_type_id, city, total_reports, total_collections, total_weight_kg, total_points_awarded, avg_collection_time_hours, success_rate) VALUES
-('2025-01-15', 1, 1, N'TP.HCM', 5, 4, 25.5, 180, 2.5, 95.00),
-('2025-01-15', 1, 2, N'TP.HCM', 3, 3, 18.2, 120, 2.0, 100.00),
-('2025-01-15', 1, 3, N'TP.HCM', 2, 1, 8.5, 75, 3.0, 85.00),
-('2025-01-15', 2, 1, N'TP.HCM', 4, 3, 15.8, 95, 2.8, 90.00),
-('2025-01-14', 1, 1, N'TP.HCM', 6, 5, 30.2, 210, 2.3, 92.00),
-('2025-01-14', 1, 2, N'TP.HCM', 4, 4, 22.0, 145, 1.8, 100.00);
+UPDATE feedbacks
+SET responses = CASE id
+    WHEN 1 THEN N'[{"responder_id":1,"response":"Cảm ơn bạn đã phản hồi tích cực! Chúng tôi sẽ tiếp tục cải thiện dịch vụ.","is_internal":false,"created_at":"2025-01-15 14:00:00"}]'
+    WHEN 2 THEN N'[{"responder_id":1,"response":"Đang kiểm tra với đơn vị thu gom. Sẽ phản hồi trong 24h.","is_internal":false,"created_at":"2025-01-15 16:00:00"},{"responder_id":1,"response":"Lưu ý: Khu vực Q.1 đang quá tải, cần điều phối thêm collector.","is_internal":true,"created_at":"2025-01-15 16:05:00"}]'
+    ELSE responses
+END;
 
 
 -- 22. SYSTEM SETTINGS
