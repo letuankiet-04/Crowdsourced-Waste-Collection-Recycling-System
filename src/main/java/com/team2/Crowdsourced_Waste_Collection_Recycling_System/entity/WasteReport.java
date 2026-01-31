@@ -66,8 +66,6 @@ public class WasteReport {
     @Lob
     @Column(name = "images", columnDefinition = "NVARCHAR(MAX)")
     private String images;
-
-
     @Column(name = "status", length = 20)
     private String status;
 
