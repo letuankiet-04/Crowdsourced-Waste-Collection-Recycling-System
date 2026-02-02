@@ -34,7 +34,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class JWTHelper {
+public class JWTHelper{
     static String ISSUER = "team2.com";
 
     InvalidatedTokenRepository invalidatedTokenRepository;

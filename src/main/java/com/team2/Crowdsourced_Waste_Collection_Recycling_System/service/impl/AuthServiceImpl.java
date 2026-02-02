@@ -71,12 +71,7 @@ public class AuthServiceImpl implements AuthService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email đã tồn tại trong hệ hệ thống");
         }
 
-        String roleCode = (request.getRoleCode() == null || request.getRoleCode().isBlank()) ? "CITIZEN" : request.getRoleCode();
-        if (!"CITIZEN".equalsIgnoreCase(roleCode)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Chỉ CITIZEN được tự đăng ký");
-        }
-
-        Role role = roleRepository.findByRoleCodeIgnoreCase(roleCode)
+        Role role = roleRepository.findByRoleCodeIgnoreCase("CITIZEN")
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quyền (Role) không tồn tại"));
 
         User u = new User();
