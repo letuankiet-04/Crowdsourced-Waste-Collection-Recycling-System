@@ -36,11 +36,30 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
         java.time.LocalDateTime getUpdatedAt();
     }
 
-    boolean existsByIdAndEnterpriseIdAndStatus(Integer id, Integer enterpriseId, String status);
+    List<CollectionRequest> findByEnterprise_Id(Integer enterpriseId);
+
+    boolean existsByIdAndEnterprise_IdAndStatus(Integer id, Integer enterpriseId, String status);
 
     /**
-     * Gán collector cho request theo hướng atomic (native query).
-     * Chỉ cho phép gán khi request thuộc enterprise và đang ở trạng thái pending.
+     * Enterprise accept request: pending -> accepted_enterprise (chỉ khi chưa gán collector).
+     */
+    @Modifying
+    @Query(value = """
+        UPDATE collection_requests
+        SET status = 'accepted_enterprise',
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = :requestId
+          AND enterprise_id = :enterpriseId
+          AND collector_id IS NULL
+          AND status = 'pending'
+    """, nativeQuery = true)
+    int acceptByEnterprise(
+            @Param("requestId") Integer requestId,
+            @Param("enterpriseId") Integer enterpriseId
+    );
+
+    /**
+     * Chỉ cho phép gán khi request thuộc enterprise, chưa được gán collector, và đang ở trạng thái accepted_enterprise.
      */
     @Modifying
     @Query(value = """
@@ -51,7 +70,8 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
             updated_at = CURRENT_TIMESTAMP
         WHERE id = :requestId
           AND enterprise_id = :enterpriseId
-          AND status = 'pending'
+          AND collector_id IS NULL
+          AND status = 'accepted_enterprise'
     """, nativeQuery = true)
     int assignCollector(
             @Param("requestId") Integer requestId,
@@ -60,7 +80,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     );
 
     /**
-     * Lấy danh sách task của collector (tất cả trạng thái).
+     * Lấy danh sách task của collector
      */
     @Query(value = """
         SELECT
@@ -110,7 +130,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     );
 
     /**
-     * Danh sách task mặc định cho Collector: chỉ hiển thị ASSIGNED và ON_THE_WAY.
+     * Danh sách task mặc định cho Collector: hiển thị ASSIGNED, ACCEPTED_COLLECTOR và ON_THE_WAY
      */
     @Query(value = """
         SELECT
@@ -125,7 +145,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
             cr.updated_at AS updatedAt
         FROM collection_requests cr
         WHERE cr.collector_id = :collectorId
-          AND cr.status IN ('assigned', 'on_the_way')
+          AND cr.status IN ('assigned', 'accepted_collector', 'on_the_way')
         ORDER BY
             CASE WHEN cr.assigned_at IS NULL THEN 1 ELSE 0 END,
             cr.assigned_at DESC,
@@ -133,9 +153,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     """, nativeQuery = true)
     List<CollectorTaskView> findActiveTasksForCollector(@Param("collectorId") Integer collectorId);
 
-    /**
-     * Tìm request theo id và collector đang được gán (phục vụ check ownership nhanh).
-     */
+
     Optional<CollectionRequest> findByIdAndCollector_Id(Integer id, Integer collectorId);
 
     /**
@@ -158,16 +176,33 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                             @Param("newStatus") String newStatus,
                             @Param("time") LocalDateTime time);
 
+    @Modifying
+    @Query("""
+        UPDATE CollectionRequest cr
+        SET cr.status = 'accepted_collector',
+            cr.acceptedAt = :time,
+            cr.updatedAt = :time
+        WHERE cr.id = :id
+          AND cr.collector.id = :collectorId
+          AND cr.status = 'assigned'
+    """)
+    int acceptTask(
+            @Param("id") Integer id,
+            @Param("collectorId") Integer collectorId,
+            @Param("time") LocalDateTime time
+    );
+
     /**
      * Từ chối nhiệm vụ theo hướng atomic:
      * - Chỉ khi request đang assigned và thuộc collector hiện tại
-     * - Set status = accepted, lưu lý do, và unassign collector để enterprise gán lại
+     * - Set status = accepted_enterprise, lưu lý do, và unassign collector để enterprise gán lại
      */
     @Modifying
     @Query("update CollectionRequest cr " +
-            "set cr.status = 'accepted'," +
+            "set cr.status = 'accepted_enterprise'," +
             "cr.rejectionReason =:reason," +
             "cr.collector = null," +
+            "cr.acceptedAt = null," +
             " cr.updatedAt = CURRENT_TIMESTAMP\n" +
             "        WHERE cr.id = :id\n" +
             "          AND cr.collector.id = :collectorId\n" +
