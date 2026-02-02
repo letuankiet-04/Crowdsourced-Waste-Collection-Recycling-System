@@ -8,7 +8,6 @@ public class RegisterRequest {
     private String password;
     private String fullName;
     private String phone;
-    private String roleCode;
 
     public RegisterRequest() {
     }
@@ -45,11 +44,5 @@ public class RegisterRequest {
         this.phone = phone;
     }
 
-    public String getRoleCode() {
-        return roleCode;
-    }
 
-    public void setRoleCode(String roleCode) {
-        this.roleCode = roleCode;
-    }
 }
