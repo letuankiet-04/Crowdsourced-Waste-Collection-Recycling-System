@@ -1,0 +1,87 @@
+package com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.impl;
+
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CloudinaryResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CloudinaryService;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.util.FileUpLoadUtil;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+@Service
+public class CloudinaryServiceImpl implements CloudinaryService {
+    private final Cloudinary cloudinary;
+    private final String defaultFolder;
+    private final String cloudName;
+    private final String apiKey;
+    private final String apiSecret;
+
+    public CloudinaryServiceImpl(
+            Cloudinary cloudinary,
+            @Value("${cloudinary.folder:}") String defaultFolder,
+            @Value("${cloudinary.cloud-name:}") String cloudName,
+            @Value("${cloudinary.api-key:}") String apiKey,
+            @Value("${cloudinary.api-secret:}") String apiSecret
+    ) {
+        this.cloudinary = cloudinary;
+        this.defaultFolder = defaultFolder;
+        this.cloudName = cloudName;
+        this.apiKey = apiKey;
+        this.apiSecret = apiSecret;
+    }
+    @Override
+    public CloudinaryResponse uploadImage(MultipartFile file) {
+        assertConfigured();
+        FileUpLoadUtil.assertAllowedImage(file);
+        try {
+            Map<String, Object> options = new HashMap<>();
+            options.put("resource_type", "image");
+            if (defaultFolder != null && !defaultFolder.isBlank()) {
+                options.put("folder", defaultFolder);
+            }
+
+            Map<?, ?> result = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    options
+            );
+            String publicId = String.valueOf(result.get("public_id"));
+            Object secureUrl = result.get("secure_url");
+            String url = secureUrl != null ? String.valueOf(secureUrl) : String.valueOf(result.get("url"));
+
+            return CloudinaryResponse.builder()
+                    .publicId(publicId)
+                    .url(url)
+                    .build();
+        } catch (IOException e) {
+            throw new IllegalStateException("Upload Cloudinary thất bại", e);
+        }
+    }
+
+    @Override
+    public void deleteImage(String publicId) {
+        assertConfigured();
+        if (publicId == null || publicId.isBlank()) {
+            throw new IllegalArgumentException("publicId không hợp lệ");
+        }
+        try {
+            cloudinary.uploader().destroy(
+                    publicId,
+                    ObjectUtils.asMap("resource_type", "image", "invalidate", true)
+            );
+        } catch (IOException e) {
+            throw new IllegalStateException("Xóa Cloudinary thất bại", e);
+        }
+    }
+
+    private void assertConfigured() {
+        if (cloudName == null || cloudName.isBlank()
+                || apiKey == null || apiKey.isBlank()
+                || apiSecret == null || apiSecret.isBlank()) {
+            throw new IllegalStateException("Thiếu cấu hình Cloudinary (CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET)");
+        }
+    }
+}

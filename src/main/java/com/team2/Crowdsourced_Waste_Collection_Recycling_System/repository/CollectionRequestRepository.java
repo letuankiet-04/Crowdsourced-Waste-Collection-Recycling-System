@@ -39,7 +39,6 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     boolean existsByIdAndEnterpriseIdAndStatus(Integer id, Integer enterpriseId, String status);
 
     /**
-     * Gán collector cho request theo hướng atomic (native query).
      * Chỉ cho phép gán khi request thuộc enterprise và đang ở trạng thái pending.
      */
     @Modifying
@@ -60,7 +59,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     );
 
     /**
-     * Lấy danh sách task của collector (tất cả trạng thái).
+     * Lấy danh sách task của collector
      */
     @Query(value = """
         SELECT
@@ -110,7 +109,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     );
 
     /**
-     * Danh sách task mặc định cho Collector: chỉ hiển thị ASSIGNED và ON_THE_WAY.
+     * Danh sách task mặc định cho Collector: chỉ hiển thị ASSIGNED
      */
     @Query(value = """
         SELECT
@@ -125,7 +124,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
             cr.updated_at AS updatedAt
         FROM collection_requests cr
         WHERE cr.collector_id = :collectorId
-          AND cr.status IN ('assigned', 'on_the_way')
+          AND cr.status IN ('assigned')
         ORDER BY
             CASE WHEN cr.assigned_at IS NULL THEN 1 ELSE 0 END,
             cr.assigned_at DESC,
@@ -133,9 +132,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     """, nativeQuery = true)
     List<CollectorTaskView> findActiveTasksForCollector(@Param("collectorId") Integer collectorId);
 
-    /**
-     * Tìm request theo id và collector đang được gán (phục vụ check ownership nhanh).
-     */
+
     Optional<CollectionRequest> findByIdAndCollector_Id(Integer id, Integer collectorId);
 
     /**

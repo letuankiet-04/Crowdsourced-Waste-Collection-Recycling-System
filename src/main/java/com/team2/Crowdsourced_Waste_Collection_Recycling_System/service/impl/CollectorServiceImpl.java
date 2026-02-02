@@ -17,31 +17,22 @@ import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
-
 public class CollectorServiceImpl implements CollectorService {
     private final CollectionRequestRepository collectionRequestRepository;
     private final CollectionTrackingRepository collectionTrackingRepository;
     private final CollectorRepository collectorRepository;
-
     @Override
     @Transactional
-
-    public void acceptTask(Integer requestId, Integer collectorId) {
-        CollectionRequest request = getValidRequest(requestId, collectorId, "assigned");
-        logTracking(request, collectorId, "accepted", "Collector accepted task");
-    }
-
-    @Override
-    @Transactional
-
     public void startTask(Integer requestId, Integer collectorId) {
-        LocalDateTime now = LocalDateTime.now();
-        // Validate ownership + status hiện tại trước khi cập nhật
+        //update dyung collector, id va o trang thai assigned
+        int updated = collectionRequestRepository.updateStatusIfMatch(
+                requestId, collectorId,"accept","on_the_way", LocalDateTime.now()
+        );
         CollectionRequest request = getValidRequest(requestId, collectorId, "assigned");
 
         request.setStatus("on_the_way");
-        request.setStartedAt(now);
-        request.setUpdatedAt(now);
+        request.setStartedAt(LocalDateTime.now());
+        request.setUpdatedAt(LocalDateTime.now());
         collectionRequestRepository.save(request);
 
         logTracking(request, collectorId, "started", "Collector started moving");
@@ -49,20 +40,17 @@ public class CollectorServiceImpl implements CollectorService {
 
     @Override
     @Transactional
-
     public void rejectTask(Integer requestId, Integer collectorId, String reason) {
         if (reason == null || reason.trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lý do từ chối là bắt buộc");
         }
 
-        // Validate ownership + status hiện tại trước khi cập nhật
         CollectionRequest request = getValidRequest(requestId, collectorId, "assigned");
-        LocalDateTime now = LocalDateTime.now();
 
-        request.setStatus("accepted");
+        request.setStatus("accepted"); // Back to pool/enterprise
         request.setRejectionReason(reason);
-        request.setCollector(null);
-        request.setUpdatedAt(now);
+        request.setCollector(null); // Unassign
+        request.setUpdatedAt(LocalDateTime.now());
         collectionRequestRepository.save(request);
 
         logTracking(request, collectorId, "rejected", "Collector rejected task: " + reason);
@@ -70,21 +58,16 @@ public class CollectorServiceImpl implements CollectorService {
 
     @Override
     @Transactional
-
     public void completeTask(Integer requestId, Integer collectorId) {
-        // Validate ownership + status hiện tại trước khi cập nhật
         CollectionRequest request = getValidRequest(requestId, collectorId, "on_the_way");
-        LocalDateTime now = LocalDateTime.now();
 
         request.setStatus("collected");
-        request.setCollectedAt(now);
-        request.setUpdatedAt(now);
+        request.setCollectedAt(LocalDateTime.now());
+        request.setUpdatedAt(LocalDateTime.now());
         collectionRequestRepository.save(request);
 
         logTracking(request, collectorId, "collected", "Collector completed task");
     }
-
-
 
     private CollectionRequest getValidRequest(Integer requestId, Integer collectorId, String expectedStatus) {
         CollectionRequest request = collectionRequestRepository.findById(requestId)
@@ -95,18 +78,14 @@ public class CollectorServiceImpl implements CollectorService {
         }
 
         if (!expectedStatus.equalsIgnoreCase(request.getStatus())) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    String.format(
-                            "Trạng thái không hợp lệ để thực hiện hành động này. Mong đợi '%s' nhưng thực tế là '%s'.",
-                            expectedStatus,
-                            request.getStatus()
-                    )
-            );
+            String message = String.format("Trạng thái không hợp lệ. Mong đợi '%s' nhưng thực tế là '%s'.", expectedStatus, request.getStatus());
+            if ("on_the_way".equalsIgnoreCase(request.getStatus()) && "assigned".equalsIgnoreCase(expectedStatus)) {
+                message += " Không thể từ chối khi đã bắt đầu di chuyển.";
+            }
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
         }
         return request;
     }
-
 
     private void logTracking(CollectionRequest request, Integer collectorId, String action, String note) {
         CollectionTracking tracking = new CollectionTracking();
