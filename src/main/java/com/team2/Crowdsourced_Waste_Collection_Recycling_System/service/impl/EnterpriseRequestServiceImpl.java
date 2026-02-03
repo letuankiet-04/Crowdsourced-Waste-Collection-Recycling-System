@@ -3,7 +3,7 @@ package com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.impl;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.AuditLog;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectionRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.AuditLogRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.CollectionRequestRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionRequestRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.EnterpriseRequestService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,17 +21,17 @@ public class EnterpriseRequestServiceImpl implements EnterpriseRequestService {
 
     @Override
     @Transactional
-    public void acceptRequest(Integer enterpriseId, Integer collectionRequestId) {
+    public Integer acceptRequest(Integer enterpriseId, String requestCode) {
         if (enterpriseId == null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User hiện tại không phải Enterprise");
         }
-        if (collectionRequestId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu collection_request_id");
+        if (requestCode == null || requestCode.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu request_code");
         }
 
-        int updated = collectionRequestRepository.acceptByEnterprise(collectionRequestId, enterpriseId);
+        int updated = collectionRequestRepository.acceptByEnterpriseByRequestCode(requestCode, enterpriseId);
         if (updated == 0) {
-            CollectionRequest request = collectionRequestRepository.findById(collectionRequestId)
+            CollectionRequest request = collectionRequestRepository.findByRequestCode(requestCode)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection Request không tồn tại"));
             if (request.getEnterprise() == null || request.getEnterprise().getId() == null
                     || !request.getEnterprise().getId().equals(enterpriseId)) {
@@ -46,6 +46,10 @@ public class EnterpriseRequestServiceImpl implements EnterpriseRequestService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể accept Collection Request");
         }
 
+        Integer collectionRequestId = collectionRequestRepository.findByRequestCode(requestCode)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection Request không tồn tại"))
+                .getId();
+
         LocalDateTime now = LocalDateTime.now();
         AuditLog auditLog = new AuditLog();
         auditLog.setActorId(enterpriseId);
@@ -56,5 +60,7 @@ public class EnterpriseRequestServiceImpl implements EnterpriseRequestService {
         auditLog.setMetadata(null);
         auditLog.setCreatedAt(now);
         auditLogRepository.save(auditLog);
+
+        return collectionRequestId;
     }
 }

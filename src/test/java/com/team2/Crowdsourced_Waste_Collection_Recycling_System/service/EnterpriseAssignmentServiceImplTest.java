@@ -5,9 +5,9 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Collectio
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Collector;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Enterprise;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.AuditLogRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.CollectionRequestRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.CollectionTrackingRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.CollectorRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionRequestRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionTrackingRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.impl.EnterpriseAssignmentServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,6 +47,7 @@ class EnterpriseAssignmentServiceImplTest {
 
         CollectionRequest request = new CollectionRequest();
         request.setId(100);
+        request.setRequestCode("CR_TEST_0001");
         request.setEnterprise(enterprise);
         request.setStatus("pending");
 
@@ -56,19 +57,20 @@ class EnterpriseAssignmentServiceImplTest {
         collector.setStatus("active");
 
         when(collectorRepository.findById(200)).thenReturn(Optional.of(collector));
-        when(collectionRequestRepository.assignCollector(100, 200, 10)).thenReturn(1);
+        when(collectionRequestRepository.assignCollectorByRequestCode("CR_TEST_0001", 200, 10)).thenReturn(1);
+        when(collectionRequestRepository.findByRequestCode("CR_TEST_0001")).thenReturn(Optional.of(request));
         when(collectionRequestRepository.getReferenceById(100)).thenReturn(request);
         when(collectionTrackingRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(auditLogRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var response = service.assignCollector(10, 100, 200);
+        var response = service.assignCollector(10, "CR_TEST_0001", 200);
 
         assertEquals(100, response.getCollectionRequestId());
         assertEquals(200, response.getCollectorId());
         assertEquals("assigned", response.getStatus());
         assertNotNull(response.getAssignedAt());
 
-        verify(collectionRequestRepository).assignCollector(100, 200, 10);
+        verify(collectionRequestRepository).assignCollectorByRequestCode("CR_TEST_0001", 200, 10);
         verify(collectionTrackingRepository).save(trackingCaptor.capture());
 
         CollectionTracking tracking = trackingCaptor.getValue();
@@ -86,6 +88,7 @@ class EnterpriseAssignmentServiceImplTest {
 
         CollectionRequest request = new CollectionRequest();
         request.setId(100);
+        request.setRequestCode("CR_TEST_0001");
         request.setEnterprise(enterprise);
         request.setStatus("collected");
 
@@ -95,11 +98,11 @@ class EnterpriseAssignmentServiceImplTest {
         collector.setStatus("active");
 
         when(collectorRepository.findById(200)).thenReturn(Optional.of(collector));
-        when(collectionRequestRepository.assignCollector(100, 200, 10)).thenReturn(0);
-        when(collectionRequestRepository.findById(100)).thenReturn(Optional.of(request));
+        when(collectionRequestRepository.assignCollectorByRequestCode("CR_TEST_0001", 200, 10)).thenReturn(0);
+        when(collectionRequestRepository.findByRequestCode("CR_TEST_0001")).thenReturn(Optional.of(request));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.assignCollector(10, 100, 200));
+                () -> service.assignCollector(10, "CR_TEST_0001", 200));
 
         assertEquals(400, ex.getStatusCode().value());
         verify(collectorRepository).findById(200);

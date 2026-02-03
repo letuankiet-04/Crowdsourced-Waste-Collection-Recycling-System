@@ -1,7 +1,7 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller;
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.config.SecurityConfig;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.authentication.AuthController;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AuthenticationResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.AuthService;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,7 @@ import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfi
  * Test cho AuthController sử dụng MockMvc.
  * Loại bỏ cấu hình Security để tập trung test logic Controller.
  */
-@WebMvcTest(controllers = AuthController.class, 
+@WebMvcTest(controllers = AuthController.class,
     excludeAutoConfiguration = SecurityAutoConfiguration.class,
     excludeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = {
         SecurityConfig.class

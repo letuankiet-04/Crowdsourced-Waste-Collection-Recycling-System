@@ -43,7 +43,7 @@ springdoc:
 
 app:
   seed:
-    enabled: false
+    enabled: true
 
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:dt98write}

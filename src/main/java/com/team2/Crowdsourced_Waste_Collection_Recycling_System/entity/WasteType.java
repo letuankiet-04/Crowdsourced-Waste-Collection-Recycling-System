@@ -31,6 +31,7 @@ public class WasteType {
     @Column(name = "base_points")
     private Integer basePoints;
 
+<<<<<<< Updated upstream
     // @Column(name = "is_recyclable")
     // private Boolean isRecyclable;
 
@@ -42,4 +43,7 @@ public class WasteType {
 
     // @Column(name = "created_at", nullable = false, updatable = false)
     // private LocalDateTime createdAt;
+=======
+
+>>>>>>> Stashed changes
 }

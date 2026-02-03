@@ -93,7 +93,10 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         if ("feedbacks".equals(normalized)) {
             return "feedbacks";
         }
-        throw new IllegalArgumentException("module không hợp lệ (chỉ chấp nhận: reports, requests, feedbacks)");
+        if ("collector_reports".equals(normalized)) {
+            return "collector_reports";
+        }
+        throw new IllegalArgumentException("module không hợp lệ (chỉ chấp nhận: reports, requests, feedbacks, collector_reports)");
     }
 
     @Override

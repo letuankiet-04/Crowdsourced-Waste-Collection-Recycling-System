@@ -17,4 +17,5 @@ public class CreateCollectorResponse {
     Integer collectorId;
     Integer enterpriseId;
     String email;
+    String fullName;
 }

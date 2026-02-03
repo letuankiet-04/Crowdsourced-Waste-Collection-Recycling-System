@@ -36,6 +36,12 @@ public class Collector {
     @JoinColumn(name = "enterprise_id", nullable = false)
     private Enterprise enterprise;
 
+    @Column(name = "email", length = 255)
+    private String email;
+
+    @Column(name = "full_name", length = 255)
+    private String fullName;
+
     @Column(name = "employee_code", length = 50)
     private String employeeCode;
 

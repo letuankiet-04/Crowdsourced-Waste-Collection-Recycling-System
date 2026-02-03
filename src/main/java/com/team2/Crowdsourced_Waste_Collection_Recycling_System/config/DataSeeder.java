@@ -7,13 +7,13 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Permissio
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Role;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.RolePermission;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.User;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.CitizenRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.CollectorRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.EnterpriseRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.PermissionRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.RolePermissionRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.RoleRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.UserRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.citizen.CitizenRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.enterprise.EnterpriseRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.PermissionRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.RolePermissionRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.RoleRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.UserRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -68,7 +68,6 @@ public class DataSeeder {
             // 4. Seed Users
             createUserIfNotFound(userRepository, passwordEncoder, "citizen@test.com", "citizen123", "Test Citizen", citizenRole);
             createUserIfNotFound(userRepository, passwordEncoder, "enterprise@test.com", "enterprise123", "Test Enterprise", enterpriseRole);
-            createUserIfNotFound(userRepository, passwordEncoder, "collector@test.com", "collector123", "Test Collector", collectorRole);
             createUserIfNotFound(userRepository, passwordEncoder, "admin@test.com", "admin123", "Test Admin", adminRole);
 
             userRepository.findByEmail("citizen@test.com").ifPresent(user -> createCitizenIfNotFound(citizenRepository, user));
@@ -76,9 +75,12 @@ public class DataSeeder {
             userRepository.findByEmail("enterprise@test.com").ifPresent(enterpriseUser -> {
                 Enterprise enterprise = createEnterpriseIfNotFound(enterpriseRepository, enterpriseUser);
                 linkEnterpriseToUserIfMissing(userRepository, enterpriseUser, enterprise);
-                userRepository.findByEmail("collector@test.com").ifPresent(collectorUser ->
-                        createCollectorIfNotFound(collectorRepository, collectorUser, enterprise)
-                );
+                createUserIfNotFound(userRepository, passwordEncoder, "collector@test.com", "collector123", "Test Collector", collectorRole);
+                userRepository.findByEmail("collector@test.com").ifPresent(collectorUser -> createCollectorIfNotFound(
+                        collectorRepository,
+                        collectorUser,
+                        enterprise
+                ));
             });
         };
     }
@@ -182,6 +184,8 @@ public class DataSeeder {
         Collector collector = new Collector();
         collector.setUser(collectorUser);
         collector.setEnterprise(enterprise);
+        collector.setEmail(collectorUser.getEmail());
+        collector.setFullName(collectorUser.getFullName());
         collector.setStatus("available");
         collector.setCreatedAt(LocalDateTime.now());
         collectorRepository.save(collector);

@@ -5,9 +5,9 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.AuditLog;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectionRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectionTracking;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.AuditLogRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.CollectionRequestRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.CollectionTrackingRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.CollectorRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionRequestRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionTrackingRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.EnterpriseAssignmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -28,13 +28,12 @@ public class EnterpriseAssignmentServiceImpl implements EnterpriseAssignmentServ
 
     @Override
     @Transactional
-
-    public AssignCollectorResponse assignCollector(Integer enterpriseId, Integer collectionRequestId, Integer collectorId) {
+    public AssignCollectorResponse assignCollector(Integer enterpriseId, String requestCode, Integer collectorId) {
         if (enterpriseId == null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User hiện tại không phải Enterprise");
         }
-        if (collectionRequestId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu collection_request_id");
+        if (requestCode == null || requestCode.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu request_code");
         }
         if (collectorId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu collector_id");
@@ -54,9 +53,9 @@ public class EnterpriseAssignmentServiceImpl implements EnterpriseAssignmentServ
         }
 
         LocalDateTime now = LocalDateTime.now();
-        int updated = collectionRequestRepository.assignCollector(collectionRequestId, collectorId, enterpriseId);
+        int updated = collectionRequestRepository.assignCollectorByRequestCode(requestCode, collectorId, enterpriseId);
         if (updated == 0) {
-            CollectionRequest request = collectionRequestRepository.findById(collectionRequestId)
+            CollectionRequest request = collectionRequestRepository.findByRequestCode(requestCode)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection Request không tồn tại"));
             if (request.getEnterprise() == null || request.getEnterprise().getId() == null
                     || !request.getEnterprise().getId().equals(enterpriseId)) {
@@ -71,6 +70,10 @@ public class EnterpriseAssignmentServiceImpl implements EnterpriseAssignmentServ
             }
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể phân công Collection Request");
         }
+
+        Integer collectionRequestId = collectionRequestRepository.findByRequestCode(requestCode)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection Request không tồn tại"))
+                .getId();
 
         CollectionTracking tracking = new CollectionTracking();
         tracking.setCollectionRequest(collectionRequestRepository.getReferenceById(collectionRequestId));
