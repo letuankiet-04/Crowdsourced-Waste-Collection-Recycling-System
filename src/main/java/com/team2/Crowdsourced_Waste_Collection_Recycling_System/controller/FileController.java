@@ -16,8 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-@RestController
-@RequestMapping("/api/files")
+@RestController("legacyFileController")
+@RequestMapping("/api/files-legacy")
 @RequiredArgsConstructor
 public class FileController {
     private final CloudinaryService cloudinaryService;
