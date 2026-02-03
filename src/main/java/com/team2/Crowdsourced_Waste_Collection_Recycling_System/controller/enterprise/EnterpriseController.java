@@ -57,7 +57,7 @@ public class EnterpriseController {
         return ApiResponse.<AssignCollectorResponse>builder().result(result).build();
     }
 
-    @PostMapping("/{id}/assign")
+    @PostMapping("/{id:\\d+}/assign")
     @PreAuthorize("hasRole('ENTERPRISE')")
     public ApiResponse<AssignCollectorResponse> assignCollector(
             @AuthenticationPrincipal Jwt jwt,
@@ -86,7 +86,7 @@ public class EnterpriseController {
                 .build();
     }
 
-    @PostMapping("/{id}/accept")
+    @PostMapping("/{id:\\d+}/accept")
     @PreAuthorize("hasRole('ENTERPRISE')")
     public ApiResponse<CollectionRequestActionResponse> acceptRequest(
             @AuthenticationPrincipal Jwt jwt,
