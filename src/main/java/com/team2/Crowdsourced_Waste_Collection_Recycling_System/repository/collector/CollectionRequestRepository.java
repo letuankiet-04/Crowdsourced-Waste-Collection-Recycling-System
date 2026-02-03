@@ -23,13 +23,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
 
         String getStatus();
 
-        String getPriority();
-
         java.time.LocalDateTime getAssignedAt();
-
-        java.time.LocalDateTime getEstimatedArrival();
-
-        java.math.BigDecimal getDistanceKm();
 
         java.time.LocalDateTime getCreatedAt();
 
@@ -122,10 +116,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
             cr.id AS id,
             cr.request_code AS requestCode,
             cr.status AS status,
-            cr.priority AS priority,
             cr.assigned_at AS assignedAt,
-            cr.estimated_arrival AS estimatedArrival,
-            cr.distance_km AS distanceKm,
             cr.created_at AS createdAt,
             cr.updated_at AS updatedAt
         FROM collection_requests cr
@@ -145,10 +136,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
             cr.id AS id,
             cr.request_code AS requestCode,
             cr.status AS status,
-            cr.priority AS priority,
             cr.assigned_at AS assignedAt,
-            cr.estimated_arrival AS estimatedArrival,
-            cr.distance_km AS distanceKm,
             cr.created_at AS createdAt,
             cr.updated_at AS updatedAt
         FROM collection_requests cr
@@ -172,10 +160,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
             cr.id AS id,
             cr.request_code AS requestCode,
             cr.status AS status,
-            cr.priority AS priority,
             cr.assigned_at AS assignedAt,
-            cr.estimated_arrival AS estimatedArrival,
-            cr.distance_km AS distanceKm,
             cr.created_at AS createdAt,
             cr.updated_at AS updatedAt
         FROM collection_requests cr

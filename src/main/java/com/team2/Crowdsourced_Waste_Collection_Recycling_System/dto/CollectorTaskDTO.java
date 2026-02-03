@@ -6,7 +6,6 @@ import java.math.BigDecimal;
 public interface CollectorTaskDTO {
     Integer getCollectionRequestId();
     String getRequestCode();
-    String getPriority();
     LocalDateTime getAssignedAt();
     BigDecimal getLatitude();
     BigDecimal getLongitude();
@@ -16,5 +15,4 @@ public interface CollectorTaskDTO {
     String getWasteTypeCode();
     String getWasteTypeName();
     String getWasteDescription();
-    LocalDateTime getEstimatedArrival();
 }

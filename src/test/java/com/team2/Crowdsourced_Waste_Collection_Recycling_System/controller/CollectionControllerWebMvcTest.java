@@ -11,7 +11,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -165,23 +164,8 @@ class CollectionControllerWebMvcTest {
         }
 
         @Override
-        public String getPriority() {
-            return "normal";
-        }
-
-        @Override
         public LocalDateTime getAssignedAt() {
             return LocalDateTime.now();
-        }
-
-        @Override
-        public LocalDateTime getEstimatedArrival() {
-            return LocalDateTime.now().plusMinutes(30);
-        }
-
-        @Override
-        public BigDecimal getDistanceKm() {
-            return new BigDecimal("1.20");
         }
 
         @Override

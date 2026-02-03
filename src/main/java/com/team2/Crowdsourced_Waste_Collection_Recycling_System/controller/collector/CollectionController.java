@@ -3,21 +3,15 @@ package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.coll
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.RejectTaskRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectionRequestActionResponse;
-<<<<<<< Updated upstream:src/main/java/com/team2/Crowdsourced_Waste_Collection_Recycling_System/controller/CollectionController.java
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.CollectionRequestRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorService;
-=======
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionRequestRepository;
->>>>>>> Stashed changes:src/main/java/com/team2/Crowdsourced_Waste_Collection_Recycling_System/controller/collector/CollectionController.java
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
-
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorService;
 
 import java.time.LocalDateTime;
 

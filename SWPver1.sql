@@ -1,4 +1,4 @@
-﻿
+
 USE master;
 GO
 
@@ -182,15 +182,10 @@ CREATE TABLE collection_requests (
     enterprise_id INT NOT NULL FOREIGN KEY REFERENCES enterprise(id),
     collector_id INT FOREIGN KEY REFERENCES collectors(id),
     status NVARCHAR(20) DEFAULT 'pending',
-    priority NVARCHAR(20) DEFAULT 'normal',
     rejection_reason NVARCHAR(500),
     assigned_at DATETIME2,
-    estimated_arrival DATETIME2,
     actual_weight_kg DECIMAL(10,2),
-    collection_images NVARCHAR(MAX),
     collected_at DATETIME2,
-    collection_note NVARCHAR(500),
-    distance_km DECIMAL(10,2),
     created_at DATETIME2 DEFAULT GETDATE(),
     updated_at DATETIME2 DEFAULT GETDATE()
 );
