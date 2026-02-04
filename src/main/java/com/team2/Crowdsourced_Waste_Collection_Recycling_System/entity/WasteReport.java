@@ -1,6 +1,6 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity;
 
-// mapped from table waste_reports
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -8,7 +8,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
 import jakarta.persistence.Lob;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -18,6 +20,8 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "waste_reports")
@@ -38,9 +42,9 @@ public class WasteReport {
     @JoinColumn(name = "citizen_id", nullable = false)
     private Citizen citizen;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "waste_type_id", nullable = false)
-    private WasteType wasteType;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "waste_report_types", joinColumns = @JoinColumn(name = "waste_report_id"), inverseJoinColumns = @JoinColumn(name = "waste_type_id"))
+    private List<WasteType> wasteTypes = new ArrayList<>();
 
     @Column(name = "description", length = 1000)
     private String description;

@@ -27,6 +27,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -51,17 +53,22 @@ public class WasteReportServiceImpl implements WasteReportService {
         // 2. Check daily limit
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = LocalDate.now().atTime(23, 59, 59);
-        long todayReports = wasteReportRepository.countByCitizen_IdAndCreatedAtBetween(citizen.getId(), startOfDay, endOfDay);
+        long todayReports = wasteReportRepository.countByCitizen_IdAndCreatedAtBetween(citizen.getId(), startOfDay,
+                endOfDay);
 
         if (todayReports >= 5) {
             log.warn("Citizen {} exceeded daily report limit", citizen.getId());
             throw new AppException(ErrorCode.DAILY_REPORT_LIMIT_EXCEEDED);
         }
 
-        // 3. Validate inputs (WasteType)
-        WasteType wasteType = wasteTypeRepository.findByCode(request.getWasteType())
-                .or(() -> wasteTypeRepository.findByName(request.getWasteType()))
-                .orElseThrow(() -> new AppException(ErrorCode.WASTE_TYPE_NOT_FOUND));
+        // 3. Validate and fetch WasteTypes
+        List<WasteType> wasteTypes = new ArrayList<>();
+        for (String wasteTypeCode : request.getWasteTypes()) {
+            WasteType wasteType = wasteTypeRepository.findByCode(wasteTypeCode)
+                    .or(() -> wasteTypeRepository.findByName(wasteTypeCode))
+                    .orElseThrow(() -> new AppException(ErrorCode.WASTE_TYPE_NOT_FOUND));
+            wasteTypes.add(wasteType);
+        }
 
         // 4. Upload Image
         String imageUrl = uploadImage(request.getImage());
@@ -69,21 +76,21 @@ public class WasteReportServiceImpl implements WasteReportService {
         // 5. Create WasteReport
         WasteReport report = new WasteReport();
         report.setCitizen(citizen);
-        report.setWasteType(wasteType);
+        report.getWasteTypes().addAll(wasteTypes);
         report.setDescription(request.getDescription());
         report.setLatitude(BigDecimal.valueOf(request.getLatitude()));
         report.setLongitude(BigDecimal.valueOf(request.getLongitude()));
         report.setStatus("PENDING");
         report.setImages(imageUrl); // Saving URL to images column
-        
+
         // Generate Report Code
         String reportCode = "WR-" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().substring(0, 4);
         report.setReportCode(reportCode);
-        
+
         // Set creation time
         report.setCreatedAt(LocalDateTime.now());
         report.setUpdatedAt(LocalDateTime.now());
-        
+
         // Save Report
         report = wasteReportRepository.save(report);
         log.info("Waste report created: {} by citizen: {}", reportCode, citizenEmail);
