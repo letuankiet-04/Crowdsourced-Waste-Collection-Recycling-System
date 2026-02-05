@@ -10,11 +10,11 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Role;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.User;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.AppException;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.ErrorCode;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.CitizenRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.CollectorRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.InvalidatedTokenRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.RoleRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.UserRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.citizen.CitizenRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.InvalidatedTokenRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.RoleRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.UserRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.AuthService;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.util.JWTHelper;
 import com.nimbusds.jose.JOSEException;
@@ -131,13 +131,17 @@ public class AuthServiceImpl implements AuthService {
         if (user.getRole() != null && user.getRole().getRoleCode() != null && user.getId() != null) {
             String roleCode = user.getRole().getRoleCode();
             if ("COLLECTOR".equalsIgnoreCase(roleCode)) {
-                var collector = collectorRepository.findByUserId(user.getId()).orElse(null);
-                if (collector != null) {
-                    collectorId = collector.getId();
-                    if (collector.getEnterprise() != null) {
-                        enterpriseId = collector.getEnterprise().getId();
-                    }
+                Collector collector = collectorRepository.findByUserId(user.getId())
+                        .orElseThrow(() -> new ResponseStatusException(
+                                HttpStatus.CONFLICT,
+                                "Tài khoản COLLECTOR thiếu hồ sơ collector"
+                        ));
+
+                collectorId = collector.getId();
+                if (collector.getEnterprise() == null || collector.getEnterprise().getId() == null) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Collector thiếu enterprise");
                 }
+                enterpriseId = collector.getEnterprise().getId();
             } else if ("ENTERPRISE".equalsIgnoreCase(roleCode) || "ENTERPRISE_ADMIN".equalsIgnoreCase(roleCode)) {
                 if (user.getEnterprise() != null) {
                     enterpriseId = user.getEnterprise().getId();
@@ -149,6 +153,8 @@ public class AuthServiceImpl implements AuthService {
         return AuthenticationResponse.builder()
                 .token(token)
                 .authenticated(true)
+                .email(user.getEmail())
+                .fullName(user.getFullName())
                 .citizenId(citizenId)
                 .collectorId(collectorId)
                 .enterpriseId(enterpriseId)

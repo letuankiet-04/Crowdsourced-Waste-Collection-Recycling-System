@@ -1,12 +1,12 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.service;
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectionRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectionTracking;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Collector;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.AuditLogRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.CollectionRequestRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.CollectionTrackingRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.CollectorRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionRequestRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionTrackingRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.impl.CollectorServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -31,8 +30,6 @@ class CollectorServiceImplTest {
     CollectionTrackingRepository collectionTrackingRepository;
     @Mock
     CollectorRepository collectorRepository;
-    @Mock
-    AuditLogRepository auditLogRepository;
 
     @InjectMocks
     CollectorServiceImpl service;
@@ -52,7 +49,6 @@ class CollectorServiceImplTest {
         when(collectionRequestRepository.getReferenceById(100)).thenReturn(request);
         when(collectorRepository.getReferenceById(200)).thenReturn(collector);
         when(collectionTrackingRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(auditLogRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         service.acceptTask(100, 200);
 
@@ -73,16 +69,15 @@ class CollectorServiceImplTest {
         CollectionRequest request = new CollectionRequest();
         request.setId(100);
 
-        when(collectionRequestRepository.updateStatusIfMatch(eq(100), eq(200), eq("accepted_collector"), eq("on_the_way"), any(LocalDateTime.class)))
+        when(collectionRequestRepository.updateStatusIfMatch(eq(100), eq(200), eq(CollectionRequestStatus.ACCEPTED_COLLECTOR), eq(CollectionRequestStatus.ON_THE_WAY), any(LocalDateTime.class)))
                 .thenReturn(1);
         when(collectionRequestRepository.getReferenceById(100)).thenReturn(request);
         when(collectorRepository.getReferenceById(200)).thenReturn(collector);
         when(collectionTrackingRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(auditLogRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         service.startTask(100, 200);
 
-        verify(collectionRequestRepository).updateStatusIfMatch(eq(100), eq(200), eq("accepted_collector"), eq("on_the_way"), any(LocalDateTime.class));
+        verify(collectionRequestRepository).updateStatusIfMatch(eq(100), eq(200), eq(CollectionRequestStatus.ACCEPTED_COLLECTOR), eq(CollectionRequestStatus.ON_THE_WAY), any(LocalDateTime.class));
         verify(collectionTrackingRepository).save(trackingCaptor.capture());
         CollectionTracking tracking = trackingCaptor.getValue();
         assertEquals("started", tracking.getAction());
@@ -110,7 +105,6 @@ class CollectorServiceImplTest {
         when(collectionRequestRepository.getReferenceById(100)).thenReturn(request);
         when(collectorRepository.getReferenceById(200)).thenReturn(collector);
         when(collectionTrackingRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(auditLogRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         service.rejectTask(100, 200, "bận");
 
@@ -133,7 +127,6 @@ class CollectorServiceImplTest {
         when(collectionRequestRepository.getReferenceById(100)).thenReturn(request);
         when(collectorRepository.getReferenceById(200)).thenReturn(collector);
         when(collectionTrackingRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(auditLogRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         service.completeTask(100, 200);
 
