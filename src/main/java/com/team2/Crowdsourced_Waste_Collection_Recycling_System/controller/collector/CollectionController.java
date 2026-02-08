@@ -3,22 +3,33 @@ package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.coll
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.CreateCollectorReportRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.RejectTaskRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorMonthlyCompletedCountResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorPerformanceStatsResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectionRequestActionResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorReportResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorWorkHistoryItemResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionRequestRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorReportService;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -28,6 +39,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/collector/collections")
 @RequiredArgsConstructor
+@Validated
 public class CollectionController {
     private final CollectionRequestRepository collectionRequestRepository;
     private final CollectorService collectorService;
@@ -57,8 +69,75 @@ public class CollectionController {
         return ApiResponse.<List<CollectionRequestRepository.CollectorTaskView>>builder().result(tasks).build();
     }
 
+    @GetMapping("/work_history")
+    @PreAuthorize("hasRole('COLLECTOR')")
+    public ApiResponse<List<CollectorWorkHistoryItemResponse>> getWorkHistory(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(value = "status", required = false) String status) {
+        Integer collectorId = extractCollectorId(jwt);
+        List<CollectionRequestRepository.CollectorWorkHistoryView> rows;
+        if (status != null && !status.isBlank()) {
+            rows = collectionRequestRepository.findWorkHistoryForCollectorByStatus(collectorId, status);
+        } else {
+            rows = collectionRequestRepository.findWorkHistoryForCollector(collectorId);
+        }
+
+        List<CollectorWorkHistoryItemResponse> result = new ArrayList<>();
+        for (var row : rows) {
+            result.add(CollectorWorkHistoryItemResponse.builder()
+                    .collectionRequestId(row.getId())
+                    .requestCode(row.getRequestCode())
+                    .status(row.getStatus())
+                    .address(row.getAddress())
+                    .wasteTypeCode(row.getWasteTypeCode())
+                    .wasteTypeName(row.getWasteTypeName())
+                    .enterpriseId(row.getEnterpriseId())
+                    .enterpriseName(row.getEnterpriseName())
+                    .startedAt(row.getStartedAt())
+                    .collectedAt(row.getCollectedAt())
+                    .completedAt(row.getCompletedAt())
+                    .updatedAt(row.getUpdatedAt())
+                    .build());
+        }
+
+        return ApiResponse.<List<CollectorWorkHistoryItemResponse>>builder()
+                .result(result)
+                .build();
+    }
+
+    @GetMapping("/stats")
+    @PreAuthorize("hasRole('COLLECTOR')")
+    public ApiResponse<CollectorPerformanceStatsResponse> getStats(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(value = "year", required = false) Integer year) {
+        Integer collectorId = extractCollectorId(jwt);
+        int selectedYear = year != null ? year : LocalDate.now().getYear();
+
+        long totalCompleted = collectionRequestRepository.countByCollector_IdAndStatus(
+                collectorId, CollectionRequestStatus.COMPLETED);
+        List<CollectionRequestRepository.CollectorMonthlyCompletedCountView> rows =
+                collectionRequestRepository.countCompletedByMonth(collectorId, selectedYear);
+
+        List<CollectorMonthlyCompletedCountResponse> completedByMonth = new ArrayList<>();
+        for (var row : rows) {
+            completedByMonth.add(CollectorMonthlyCompletedCountResponse.builder()
+                    .year(row.getYear())
+                    .month(row.getMonth())
+                    .total(row.getTotal())
+                    .build());
+        }
+
+        return ApiResponse.<CollectorPerformanceStatsResponse>builder()
+                .result(CollectorPerformanceStatsResponse.builder()
+                        .totalCompleted(totalCompleted)
+                        .year(selectedYear)
+                        .completedByMonth(completedByMonth)
+                        .build())
+                .build();
+    }
+
     /**
-     * Collector nhận task: assigned -> accepted_collector.
+     * Collector bắt đầu di chuyển: assigned -> on_the_way.
      */
     @PostMapping("/{requestId}/accept")
     @PreAuthorize("hasRole('COLLECTOR')")
@@ -70,7 +149,7 @@ public class CollectionController {
         return ApiResponse.<CollectionRequestActionResponse>builder()
                 .result(CollectionRequestActionResponse.builder()
                         .collectionRequestId(requestId)
-                        .status("accepted_collector")
+                        .status("on_the_way")
                         .actionAt(LocalDateTime.now())
                         .build())
                 .build();
@@ -119,9 +198,29 @@ public class CollectionController {
     }
 
     /**
-     * Collector hoàn tất task:
+     * Collector xác nhận đã thu gom tại điểm:
+     * - Cập nhật collection_request.status: on_the_way -> collected
+     */
+    @PostMapping("/{requestId}/collected")
+    @PreAuthorize("hasRole('COLLECTOR')")
+    public ApiResponse<CollectionRequestActionResponse> markCollected(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Integer requestId) {
+        Integer collectorId = extractCollectorId(jwt);
+        collectorService.completeTask(requestId, collectorId);
+        return ApiResponse.<CollectionRequestActionResponse>builder()
+                .result(CollectionRequestActionResponse.builder()
+                        .collectionRequestId(requestId)
+                        .status("collected")
+                        .actionAt(LocalDateTime.now())
+                        .build())
+                .build();
+    }
+
+    /**
+     * Collector xác nhận hoàn tất thu gom (bắt buộc có ảnh):
      * - Tạo collector_report (kèm ảnh)
-     * - Cập nhật collection_request.status -> collected
+     * - Cập nhật collection_request.status: collected -> completed
      */
     @PostMapping(value = "/{requestId}/complete", consumes = {"multipart/form-data"})
     @PreAuthorize("hasRole('COLLECTOR')")
@@ -162,12 +261,19 @@ public class CollectionController {
      */
     @GetMapping("/list_reports")
     @PreAuthorize("hasRole('COLLECTOR')")
-    public ApiResponse<List<CollectorReportResponse>> getMyReports(
-            @AuthenticationPrincipal Jwt jwt) {
+    public ApiResponse<Page<CollectorReportResponse>> getMyReports(
+            @AuthenticationPrincipal Jwt jwt,
+            // pagination: page bat dau tu 1
+            @RequestParam(value = "page", required = false, defaultValue = "1") @Min(1) Integer page,
+            // pagination: size toi da 12
+            @RequestParam(value = "size", required = false, defaultValue = "12") @Min(1) @Max(12) Integer size) {
         Integer collectorId = extractCollectorId(jwt);
-        List<CollectorReportResponse> reports = collectorReportService.getReportsByCollector(collectorId);
+        Page<CollectorReportResponse> reports = collectorReportService.getReportsByCollector(
+                collectorId,
+                // page index bat dau tu 0
+                PageRequest.of(page - 1, size));
 
-        return ApiResponse.<List<CollectorReportResponse>>builder()
+        return ApiResponse.<Page<CollectorReportResponse>>builder()
                 .result(reports)
                 .build();
     }

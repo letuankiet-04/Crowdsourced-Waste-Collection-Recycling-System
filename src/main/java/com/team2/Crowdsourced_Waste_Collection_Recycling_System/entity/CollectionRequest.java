@@ -67,6 +67,9 @@ public class CollectionRequest {
     @Column(name = "collected_at")
     private LocalDateTime collectedAt;
 
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

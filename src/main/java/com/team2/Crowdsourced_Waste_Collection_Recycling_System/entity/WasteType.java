@@ -22,8 +22,15 @@ public class WasteType {
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "waste_category_id")
+    private WasteCategory wasteCategory;
+
     @Column(name = "base_points")
     private Integer basePoints;
+
+    @Column(name = "sla_hours")
+    private Integer slaHours;
 
     @Column(name = "is_recyclable")
     private Boolean isRecyclable;
