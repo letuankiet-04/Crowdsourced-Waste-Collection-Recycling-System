@@ -14,6 +14,7 @@ GO
 USE WasteManagementDB;
 GO
 
+-- Roles
 CREATE TABLE roles (
     id INT IDENTITY(1,1) NOT NULL,
     role_code NVARCHAR(20) NOT NULL,
@@ -26,6 +27,7 @@ CREATE TABLE roles (
 );
 GO
 
+-- Permissions
 CREATE TABLE permissions (
     id INT IDENTITY(1,1) NOT NULL,
     permission_code NVARCHAR(100) NOT NULL,
@@ -37,6 +39,7 @@ CREATE TABLE permissions (
 );
 GO
 
+-- Role Permissions
 CREATE TABLE role_permissions (
     id INT IDENTITY(1,1) NOT NULL,
     role_id INT NOT NULL,
@@ -48,6 +51,7 @@ CREATE TABLE role_permissions (
 );
 GO
 
+-- Enterprise
 CREATE TABLE enterprise (
     id INT IDENTITY(1,1) NOT NULL,
     name NVARCHAR(255) NOT NULL,
@@ -70,6 +74,7 @@ CREATE TABLE enterprise (
 );
 GO
 
+-- Users
 CREATE TABLE users (
     id INT IDENTITY(1,1) NOT NULL,
     email NVARCHAR(255) NOT NULL,
@@ -91,6 +96,7 @@ CREATE TABLE users (
 );
 GO
 
+-- Citizens
 CREATE TABLE citizens (
     id INT IDENTITY(1,1) NOT NULL,
     user_id INT NOT NULL,
@@ -110,22 +116,36 @@ CREATE TABLE citizens (
 );
 GO
 
+-- Waste Categories (NEW)
+CREATE TABLE waste_categories (
+    id INT IDENTITY(1,1) NOT NULL,
+    name NVARCHAR(100) NOT NULL,
+    description NVARCHAR(500) NULL,
+    created_at DATETIME2 NULL,
+    CONSTRAINT pk_waste_categories PRIMARY KEY (id),
+    CONSTRAINT uq_waste_categories_name UNIQUE (name)
+);
+GO
+
+-- Waste Types (UPDATED)
 CREATE TABLE waste_types (
     id INT IDENTITY(1,1) NOT NULL,
     code NVARCHAR(20) NOT NULL,
     name NVARCHAR(100) NOT NULL,
     description NVARCHAR(500) NULL,
-    category NVARCHAR(50) NOT NULL,
+    waste_category_id INT NULL, -- Changed from category NVARCHAR(50)
     base_points INT NULL,
     is_recyclable BIT NULL,
     handling_instructions NVARCHAR(1000) NULL,
     icon_url NVARCHAR(500) NULL,
     created_at DATETIME2 NULL,
     CONSTRAINT pk_waste_types PRIMARY KEY (id),
-    CONSTRAINT uq_waste_types_code UNIQUE (code)
+    CONSTRAINT uq_waste_types_code UNIQUE (code),
+    CONSTRAINT fk_waste_types_category FOREIGN KEY (waste_category_id) REFERENCES waste_categories(id)
 );
 GO
 
+-- Waste Reports
 CREATE TABLE waste_reports (
     id INT IDENTITY(1,1) NOT NULL,
     report_code NVARCHAR(50) NOT NULL,
@@ -138,6 +158,7 @@ CREATE TABLE waste_reports (
     address NVARCHAR(500) NULL,
     images NVARCHAR(MAX) NULL,
     status NVARCHAR(20) NULL,
+    cloudinary_public_id NVARCHAR(255) NULL,
     created_at DATETIME2 NULL,
     updated_at DATETIME2 NULL,
     CONSTRAINT pk_waste_reports PRIMARY KEY (id),
@@ -147,6 +168,7 @@ CREATE TABLE waste_reports (
 );
 GO
 
+-- Report Images
 CREATE TABLE report_images (
     id INT IDENTITY(1,1) NOT NULL,
     report_id INT NOT NULL,
@@ -158,6 +180,7 @@ CREATE TABLE report_images (
 );
 GO
 
+-- Collectors
 CREATE TABLE collectors (
     id INT IDENTITY(1,1) NOT NULL,
     user_id INT NOT NULL,
@@ -182,6 +205,7 @@ CREATE TABLE collectors (
 );
 GO
 
+-- Collection Requests
 CREATE TABLE collection_requests (
     id INT IDENTITY(1,1) NOT NULL,
     request_code NVARCHAR(20) NOT NULL,
@@ -205,6 +229,7 @@ CREATE TABLE collection_requests (
 );
 GO
 
+-- Collection Request Images
 CREATE TABLE collection_request_images (
     id INT IDENTITY(1,1) NOT NULL,
     collection_request_id INT NOT NULL,
@@ -217,6 +242,7 @@ CREATE TABLE collection_request_images (
 );
 GO
 
+-- Collection Tracking
 CREATE TABLE collection_tracking (
     id INT IDENTITY(1,1) NOT NULL,
     collection_request_id INT NOT NULL,
@@ -233,6 +259,7 @@ CREATE TABLE collection_tracking (
 );
 GO
 
+-- Collector Reports
 CREATE TABLE collector_reports (
     id INT IDENTITY(1,1) NOT NULL,
     collection_request_id INT NOT NULL,
@@ -250,6 +277,7 @@ CREATE TABLE collector_reports (
 );
 GO
 
+-- Collector Report Images
 CREATE TABLE collector_report_images (
     id INT IDENTITY(1,1) NOT NULL,
     collector_report_id INT NOT NULL,
@@ -261,6 +289,7 @@ CREATE TABLE collector_report_images (
 );
 GO
 
+-- Feedbacks
 CREATE TABLE feedbacks (
     id INT IDENTITY(1,1) NOT NULL,
     feedback_code NVARCHAR(20) NOT NULL,
@@ -289,6 +318,7 @@ CREATE TABLE feedbacks (
 );
 GO
 
+-- Invalidated Tokens
 CREATE TABLE invalidated_tokens (
     id NVARCHAR(255) NOT NULL,
     expiry_time DATETIME2 NULL,
@@ -296,6 +326,7 @@ CREATE TABLE invalidated_tokens (
 );
 GO
 
+-- Leaderboard
 CREATE TABLE leaderboard (
     id INT IDENTITY(1,1) NOT NULL,
     citizen_id INT NOT NULL,
@@ -315,6 +346,7 @@ CREATE TABLE leaderboard (
 );
 GO
 
+-- Point Rules
 CREATE TABLE point_rules (
     id INT IDENTITY(1,1) NOT NULL,
     enterprise_id INT NOT NULL,
@@ -339,6 +371,7 @@ CREATE TABLE point_rules (
 );
 GO
 
+-- Point Transactions
 CREATE TABLE point_transactions (
     id INT IDENTITY(1,1) NOT NULL,
     citizen_id INT NOT NULL,
@@ -360,6 +393,7 @@ CREATE TABLE point_transactions (
 );
 GO
 
+-- System Settings
 CREATE TABLE system_settings (
     id INT IDENTITY(1,1) NOT NULL,
     setting_key NVARCHAR(100) NOT NULL,

@@ -59,12 +59,12 @@ class CollectorReportServiceImplTest {
         // Arrange
         Integer collectorId = 1;
         Integer requestId = 100;
-        BigDecimal actualWeight = new BigDecimal("5.5");
+        BigDecimal actualWeightOrganic = new BigDecimal("5.5");
 
         CreateCollectorReportRequest requestDto = new CreateCollectorReportRequest();
         requestDto.setCollectionRequestId(requestId);
         requestDto.setCollectorNote("Done");
-        requestDto.setActualWeight(actualWeight);
+        requestDto.setActualWeightOrganic(actualWeightOrganic);
         requestDto.setAddress("123 Test Street");
         
         MockMultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "test image content".getBytes());
@@ -79,38 +79,57 @@ class CollectorReportServiceImplTest {
         CollectionRequest collectionRequest = new CollectionRequest();
         collectionRequest.setId(requestId);
         collectionRequest.setCollector(collector);
-        collectionRequest.setStatus(CollectionRequestStatus.ON_THE_WAY);
+        collectionRequest.setStatus(CollectionRequestStatus.COLLECTED);
         WasteReport wasteReport = new WasteReport();
         collectionRequest.setReport(wasteReport);
 
         when(collectionRequestRepository.findById(requestId)).thenReturn(Optional.of(collectionRequest));
         when(collectorReportRepository.findByCollectionRequestId(requestId)).thenReturn(Optional.empty());
         when(collectorRepository.getReferenceById(collectorId)).thenReturn(collector);
-        
-        CollectorReport savedReport = new CollectorReport();
-        savedReport.setId(1);
-        savedReport.setCollector(collector);
-        savedReport.setCollectionRequest(collectionRequest);
-        savedReport.setActualWeight(actualWeight);
-        
-        when(collectorReportRepository.save(any(CollectorReport.class))).thenReturn(savedReport);
+        when(collectionRequestRepository.confirmCompleted(eq(requestId), eq(collectorId), any())).thenReturn(1);
+
+        when(collectorReportRepository.save(any(CollectorReport.class))).thenAnswer(invocation -> {
+            CollectorReport input = invocation.getArgument(0);
+            CollectorReport out = new CollectorReport();
+            out.setId(input.getId() != null ? input.getId() : 1);
+            out.setReportCode(input.getReportCode());
+            out.setCollector(input.getCollector());
+            out.setCollectionRequest(input.getCollectionRequest());
+            out.setStatus(input.getStatus());
+            out.setCollectorNote(input.getCollectorNote());
+            out.setActualWeightOrganic(input.getActualWeightOrganic());
+            out.setActualWeightRecyclable(input.getActualWeightRecyclable());
+            out.setActualWeightHazardous(input.getActualWeightHazardous());
+            out.setCollectedAt(input.getCollectedAt());
+            out.setCreatedAt(input.getCreatedAt());
+            out.setLatitude(input.getLatitude());
+            out.setLongitude(input.getLongitude());
+            return out;
+        });
         when(cloudinaryService.uploadImage(any(), any())).thenReturn(CloudinaryResponse.builder().url("http://img.com/1.jpg").publicId("pid1").build());
 
         // Act
         CollectorReportResponse response = collectorReportService.createCollectorReport(requestDto, collectorId);
 
         // Assert
-        verify(collectorReportRepository).save(reportCaptor.capture());
-        CollectorReport capturedReport = reportCaptor.getValue();
-        assertEquals(actualWeight, capturedReport.getActualWeight());
-        assertEquals("Done", capturedReport.getCollectorNote());
+        verify(collectorReportRepository, times(2)).save(reportCaptor.capture());
+        CollectorReport firstSave = reportCaptor.getAllValues().getFirst();
+        CollectorReport secondSave = reportCaptor.getAllValues().getLast();
+
+        assertNull(firstSave.getReportCode());
+        assertEquals("CR000001", secondSave.getReportCode());
+        assertEquals(actualWeightOrganic, secondSave.getActualWeightOrganic());
+        assertEquals("Done", secondSave.getCollectorNote());
 
         verify(collectionRequestRepository).save(requestCaptor.capture());
         CollectionRequest capturedRequest = requestCaptor.getValue();
         assertEquals(CollectionRequestStatus.COLLECTED, capturedRequest.getStatus());
-        assertEquals(actualWeight, capturedRequest.getActualWeightKg());
+        assertEquals(actualWeightOrganic, capturedRequest.getActualWeightKg());
+
+        verify(collectionRequestRepository).confirmCompleted(eq(requestId), eq(collectorId), any());
         
         assertNotNull(response);
-        assertEquals(actualWeight, response.getActualWeight());
+        assertEquals("CR000001", response.getReportCode());
+        assertEquals(actualWeightOrganic, response.getActualWeightOrganic());
     }
 }

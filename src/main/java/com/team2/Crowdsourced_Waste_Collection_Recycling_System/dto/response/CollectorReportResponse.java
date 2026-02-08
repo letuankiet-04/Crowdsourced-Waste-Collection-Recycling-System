@@ -16,6 +16,8 @@ import java.util.List;
 public class CollectorReportResponse {
     Integer reportId;
 
+    String reportCode;
+
     Integer collectionRequestId;
 
     Integer collectorId;
@@ -26,7 +28,11 @@ public class CollectorReportResponse {
 
     String collectorNote;
 
-    BigDecimal actualWeight;
+    BigDecimal actualWeightOrganic;
+
+    BigDecimal actualWeightRecyclable;
+
+    BigDecimal actualWeightHazardous;
 
     BigDecimal latitude;
 

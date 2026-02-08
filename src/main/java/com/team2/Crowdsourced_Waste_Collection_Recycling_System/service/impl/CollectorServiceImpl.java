@@ -4,6 +4,8 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Collectio
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectionTracking;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Collector;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.WasteReportStatus;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.citizen.WasteReportRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionRequestRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionTrackingRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
@@ -22,32 +24,38 @@ public class CollectorServiceImpl implements CollectorService {
     private final CollectionRequestRepository collectionRequestRepository;
     private final CollectionTrackingRepository collectionTrackingRepository;
     private final CollectorRepository collectorRepository;
+    private final WasteReportRepository wasteReportRepository;
 
     @Override
     @Transactional
     /**
-     * assigned -> accepted_collector.
+     * assigned -> on_the_way.
      */
     public void acceptTask(Integer requestId, Integer collectorId) {
         LocalDateTime now = LocalDateTime.now();
-        int updated = collectionRequestRepository.acceptTask(requestId, collectorId, now);
+        int updated = collectionRequestRepository.updateStatusIfMatch(
+                requestId, collectorId, CollectionRequestStatus.ASSIGNED, CollectionRequestStatus.ON_THE_WAY, now);
         if (updated == 0) {
             throwUpdateStatusError(requestId, collectorId, CollectionRequestStatus.ASSIGNED);
         }
-        logTracking(requestId, collectorId, "accepted", "Collector accepted task");
+        logTracking(requestId, collectorId, "started", "Collector started moving");
     }
 
     @Override
     @Transactional
     /**
-     * accepted_collector -> on_the_way.
+     * assigned/accepted_collector -> on_the_way.
      */
     public void startTask(Integer requestId, Integer collectorId) {
         LocalDateTime now = LocalDateTime.now();
         int updated = collectionRequestRepository.updateStatusIfMatch(
-                requestId, collectorId, CollectionRequestStatus.ACCEPTED_COLLECTOR, CollectionRequestStatus.ON_THE_WAY, now);
+                requestId, collectorId, CollectionRequestStatus.ASSIGNED, CollectionRequestStatus.ON_THE_WAY, now);
         if (updated == 0) {
-            throwUpdateStatusError(requestId, collectorId, CollectionRequestStatus.ACCEPTED_COLLECTOR);
+            updated = collectionRequestRepository.updateStatusIfMatch(
+                    requestId, collectorId, CollectionRequestStatus.ACCEPTED_COLLECTOR, CollectionRequestStatus.ON_THE_WAY, now);
+        }
+        if (updated == 0) {
+            throwUpdateStatusError(requestId, collectorId, CollectionRequestStatus.ASSIGNED);
         }
         logTracking(requestId, collectorId, "started", "Collector started moving");
     }
@@ -81,6 +89,14 @@ public class CollectorServiceImpl implements CollectorService {
         int updated = collectionRequestRepository.completeTask(requestId, collectorId, now);
         if (updated == 0) {
             throwUpdateStatusError(requestId, collectorId, CollectionRequestStatus.ON_THE_WAY);
+        }
+        CollectionRequest request = collectionRequestRepository.findByIdAndCollector_Id(requestId, collectorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection Request không tồn tại"));
+        if (request.getReport() != null) {
+            var wasteReport = request.getReport();
+            wasteReport.setStatus(WasteReportStatus.COLLECTED);
+            wasteReport.setUpdatedAt(now);
+            wasteReportRepository.save(wasteReport);
         }
         logTracking(requestId, collectorId, "collected", "Collector completed task");
     }

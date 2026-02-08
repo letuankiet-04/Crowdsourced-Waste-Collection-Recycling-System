@@ -36,6 +36,9 @@ public class CollectorReport {
     @Column(name = "id", nullable = false)
     private Integer id;
 
+    @Column(name = "report_code", unique = true, length = 20)
+    private String reportCode;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "collection_request_id", nullable = false)
     private CollectionRequest collectionRequest;
@@ -50,8 +53,15 @@ public class CollectorReport {
     @Column(name = "collector_note", length = 1000)
     private String collectorNote;
 
-    @Column(name = "actual_weight")
-    private BigDecimal actualWeight;
+    @Column(name = "actual_weight_organic")
+    private BigDecimal actualWeightOrganic;
+
+    @Column(name = "actual_weight_recyclable")
+    private BigDecimal actualWeightRecyclable;
+
+    @Column(name = "actual_weight_hazardous")
+    private BigDecimal actualWeightHazardous;
+
 
     @Column(name = "collected_at")
     private LocalDateTime collectedAt;

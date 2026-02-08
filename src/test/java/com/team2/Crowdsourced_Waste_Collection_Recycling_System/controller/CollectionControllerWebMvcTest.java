@@ -100,7 +100,7 @@ class CollectionControllerWebMvcTest {
                                 .jwt(j -> j.claim("collectorId", 200))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.collectionRequestId").value(100))
-                .andExpect(jsonPath("$.result.status").value("accepted_collector"));
+                .andExpect(jsonPath("$.result.status").value("on_the_way"));
 
         verify(collectorService).acceptTask(100, 200);
         verifyNoMoreInteractions(collectorService);
@@ -154,7 +154,7 @@ class CollectionControllerWebMvcTest {
         mockMvc.perform(multipart("/api/collector/collections/{id}/complete", 103)
                         .file(file)
                         .param("collectorNote", "done")
-                        .param("actualWeight", "5.5")
+                        .param("actualWeightOrganic", "5.5")
                         .param("address", "123 Test Street")
                         .with(jwt().authorities(createAuthorityList("ROLE_COLLECTOR"))
                                 .jwt(j -> j.claim("collectorId", 200))))
@@ -164,6 +164,19 @@ class CollectionControllerWebMvcTest {
                 .andExpect(jsonPath("$.result.collectorId").value(200));
 
         verify(collectorReportService).createCollectorReport(any(), eq(200));
+    }
+
+    @Test
+    void markCollected_calls_service_and_returns_expected_status() throws Exception {
+        mockMvc.perform(post("/api/collector/collections/{id}/collected", 104)
+                        .with(jwt().authorities(createAuthorityList("ROLE_COLLECTOR"))
+                                .jwt(j -> j.claim("collectorId", 200))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.collectionRequestId").value(104))
+                .andExpect(jsonPath("$.result.status").value("collected"));
+
+        verify(collectorService).completeTask(104, 200);
+        verifyNoMoreInteractions(collectorService);
     }
 
     @Test

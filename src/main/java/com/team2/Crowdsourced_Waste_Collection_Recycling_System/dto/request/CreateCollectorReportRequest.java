@@ -1,7 +1,7 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -17,14 +17,18 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateCollectorReportRequest {
     Integer collectionRequestId;
-    @NotBlank(message = "Collector Note is required")
     @Size(max = 1000, message = "Do not exceed 1000 characters.")
     String collectorNote;
 
-    @NotNull(message = "Actual weight is required")
-    BigDecimal actualWeight;
+    @PositiveOrZero(message = "Actual weight organic must be >= 0")
+    BigDecimal actualWeightOrganic;
 
-    @NotBlank(message = "Address is required")
+    @PositiveOrZero(message = "Actual weight recyclable must be >= 0")
+    BigDecimal actualWeightRecyclable;
+
+    @PositiveOrZero(message = "Actual weight hazardous must be >= 0")
+    BigDecimal actualWeightHazardous;
+
     @Size(max = 500, message = "Do not exceed 500 characters.")
     String address;
 
