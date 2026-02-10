@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import java.util.List;
 
 import java.time.LocalDateTime;
 
@@ -19,5 +20,7 @@ public class WasteReportResponse {
     String message;
     String reportCode;
     String status;
+    String wasteType;
     LocalDateTime createdAt;
+    List<WasteCategoryResponse> categories;
 }

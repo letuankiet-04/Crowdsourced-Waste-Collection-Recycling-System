@@ -116,32 +116,17 @@ CREATE TABLE citizens (
 );
 GO
 
--- Waste Categories (NEW)
+-- Waste Categories
 CREATE TABLE waste_categories (
     id INT IDENTITY(1,1) NOT NULL,
     name NVARCHAR(100) NOT NULL,
     description NVARCHAR(500) NULL,
+    unit NVARCHAR(20) NULL,
+    point_per_unit DECIMAL(19,4) NULL,
     created_at DATETIME2 NULL,
+    updated_at DATETIME2 NULL,
     CONSTRAINT pk_waste_categories PRIMARY KEY (id),
     CONSTRAINT uq_waste_categories_name UNIQUE (name)
-);
-GO
-
--- Waste Types (UPDATED)
-CREATE TABLE waste_types (
-    id INT IDENTITY(1,1) NOT NULL,
-    code NVARCHAR(20) NOT NULL,
-    name NVARCHAR(100) NOT NULL,
-    description NVARCHAR(500) NULL,
-    waste_category_id INT NULL, -- Changed from category NVARCHAR(50)
-    base_points INT NULL,
-    is_recyclable BIT NULL,
-    handling_instructions NVARCHAR(1000) NULL,
-    icon_url NVARCHAR(500) NULL,
-    created_at DATETIME2 NULL,
-    CONSTRAINT pk_waste_types PRIMARY KEY (id),
-    CONSTRAINT uq_waste_types_code UNIQUE (code),
-    CONSTRAINT fk_waste_types_category FOREIGN KEY (waste_category_id) REFERENCES waste_categories(id)
 );
 GO
 
@@ -150,8 +135,8 @@ CREATE TABLE waste_reports (
     id INT IDENTITY(1,1) NOT NULL,
     report_code NVARCHAR(50) NOT NULL,
     citizen_id INT NOT NULL,
-    waste_type_id INT NOT NULL,
     description NVARCHAR(1000) NULL,
+    waste_type NVARCHAR(20) NOT NULL,
     estimated_weight DECIMAL(10,2) NULL,
     latitude DECIMAL(10,8) NOT NULL,
     longitude DECIMAL(11,8) NOT NULL,
@@ -163,8 +148,22 @@ CREATE TABLE waste_reports (
     updated_at DATETIME2 NULL,
     CONSTRAINT pk_waste_reports PRIMARY KEY (id),
     CONSTRAINT uq_waste_reports_report_code UNIQUE (report_code),
-    CONSTRAINT fk_waste_reports_citizen FOREIGN KEY (citizen_id) REFERENCES citizens(id),
-    CONSTRAINT fk_waste_reports_waste_type FOREIGN KEY (waste_type_id) REFERENCES waste_types(id)
+    CONSTRAINT fk_waste_reports_citizen FOREIGN KEY (citizen_id) REFERENCES citizens(id)
+);
+GO
+
+-- Waste Report Items (1 report -> many categories)
+CREATE TABLE waste_report_items (
+    id INT IDENTITY(1,1) NOT NULL,
+    report_id INT NOT NULL,
+    waste_category_id INT NOT NULL,
+    quantity DECIMAL(19,4) NULL,
+    unit_snapshot NVARCHAR(20) NULL,
+    created_at DATETIME2 NULL,
+    CONSTRAINT pk_waste_report_items PRIMARY KEY (id),
+    CONSTRAINT uq_waste_report_items UNIQUE (report_id, waste_category_id),
+    CONSTRAINT fk_waste_report_items_report FOREIGN KEY (report_id) REFERENCES waste_reports(id),
+    CONSTRAINT fk_waste_report_items_category FOREIGN KEY (waste_category_id) REFERENCES waste_categories(id)
 );
 GO
 
@@ -219,6 +218,7 @@ CREATE TABLE collection_requests (
     started_at DATETIME2 NULL,
     actual_weight_kg DECIMAL(10,2) NULL,
     collected_at DATETIME2 NULL,
+    completed_at DATETIME2 NULL,
     created_at DATETIME2 NULL,
     updated_at DATETIME2 NULL,
     CONSTRAINT pk_collection_requests PRIMARY KEY (id),
@@ -226,19 +226,6 @@ CREATE TABLE collection_requests (
     CONSTRAINT fk_collection_requests_report FOREIGN KEY (report_id) REFERENCES waste_reports(id),
     CONSTRAINT fk_collection_requests_enterprise FOREIGN KEY (enterprise_id) REFERENCES enterprise(id),
     CONSTRAINT fk_collection_requests_collector FOREIGN KEY (collector_id) REFERENCES collectors(id)
-);
-GO
-
--- Collection Request Images
-CREATE TABLE collection_request_images (
-    id INT IDENTITY(1,1) NOT NULL,
-    collection_request_id INT NOT NULL,
-    cloudinary_public_id NVARCHAR(255) NULL,
-    image_url NVARCHAR(500) NOT NULL,
-    image_role NVARCHAR(20) NULL,
-    uploaded_at DATETIME2 NULL CONSTRAINT df_collection_request_images_uploaded_at DEFAULT SYSDATETIME(),
-    CONSTRAINT pk_collection_request_images PRIMARY KEY (id),
-    CONSTRAINT fk_collection_request_images_request FOREIGN KEY (collection_request_id) REFERENCES collection_requests(id)
 );
 GO
 
@@ -259,25 +246,27 @@ CREATE TABLE collection_tracking (
 );
 GO
 
--- Collector Reports
 CREATE TABLE collector_reports (
     id INT IDENTITY(1,1) NOT NULL,
+    report_code NVARCHAR(20) NULL,
     collection_request_id INT NOT NULL,
     collector_id INT NOT NULL,
     status NVARCHAR(20) NOT NULL,
     collector_note NVARCHAR(1000) NULL,
+    total_point INT NULL,
+    actual_weight_recyclable DECIMAL(19,4) NULL,
     collected_at DATETIME2 NULL,
     latitude DECIMAL(10,8) NULL,
     longitude DECIMAL(11,8) NULL,
     created_at DATETIME2 NULL CONSTRAINT df_collector_reports_created_at DEFAULT SYSDATETIME(),
     CONSTRAINT pk_collector_reports PRIMARY KEY (id),
+    CONSTRAINT uq_collector_reports_code UNIQUE (report_code),
     CONSTRAINT fk_collector_reports_request FOREIGN KEY (collection_request_id) REFERENCES collection_requests(id),
     CONSTRAINT fk_collector_reports_collector FOREIGN KEY (collector_id) REFERENCES collectors(id),
     CONSTRAINT ck_collector_reports_status CHECK (status IN (N'COMPLETED', N'FAILED'))
 );
 GO
 
--- Collector Report Images
 CREATE TABLE collector_report_images (
     id INT IDENTITY(1,1) NOT NULL,
     collector_report_id INT NOT NULL,
@@ -286,6 +275,22 @@ CREATE TABLE collector_report_images (
     created_at DATETIME2 NULL CONSTRAINT df_collector_report_images_created_at DEFAULT SYSDATETIME(),
     CONSTRAINT pk_collector_report_images PRIMARY KEY (id),
     CONSTRAINT fk_collector_report_images_report FOREIGN KEY (collector_report_id) REFERENCES collector_reports(id)
+);
+GO
+
+-- Collector Report Items
+CREATE TABLE collector_report_items (
+    id INT IDENTITY(1,1) NOT NULL,
+    collector_report_id INT NOT NULL,
+    waste_category_id INT NOT NULL,
+    quantity DECIMAL(19,4) NOT NULL,
+    unit_snapshot NVARCHAR(20) NOT NULL,
+    point_per_unit_snapshot DECIMAL(19,4) NOT NULL,
+    total_point INT NOT NULL,
+    created_at DATETIME2 NULL,
+    CONSTRAINT pk_collector_report_items PRIMARY KEY (id),
+    CONSTRAINT fk_collector_report_items_report FOREIGN KEY (collector_report_id) REFERENCES collector_reports(id),
+    CONSTRAINT fk_collector_report_items_category FOREIGN KEY (waste_category_id) REFERENCES waste_categories(id)
 );
 GO
 
@@ -352,7 +357,6 @@ CREATE TABLE point_rules (
     enterprise_id INT NOT NULL,
     rule_name NVARCHAR(255) NOT NULL,
     rule_type NVARCHAR(30) NOT NULL,
-    waste_type_id INT NULL,
     min_weight_kg DECIMAL(10,2) NULL,
     max_weight_kg DECIMAL(10,2) NULL,
     min_quality_rating INT NULL,
@@ -366,8 +370,7 @@ CREATE TABLE point_rules (
     created_at DATETIME2 NULL,
     updated_at DATETIME2 NULL,
     CONSTRAINT pk_point_rules PRIMARY KEY (id),
-    CONSTRAINT fk_point_rules_enterprise FOREIGN KEY (enterprise_id) REFERENCES enterprise(id),
-    CONSTRAINT fk_point_rules_waste_type FOREIGN KEY (waste_type_id) REFERENCES waste_types(id)
+    CONSTRAINT fk_point_rules_enterprise FOREIGN KEY (enterprise_id) REFERENCES enterprise(id)
 );
 GO
 

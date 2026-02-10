@@ -13,18 +13,16 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.Lob;
-import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "waste_reports")
@@ -45,12 +43,12 @@ public class WasteReport {
     @JoinColumn(name = "citizen_id", nullable = false)
     private Citizen citizen;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(name = "waste_report_types", joinColumns = @JoinColumn(name = "waste_report_id"), inverseJoinColumns = @JoinColumn(name = "waste_type_id"))
-    private List<WasteType> wasteTypes = new ArrayList<>();
-
     @Column(name = "description", length = 1000)
+    @Nationalized
     private String description;
+
+    @Column(name = "waste_type", nullable = false, length = 20)
+    private String wasteType;
 
     @Column(name = "estimated_weight", precision = 10, scale = 2)
     private BigDecimal estimatedWeight; // Khối lượng ước tính (kg)
@@ -62,6 +60,7 @@ public class WasteReport {
     private BigDecimal longitude;
 
     @Column(name = "address", length = 500)
+    @Nationalized
     private String address;
 
     // @Column(name = "ward", length = 100)

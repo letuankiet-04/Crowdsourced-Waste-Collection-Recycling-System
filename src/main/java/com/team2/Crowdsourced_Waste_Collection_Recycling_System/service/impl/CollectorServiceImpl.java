@@ -1,22 +1,31 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.impl;
 
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorMonthlyCompletedCountResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorPerformanceStatsResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorTaskResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorWorkHistoryItemResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectionRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectionTracking;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Collector;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.WasteReportStatus;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.citizen.WasteReportRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.waste.WasteReportRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionRequestRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionTrackingRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -27,36 +36,113 @@ public class CollectorServiceImpl implements CollectorService {
     private final WasteReportRepository wasteReportRepository;
 
     @Override
-    @Transactional
-    /**
-     * assigned -> on_the_way.
-     */
-    public void acceptTask(Integer requestId, Integer collectorId) {
-        LocalDateTime now = LocalDateTime.now();
-        int updated = collectionRequestRepository.updateStatusIfMatch(
-                requestId, collectorId, CollectionRequestStatus.ASSIGNED, CollectionRequestStatus.ON_THE_WAY, now);
-        if (updated == 0) {
-            throwUpdateStatusError(requestId, collectorId, CollectionRequestStatus.ASSIGNED);
+    public Page<CollectorTaskResponse> getTasks(Integer collectorId, String status, boolean all, Pageable pageable) {
+        Page<CollectionRequestRepository.CollectorTaskView> tasks;
+        if (all) {
+            tasks = collectionRequestRepository.findTasksForCollector(collectorId, pageable);
+        } else if (status != null && !status.isBlank()) {
+            tasks = collectionRequestRepository.findTasksForCollectorByStatus(collectorId, status, pageable);
+        } else {
+            tasks = collectionRequestRepository.findActiveTasksForCollector(collectorId, pageable);
         }
-        logTracking(requestId, collectorId, "started", "Collector started moving");
+        return tasks.map(t -> CollectorTaskResponse.builder()
+                .id(t.getId())
+                .requestCode(t.getRequestCode())
+                .status(t.getStatus())
+                .assignedAt(t.getAssignedAt())
+                .createdAt(t.getCreatedAt())
+                .updatedAt(t.getUpdatedAt())
+                .build());
+    }
+
+    @Override
+    public Page<CollectorWorkHistoryItemResponse> getWorkHistory(Integer collectorId, String status, Pageable pageable) {
+        Page<CollectionRequestRepository.CollectorWorkHistoryView> rows;
+        if (status != null && !status.isBlank()) {
+            rows = collectionRequestRepository.findWorkHistoryForCollectorByStatus(collectorId, status, pageable);
+        } else {
+            rows = collectionRequestRepository.findWorkHistoryForCollector(collectorId, pageable);
+        }
+        return rows.map(row -> CollectorWorkHistoryItemResponse.builder()
+                .collectionRequestId(row.getId())
+                .requestCode(row.getRequestCode())
+                .status(row.getStatus())
+                .address(row.getAddress())
+                .wasteTypeCode(row.getWasteTypeCode())
+                .wasteTypeName(row.getWasteTypeName())
+                .enterpriseId(row.getEnterpriseId())
+                .enterpriseName(row.getEnterpriseName())
+                .startedAt(row.getStartedAt())
+                .collectedAt(row.getCollectedAt())
+                .completedAt(row.getCompletedAt())
+                .updatedAt(row.getUpdatedAt())
+                .build());
+    }
+
+    @Override
+    public CollectorPerformanceStatsResponse getStats(Integer collectorId, Integer year) {
+        int selectedYear = year != null ? year : LocalDate.now().getYear();
+
+        long totalCompleted = collectionRequestRepository.countByCollector_IdAndStatus(
+                collectorId, CollectionRequestStatus.COMPLETED) + collectionRequestRepository.countByCollector_IdAndStatus(
+                collectorId, CollectionRequestStatus.COLLECTED);
+        List<CollectionRequestRepository.CollectorMonthlyCompletedCountView> rows =
+                collectionRequestRepository.countCompletedByMonth(collectorId, selectedYear);
+
+        List<CollectorMonthlyCompletedCountResponse> completedByMonth = new ArrayList<>();
+        for (var row : rows) {
+            completedByMonth.add(CollectorMonthlyCompletedCountResponse.builder()
+                    .year(row.getYear())
+                    .month(row.getMonth())
+                    .total(row.getTotal())
+                    .build());
+        }
+
+        return CollectorPerformanceStatsResponse.builder()
+                .totalCompleted(totalCompleted)
+                .year(selectedYear)
+                .completedByMonth(completedByMonth)
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void updateStatus(Integer requestId, Integer collectorId, String statusStr) {
+        if ("ON_THE_WAY".equalsIgnoreCase(statusStr)) {
+            startTask(requestId, collectorId);
+        } else {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid status. Only 'ON_THE_WAY' is allowed.");
+        }
     }
 
     @Override
     @Transactional
     /**
-     * assigned/accepted_collector -> on_the_way.
+     * assigned -> accepted_collector.
+     */
+    public void acceptTask(Integer requestId, Integer collectorId) {
+        LocalDateTime now = LocalDateTime.now();
+        int updated = collectionRequestRepository.acceptTask(requestId, collectorId, now);
+        if (updated == 0) {
+            throwUpdateStatusError(requestId, collectorId, CollectionRequestStatus.ASSIGNED);
+        }
+        updateWasteReportStatusIfPresent(requestId, WasteReportStatus.ACCEPTED_COLLECTOR, now);
+        logTracking(requestId, collectorId, "accepted", "Collector accepted task");
+    }
+
+    @Override
+    @Transactional
+    /**
+     * accepted_collector -> on_the_way.
      */
     public void startTask(Integer requestId, Integer collectorId) {
         LocalDateTime now = LocalDateTime.now();
         int updated = collectionRequestRepository.updateStatusIfMatch(
-                requestId, collectorId, CollectionRequestStatus.ASSIGNED, CollectionRequestStatus.ON_THE_WAY, now);
+                requestId, collectorId, CollectionRequestStatus.ACCEPTED_COLLECTOR, CollectionRequestStatus.ON_THE_WAY, now);
         if (updated == 0) {
-            updated = collectionRequestRepository.updateStatusIfMatch(
-                    requestId, collectorId, CollectionRequestStatus.ACCEPTED_COLLECTOR, CollectionRequestStatus.ON_THE_WAY, now);
+            throwUpdateStatusError(requestId, collectorId, CollectionRequestStatus.ACCEPTED_COLLECTOR);
         }
-        if (updated == 0) {
-            throwUpdateStatusError(requestId, collectorId, CollectionRequestStatus.ASSIGNED);
-        }
+        updateWasteReportStatusIfPresent(requestId, WasteReportStatus.ON_THE_WAY, now);
         logTracking(requestId, collectorId, "started", "Collector started moving");
     }
 
@@ -76,6 +162,7 @@ public class CollectorServiceImpl implements CollectorService {
         if (updated == 0) {
             throwRejectError(requestId, collectorId);
         }
+        updateWasteReportStatusIfPresent(requestId, WasteReportStatus.ACCEPTED_ENTERPRISE, now);
         logTracking(requestId, collectorId, "rejected", "Collector rejected task: " + reason);
     }
 
@@ -90,15 +177,19 @@ public class CollectorServiceImpl implements CollectorService {
         if (updated == 0) {
             throwUpdateStatusError(requestId, collectorId, CollectionRequestStatus.ON_THE_WAY);
         }
-        CollectionRequest request = collectionRequestRepository.findByIdAndCollector_Id(requestId, collectorId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection Request không tồn tại"));
-        if (request.getReport() != null) {
-            var wasteReport = request.getReport();
-            wasteReport.setStatus(WasteReportStatus.COLLECTED);
-            wasteReport.setUpdatedAt(now);
-            wasteReportRepository.save(wasteReport);
-        }
+        updateWasteReportStatusIfPresent(requestId, WasteReportStatus.COLLECTED, now);
         logTracking(requestId, collectorId, "collected", "Collector completed task");
+    }
+
+    private void updateWasteReportStatusIfPresent(Integer requestId, WasteReportStatus newStatus, LocalDateTime now) {
+        CollectionRequest request = collectionRequestRepository.findById(requestId).orElse(null);
+        if (request == null || request.getReport() == null) {
+            return;
+        }
+        var report = request.getReport();
+        report.setStatus(newStatus);
+        report.setUpdatedAt(now);
+        wasteReportRepository.save(report);
     }
 
     private CollectionRequest getValidRequest(Integer requestId, Integer collectorId, CollectionRequestStatus expectedStatus) {

@@ -28,11 +28,9 @@ public class CollectorReportResponse {
 
     String collectorNote;
 
-    BigDecimal actualWeightOrganic;
+    Integer totalPoint;
 
     BigDecimal actualWeightRecyclable;
-
-    BigDecimal actualWeightHazardous;
 
     BigDecimal latitude;
 
@@ -43,4 +41,6 @@ public class CollectorReportResponse {
     LocalDateTime createdAt;
 
     List<String> imageUrls;
+
+    List<CollectorReportItemResponse> items;
 }
