@@ -6,9 +6,12 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectorS
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectionTracking;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Collector;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Enterprise;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.WasteReport;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.WasteReportStatus;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionRequestRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionTrackingRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.waste.WasteReportRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.impl.EnterpriseAssignmentServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +35,8 @@ class EnterpriseAssignmentServiceImplTest {
     CollectorRepository collectorRepository;
     @Mock
     CollectionTrackingRepository collectionTrackingRepository;
+    @Mock
+    WasteReportRepository wasteReportRepository;
 
     @InjectMocks
     EnterpriseAssignmentServiceImpl service;
@@ -49,6 +54,10 @@ class EnterpriseAssignmentServiceImplTest {
         request.setRequestCode("CR_TEST_0001");
         request.setEnterprise(enterprise);
         request.setStatus(CollectionRequestStatus.PENDING);
+        WasteReport report = new WasteReport();
+        report.setId(999);
+        report.setStatus(WasteReportStatus.ACCEPTED_ENTERPRISE);
+        request.setReport(report);
 
         Collector collector = new Collector();
         collector.setId(200);
@@ -60,6 +69,7 @@ class EnterpriseAssignmentServiceImplTest {
         when(collectionRequestRepository.findByRequestCode("CR_TEST_0001")).thenReturn(Optional.of(request));
         when(collectionRequestRepository.getReferenceById(100)).thenReturn(request);
         when(collectionTrackingRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(wasteReportRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         var response = service.assignCollector(10, "CR_TEST_0001", 200);
 
@@ -70,6 +80,8 @@ class EnterpriseAssignmentServiceImplTest {
 
         verify(collectionRequestRepository).assignCollectorByRequestCode("CR_TEST_0001", 200, 10);
         verify(collectionTrackingRepository).save(trackingCaptor.capture());
+        verify(wasteReportRepository).saveAndFlush(report);
+        assertEquals(WasteReportStatus.ASSIGNED, report.getStatus());
 
         CollectionTracking tracking = trackingCaptor.getValue();
         assertEquals("assigned", tracking.getAction());

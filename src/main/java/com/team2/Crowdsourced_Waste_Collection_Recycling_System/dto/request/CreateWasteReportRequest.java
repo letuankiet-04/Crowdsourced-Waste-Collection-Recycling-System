@@ -2,19 +2,16 @@ package com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request;
 
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import org.springframework.web.multipart.MultipartFile;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @Data
@@ -23,18 +20,26 @@ import java.util.List;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateWasteReportRequest {
-    MultipartFile image;
+    @Size(min = 1, message = "Cần ít nhất 1 ảnh")
+    List<MultipartFile> images;
+
+    @NotNull(message = "Loại rác là bắt buộc")
+    String wasteType;
+
+    @Size(min = 1, message = "Phải chọn ít nhất 1 danh mục")
+    List<String> categoryIds;
+
+    @NotNull(message = "Vĩ độ là bắt buộc")
+    @DecimalMin(value = "-90.0", message = "Vĩ độ phải nằm trong khoảng [-90, 90]")
+    @DecimalMax(value = "90.0", message = "Vĩ độ phải nằm trong khoảng [-90, 90]")
+
     Double latitude;
+
+    @NotNull(message = "Kinh độ là bắt buộc")
+    @DecimalMin(value = "-180.0", message = "Kinh độ phải nằm trong khoảng [-180, 180]")
+    @DecimalMax(value = "180.0", message = "Kinh độ phải nằm trong khoảng [-180, 180]")
+
     Double longitude;
+    String address;
     String description;
-
-    @NotNull(message = "Khối lượng rác là bắt buộc")
-    @DecimalMin(value = "0.1", message = "Khối lượng tối thiểu là 0.1kg")
-    @DecimalMax(value = "1000.0", message = "Khối lượng tối đa là 1000kg")
-    @Digits(integer = 10, fraction = 2, message = "Khối lượng chỉ được 2 chữ số thập phân")
-    BigDecimal estimatedWeight; // Required, kg
-
-    @NotEmpty(message = "Phải chọn ít nhất 1 loại rác")
-    @Size(min = 1, max = 3, message = "Chỉ được chọn tối đa 3 loại rác")
-    List<String> wasteTypes; // HOUSEHOLD, RECYCLABLE, HAZARDOUS
 }

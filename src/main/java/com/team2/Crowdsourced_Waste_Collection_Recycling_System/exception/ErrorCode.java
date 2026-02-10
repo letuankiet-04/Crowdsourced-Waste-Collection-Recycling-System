@@ -21,6 +21,7 @@ public enum ErrorCode {
     CITIZEN_NOT_FOUND(1011, "Citizen profile not found", HttpStatus.NOT_FOUND),
     IMAGE_UPLOAD_FAILED(1012, "Failed to upload image", HttpStatus.INTERNAL_SERVER_ERROR),
     WASTE_REPORT_NOT_FOUND(1013, "Waste report not found", HttpStatus.NOT_FOUND),
+    INVALID_REQUEST(1014, "Invalid request", HttpStatus.BAD_REQUEST),
     ;
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {

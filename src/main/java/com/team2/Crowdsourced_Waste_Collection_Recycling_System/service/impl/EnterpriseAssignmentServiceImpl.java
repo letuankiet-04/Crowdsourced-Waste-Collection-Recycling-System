@@ -2,12 +2,15 @@ package com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.impl;
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AssignCollectorResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectionRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.WasteReport;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectionTracking;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectorStatus;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.WasteReportStatus;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionRequestRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionTrackingRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.waste.WasteReportRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.EnterpriseAssignmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,6 +27,7 @@ public class EnterpriseAssignmentServiceImpl implements EnterpriseAssignmentServ
     private final CollectionRequestRepository collectionRequestRepository;
     private final CollectorRepository collectorRepository;
     private final CollectionTrackingRepository collectionTrackingRepository;
+    private final WasteReportRepository wasteReportRepository;
 
     @Override
     @Transactional
@@ -66,17 +70,25 @@ public class EnterpriseAssignmentServiceImpl implements EnterpriseAssignmentServ
             if (request.getCollector() != null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Collection Request đã được gán collector");
             }
-            if (request.getStatus() != CollectionRequestStatus.ACCEPTED_ENTERPRISE) {
+            if (request.getStatus() != CollectionRequestStatus.ACCEPTED_ENTERPRISE && request.getStatus() != CollectionRequestStatus.PENDING) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Collection Request không ở trạng thái hợp lệ để phân công");
+                        "Collection Request không ở trạng thái hợp lệ để phân công (PENDING hoặc ACCEPTED_ENTERPRISE)");
             }
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể phân công Collection Request");
         }
 
-        Integer collectionRequestId = collectionRequestRepository.findByRequestCode(requestCode)
-                .orElseThrow(
-                        () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection Request không tồn tại"))
-                .getId();
+        CollectionRequest request = collectionRequestRepository.findByRequestCode(requestCode)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection Request không tồn tại"));
+
+        Integer collectionRequestId = request.getId();
+        WasteReport report = request.getReport();
+        if (report == null) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Collection Request thiếu report_id, không thể cập nhật WasteReport");
+        }
+        report.setStatus(WasteReportStatus.ASSIGNED);
+        report.setUpdatedAt(now);
+        wasteReportRepository.saveAndFlush(report);
 
         CollectionTracking tracking = new CollectionTracking();
         tracking.setCollectionRequest(collectionRequestRepository.getReferenceById(collectionRequestId));
