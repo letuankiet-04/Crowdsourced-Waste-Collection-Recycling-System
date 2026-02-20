@@ -1,6 +1,7 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.waste;
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.WasteReport;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.WasteReportStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,6 +17,8 @@ public interface WasteReportRepository extends JpaRepository<WasteReport, Intege
     List<WasteReport> findByCitizen_Id(Integer citizenId);
 
     List<WasteReport> findByStatus(String status);
+
+    List<WasteReport> findByStatus(WasteReportStatus status);
 
     long countByCitizen_IdAndCreatedAtBetween(Integer citizenId, LocalDateTime start, LocalDateTime end);
 

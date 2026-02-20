@@ -65,20 +65,20 @@ class EnterpriseAssignmentServiceImplTest {
         collector.setStatus(CollectorStatus.ACTIVE);
 
         when(collectorRepository.findById(200)).thenReturn(Optional.of(collector));
-        when(collectionRequestRepository.assignCollectorByRequestCode("CR_TEST_0001", 200, 10)).thenReturn(1);
-        when(collectionRequestRepository.findByRequestCode("CR_TEST_0001")).thenReturn(Optional.of(request));
+        when(collectionRequestRepository.assignCollector(100, 200, 10)).thenReturn(1);
+        when(collectionRequestRepository.findById(100)).thenReturn(Optional.of(request));
         when(collectionRequestRepository.getReferenceById(100)).thenReturn(request);
         when(collectionTrackingRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(wasteReportRepository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var response = service.assignCollector(10, "CR_TEST_0001", 200);
+        var response = service.assignCollector(10, 100, 200);
 
         assertEquals(100, response.getCollectionRequestId());
         assertEquals(200, response.getCollectorId());
         assertEquals("assigned", response.getStatus());
         assertNotNull(response.getAssignedAt());
 
-        verify(collectionRequestRepository).assignCollectorByRequestCode("CR_TEST_0001", 200, 10);
+        verify(collectionRequestRepository).assignCollector(100, 200, 10);
         verify(collectionTrackingRepository).save(trackingCaptor.capture());
         verify(wasteReportRepository).saveAndFlush(report);
         assertEquals(WasteReportStatus.ASSIGNED, report.getStatus());
@@ -108,11 +108,11 @@ class EnterpriseAssignmentServiceImplTest {
         collector.setStatus(CollectorStatus.ACTIVE);
 
         when(collectorRepository.findById(200)).thenReturn(Optional.of(collector));
-        when(collectionRequestRepository.assignCollectorByRequestCode("CR_TEST_0001", 200, 10)).thenReturn(0);
-        when(collectionRequestRepository.findByRequestCode("CR_TEST_0001")).thenReturn(Optional.of(request));
+        when(collectionRequestRepository.assignCollector(100, 200, 10)).thenReturn(0);
+        when(collectionRequestRepository.findById(100)).thenReturn(Optional.of(request));
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> service.assignCollector(10, "CR_TEST_0001", 200));
+                () -> service.assignCollector(10, 100, 200));
 
         assertEquals(400, ex.getStatusCode().value());
         verify(collectorRepository).findById(200);
