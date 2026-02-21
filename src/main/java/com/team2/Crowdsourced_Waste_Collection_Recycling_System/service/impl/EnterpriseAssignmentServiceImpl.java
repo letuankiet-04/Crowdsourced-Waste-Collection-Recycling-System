@@ -31,12 +31,12 @@ public class EnterpriseAssignmentServiceImpl implements EnterpriseAssignmentServ
 
     @Override
     @Transactional
-    public AssignCollectorResponse assignCollector(Integer enterpriseId, String requestCode, Integer collectorId) {
+    public AssignCollectorResponse assignCollector(Integer enterpriseId, Integer requestId, Integer collectorId) {
         if (enterpriseId == null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User hiện tại không phải Enterprise");
         }
-        if (requestCode == null || requestCode.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu request_code");
+        if (requestId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu request_id");
         }
         if (collectorId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu collector_id");
@@ -58,9 +58,9 @@ public class EnterpriseAssignmentServiceImpl implements EnterpriseAssignmentServ
         }
 
         LocalDateTime now = LocalDateTime.now();
-        int updated = collectionRequestRepository.assignCollectorByRequestCode(requestCode, collectorId, enterpriseId);
+        int updated = collectionRequestRepository.assignCollector(requestId, collectorId, enterpriseId);
         if (updated == 0) {
-            CollectionRequest request = collectionRequestRepository.findByRequestCode(requestCode)
+            CollectionRequest request = collectionRequestRepository.findById(requestId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                             "Collection Request không tồn tại"));
             if (request.getEnterprise() == null || request.getEnterprise().getId() == null
@@ -77,7 +77,7 @@ public class EnterpriseAssignmentServiceImpl implements EnterpriseAssignmentServ
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể phân công Collection Request");
         }
 
-        CollectionRequest request = collectionRequestRepository.findByRequestCode(requestCode)
+        CollectionRequest request = collectionRequestRepository.findById(requestId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Collection Request không tồn tại"));
 
         Integer collectionRequestId = request.getId();
