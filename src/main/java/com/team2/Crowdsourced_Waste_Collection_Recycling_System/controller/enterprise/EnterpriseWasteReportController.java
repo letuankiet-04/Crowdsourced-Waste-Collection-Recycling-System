@@ -5,6 +5,8 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Api
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.EnterpriseWasteReportResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.EnterpriseWasteReportService;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,12 +26,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/enterprise/waste-reports")
 @RequiredArgsConstructor
+@Tag(name = "Enterprise Waste Reports", description = "Xử lý báo cáo rác ở phía doanh nghiệp")
 public class EnterpriseWasteReportController {
 
     private final EnterpriseWasteReportService enterpriseWasteReportService;
 
     @GetMapping("/pending")
     @PreAuthorize("hasAnyRole('ENTERPRISE', 'ENTERPRISE_ADMIN')")
+    @Operation(summary = "Danh sách báo cáo PENDING", description = "Lấy các báo cáo rác phù hợp để doanh nghiệp xử lý")
     public ResponseEntity<ApiResponse<List<EnterpriseWasteReportResponse>>> getPendingReports(
             @AuthenticationPrincipal Jwt jwt) {
 
@@ -44,6 +48,7 @@ public class EnterpriseWasteReportController {
 
     @PostMapping("/{id}/accept")
     @PreAuthorize("hasAnyRole('ENTERPRISE', 'ENTERPRISE_ADMIN')")
+    @Operation(summary = "Accept báo cáo", description = "Chấp nhận báo cáo rác và chuyển bước xử lý tiếp theo")
     public ResponseEntity<ApiResponse<Void>> acceptReport(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Integer id) {
@@ -58,6 +63,7 @@ public class EnterpriseWasteReportController {
 
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasAnyRole('ENTERPRISE', 'ENTERPRISE_ADMIN')")
+    @Operation(summary = "Reject báo cáo", description = "Từ chối báo cáo rác kèm lý do")
     public ResponseEntity<ApiResponse<Void>> rejectReport(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Integer id,
