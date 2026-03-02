@@ -12,6 +12,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -23,6 +24,21 @@ import java.util.List;
 public class EnterpriseWasteReportController {
 
     private final EnterpriseWasteReportService enterpriseWasteReportService;
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ENTERPRISE', 'ENTERPRISE_ADMIN')")
+    public ResponseEntity<ApiResponse<List<EnterpriseWasteReportResponse>>> getReports(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(name = "status", required = false) String status) {
+
+        Integer enterpriseId = extractEnterpriseId(jwt);
+        List<EnterpriseWasteReportResponse> result = enterpriseWasteReportService.getReports(enterpriseId, status);
+
+        return ResponseEntity.ok(ApiResponse.<List<EnterpriseWasteReportResponse>>builder()
+                .result(result)
+                .message("Lấy danh sách báo cáo thành công")
+                .build());
+    }
 
     @GetMapping("/pending")
     @PreAuthorize("hasAnyRole('ENTERPRISE', 'ENTERPRISE_ADMIN')")

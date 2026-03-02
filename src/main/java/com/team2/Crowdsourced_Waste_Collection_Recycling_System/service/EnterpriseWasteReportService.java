@@ -5,6 +5,8 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Ent
 import java.util.List;
 
 public interface EnterpriseWasteReportService {
+    List<EnterpriseWasteReportResponse> getReports(Integer enterpriseId, String status);
+
     List<EnterpriseWasteReportResponse> getPendingReports(Integer enterpriseId);
 
     EnterpriseWasteReportResponse getReportById(Integer enterpriseId, Integer reportId);
