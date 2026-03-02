@@ -7,6 +7,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.WasteRepor
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.enterprise.EnterpriseRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.waste.WasteReportRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.EnterpriseWasteReportService;
+import org.springframework.data.domain.Sort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,29 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
 
     private final WasteReportRepository wasteReportRepository;
     private final EnterpriseRepository enterpriseRepository;
+
+    @Override
+    public List<EnterpriseWasteReportResponse> getReports(Integer enterpriseId, String status) {
+        Enterprise enterprise = validateEnterprise(enterpriseId);
+
+        WasteReportStatus statusFilter = null;
+        if (status != null && !status.isBlank()) {
+            try {
+                statusFilter = WasteReportStatus.valueOf(status.trim().toUpperCase());
+            } catch (IllegalArgumentException ex) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "status không hợp lệ");
+            }
+        }
+
+        List<WasteReport> reports = wasteReportRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        WasteReportStatus finalStatusFilter = statusFilter;
+        return reports.stream()
+                .filter(report -> finalStatusFilter == null || report.getStatus() == finalStatusFilter)
+                .filter(report -> isInServiceArea(enterprise, report))
+                .map(this::toResponse)
+                .toList();
+    }
 
     @Override
     public List<EnterpriseWasteReportResponse> getPendingReports(Integer enterpriseId) {
