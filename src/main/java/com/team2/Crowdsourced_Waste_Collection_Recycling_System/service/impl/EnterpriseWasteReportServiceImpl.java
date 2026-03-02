@@ -28,7 +28,10 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
 
     @Override
     public List<EnterpriseWasteReportResponse> getReports(Integer enterpriseId, String status) {
-        Enterprise enterprise = validateEnterprise(enterpriseId);
+        Enterprise enterprise = null;
+        if (enterpriseId != null) {
+            enterprise = validateEnterprise(enterpriseId);
+        }
 
         WasteReportStatus statusFilter = null;
         if (status != null && !status.isBlank()) {
@@ -42,26 +45,26 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
         List<WasteReport> reports = wasteReportRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
 
         WasteReportStatus finalStatusFilter = statusFilter;
+        Enterprise finalEnterprise = enterprise;
         return reports.stream()
                 .filter(report -> finalStatusFilter == null || report.getStatus() == finalStatusFilter)
-                .filter(report -> isInServiceArea(enterprise, report))
+                .filter(report -> finalEnterprise == null || isInServiceArea(finalEnterprise, report))
                 .map(this::toResponse)
                 .toList();
     }
 
     @Override
     public List<EnterpriseWasteReportResponse> getPendingReports(Integer enterpriseId) {
-        if (enterpriseId == null) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User hiện tại không phải Enterprise");
+        Enterprise enterprise = null;
+        if (enterpriseId != null) {
+            enterprise = validateEnterprise(enterpriseId);
         }
-
-        Enterprise enterprise = enterpriseRepository.findById(enterpriseId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Enterprise không tồn tại"));
 
         List<WasteReport> pendingReports = wasteReportRepository.findByStatus(WasteReportStatus.PENDING);
 
+        Enterprise finalEnterprise = enterprise;
         return pendingReports.stream()
-                .filter(report -> isInServiceArea(enterprise, report))
+                .filter(report -> finalEnterprise == null || isInServiceArea(finalEnterprise, report))
                 .map(this::toResponse)
                 .toList();
     }
@@ -83,10 +86,13 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
 
     @Override
     public EnterpriseWasteReportResponse getReportById(Integer enterpriseId, Integer reportId) {
-        Enterprise enterprise = validateEnterprise(enterpriseId);
+        Enterprise enterprise = null;
+        if (enterpriseId != null) {
+            enterprise = validateEnterprise(enterpriseId);
+        }
         WasteReport report = validateReport(reportId);
 
-        if (!isInServiceArea(enterprise, report)) {
+        if (enterprise != null && !isInServiceArea(enterprise, report)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Báo cáo không tồn tại");
         }
 

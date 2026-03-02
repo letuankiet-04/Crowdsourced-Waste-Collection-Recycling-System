@@ -10,6 +10,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.colle
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.enterprise.EnterpriseRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.EnterpriseCollectorReportService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -29,7 +30,9 @@ public class EnterpriseCollectorReportServiceImpl implements EnterpriseCollector
 
     @Override
     public List<CollectorReportResponse> getCollectorReports(Integer enterpriseId, String status) {
-        validateEnterprise(enterpriseId);
+        if (enterpriseId != null) {
+            validateEnterprise(enterpriseId);
+        }
 
         CollectorReportStatus statusFilter = null;
         if (status != null && !status.isBlank()) {
@@ -40,8 +43,13 @@ public class EnterpriseCollectorReportServiceImpl implements EnterpriseCollector
             }
         }
 
-        List<CollectorReport> reports = collectorReportRepository
-                .findByCollectionRequest_Enterprise_IdOrderByCreatedAtDesc(enterpriseId);
+        List<CollectorReport> reports;
+        if (enterpriseId != null) {
+            reports = collectorReportRepository
+                    .findByCollectionRequest_Enterprise_IdOrderByCreatedAtDesc(enterpriseId);
+        } else {
+            reports = collectorReportRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+        }
 
         if (statusFilter != null) {
             CollectorReportStatus finalStatusFilter = statusFilter;
