@@ -60,12 +60,7 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
 
     @Override
     public List<EnterpriseWasteReportResponse> getPendingReports(Integer enterpriseId) {
-        if (enterpriseId == null) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User hiện tại không phải Enterprise");
-        }
-
-        Enterprise enterprise = enterpriseRepository.findById(enterpriseId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Enterprise không tồn tại"));
+        Enterprise enterprise = validateEnterprise(enterpriseId);
 
         List<WasteReport> pendingReports = wasteReportRepository.findByStatus(WasteReportStatus.PENDING);
 
