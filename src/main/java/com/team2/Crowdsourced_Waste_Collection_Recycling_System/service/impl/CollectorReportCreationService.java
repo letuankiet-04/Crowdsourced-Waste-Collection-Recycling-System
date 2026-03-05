@@ -63,7 +63,7 @@ public class CollectorReportCreationService {
         validateGpsWithinRadius(wasteReport, request.getLatitude(), request.getLongitude());
         validateInput(request);
 
-        Calculation calculation = calculateItems(request.getCategoryIds(), request.getQuantities());
+        Calculation calculation = calculateItems(request.getCategoryIds(), request.getQuantities(), request.getVerificationRate());
         LocalDateTime now = LocalDateTime.now();
 
         CollectorReport report = createAndSaveReport(collectionRequest, request, calculation.totalPoints(), now);
@@ -133,7 +133,7 @@ public class CollectorReportCreationService {
         }
     }
 
-    private Calculation calculateItems(List<Integer> categoryIds, List<BigDecimal> quantities) {
+    private Calculation calculateItems(List<Integer> categoryIds, List<BigDecimal> quantities, Integer verificationRate) {
         List<CollectorReportItem> items = new ArrayList<>();
         BigDecimal totalWeightKg = BigDecimal.ZERO;
         int totalPoints = 0;
@@ -155,6 +155,15 @@ public class CollectorReportCreationService {
             if (category.getPointPerUnit() != null) {
                 points = quantity.multiply(category.getPointPerUnit()).intValue();
             }
+
+            if (verificationRate != null) {
+                if (verificationRate == 0) {
+                    points = 0;
+                } else if (verificationRate == 50) {
+                    points = points / 2;
+                }
+            }
+
             item.setTotalPoint(points);
 
             items.add(item);
