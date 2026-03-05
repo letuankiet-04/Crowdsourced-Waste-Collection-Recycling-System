@@ -13,8 +13,9 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface CitizenFeatureMapper {
 
-    @Mapping(target = "reportId", source = "collectionRequest.id")
-    @Mapping(target = "reportCode", source = "collectionRequest.report.reportCode")
+    @Mapping(target = "reportId", expression = "java(transaction.getReport() != null ? transaction.getReport().getId() : (transaction.getCollectionRequest() != null && transaction.getCollectionRequest().getReport() != null ? transaction.getCollectionRequest().getReport().getId() : null))")
+    @Mapping(target = "collectionId", expression = "java(transaction.getCollectionRequest() != null ? transaction.getCollectionRequest().getId() : null)")
+    @Mapping(target = "reportCode", expression = "java(transaction.getReport() != null ? transaction.getReport().getReportCode() : (transaction.getCollectionRequest() != null && transaction.getCollectionRequest().getReport() != null ? transaction.getCollectionRequest().getReport().getReportCode() : null))")
     @Mapping(target = "point", source = "points")
     CitizenRewardHistoryResponse toCitizenRewardHistoryResponse(PointTransaction transaction);
 

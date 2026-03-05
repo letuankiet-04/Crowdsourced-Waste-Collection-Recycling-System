@@ -7,17 +7,22 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CitizenRewardHistoryResponse {
-    Integer reportId;
-    Integer collectionId;
-    String reportCode;
-    Integer point;
-    LocalDateTime createdAt;
+public class VoucherResponse {
+    Integer id;
+    String voucherCode;
+    String bannerUrl;
+    String logoUrl;
+    String value;
+    String title;
+    LocalDate validUntil;
+    Integer pointsRequired;
+    List<String> terms;
 }

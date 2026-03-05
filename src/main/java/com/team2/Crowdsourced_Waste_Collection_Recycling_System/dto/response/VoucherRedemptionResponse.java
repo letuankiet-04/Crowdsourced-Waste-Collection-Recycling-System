@@ -14,10 +14,12 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CitizenRewardHistoryResponse {
-    Integer reportId;
-    Integer collectionId;
-    String reportCode;
-    Integer point;
-    LocalDateTime createdAt;
+public class VoucherRedemptionResponse {
+    Integer id;
+    VoucherResponse voucher;
+    String redemptionCode;
+    Integer pointsSpent;
+    Integer balanceAfter;
+    String status;
+    LocalDateTime redeemedAt;
 }
