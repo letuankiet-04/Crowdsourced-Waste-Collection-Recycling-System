@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CitizenRewardHistoryResponse {
     Integer reportId;
+    Integer collectionId;
     String reportCode;
     Integer point;
     LocalDateTime createdAt;
