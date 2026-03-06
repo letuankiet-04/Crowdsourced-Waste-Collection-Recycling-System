@@ -90,6 +90,16 @@ public class DataSeeder {
                     "View assigned collection tasks", "COLLECTOR");
             Permission updateStatus = createPermissionIfNotFound(permissionRepository, "UPDATE_TASK_STATUS",
                     "Update task collection status", "COLLECTOR");
+            Permission adminViewUsers = createPermissionIfNotFound(permissionRepository, "ADMIN_VIEW_USERS",
+                    "View all user accounts", "ADMIN");
+            Permission adminSuspendUsers = createPermissionIfNotFound(permissionRepository, "ADMIN_SUSPEND_USERS",
+                    "Suspend user accounts", "ADMIN");
+            Permission adminActivateUsers = createPermissionIfNotFound(permissionRepository, "ADMIN_ACTIVATE_USERS",
+                    "Activate suspended user accounts", "ADMIN");
+            Permission adminCreateAccounts = createPermissionIfNotFound(permissionRepository, "ADMIN_CREATE_ACCOUNTS",
+                    "Create system accounts", "ADMIN");
+            Permission adminChangeRoles = createPermissionIfNotFound(permissionRepository, "ADMIN_CHANGE_ROLES",
+                    "Change user roles", "ADMIN");
 
             Role citizenRole = createRoleIfNotFound(roleRepository, "CITIZEN", "Citizen User");
             Role enterpriseRole = createRoleIfNotFound(roleRepository, "ENTERPRISE", "Recycling Enterprise");
@@ -106,6 +116,11 @@ public class DataSeeder {
 
             assignPermissionToRole(rolePermissionRepository, collectorRole, viewTasks);
             assignPermissionToRole(rolePermissionRepository, collectorRole, updateStatus);
+            assignPermissionToRole(rolePermissionRepository, adminRole, adminViewUsers);
+            assignPermissionToRole(rolePermissionRepository, adminRole, adminSuspendUsers);
+            assignPermissionToRole(rolePermissionRepository, adminRole, adminActivateUsers);
+            assignPermissionToRole(rolePermissionRepository, adminRole, adminCreateAccounts);
+//            assignPermissionToRole(rolePermissionRepository, adminRole, adminChangeRoles);
 
             createUserIfNotFound(userRepository, passwordEncoder, "citizen@test.com", "citizen123", "Test Citizen",
                     citizenRole);
