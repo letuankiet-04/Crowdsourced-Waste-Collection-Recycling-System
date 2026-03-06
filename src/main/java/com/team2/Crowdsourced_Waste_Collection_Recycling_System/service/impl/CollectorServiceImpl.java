@@ -16,7 +16,6 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.colle
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionTrackingRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorService;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.EnterpriseAssignmentService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -38,7 +37,6 @@ public class CollectorServiceImpl implements CollectorService {
     private final CollectionTrackingRepository collectionTrackingRepository;
     private final CollectorRepository collectorRepository;
     private final WasteReportRepository wasteReportRepository;
-    private final EnterpriseAssignmentService enterpriseAssignmentService;
 
     @Override
     public List<CollectorTaskResponse> getTasks(Integer collectorId, String status, boolean all) {
@@ -196,38 +194,6 @@ public class CollectorServiceImpl implements CollectorService {
         }
         updateWasteReportStatusIfPresent(requestId, WasteReportStatus.REASSIGN, now);
         logTracking(requestId, collectorId, "rejected", "Collector rejected task: " + reason);
-        autoAssignAnotherCollectorIfPossible(requestId, collectorId);
-    }
-
-    private void autoAssignAnotherCollectorIfPossible(Integer requestId, Integer rejectedCollectorId) {
-        CollectionRequest request = collectionRequestRepository.findById(requestId).orElse(null);
-        if (request == null || request.getEnterprise() == null || request.getEnterprise().getId() == null) {
-            return;
-        }
-        Integer enterpriseId = request.getEnterprise().getId();
-
-        var candidates = collectorRepository.findAvailableCollectors(enterpriseId);
-        Integer bestCollectorId = null;
-        long bestActive = Long.MAX_VALUE;
-        for (var c : candidates) {
-            if (c == null || c.getId() == null) {
-                continue;
-            }
-            if (rejectedCollectorId != null && c.getId().equals(rejectedCollectorId)) {
-                continue;
-            }
-            long active = collectionRequestRepository.countByCollector_IdAndStatus(c.getId(), CollectionRequestStatus.ASSIGNED)
-                    + collectionRequestRepository.countByCollector_IdAndStatus(c.getId(), CollectionRequestStatus.ACCEPTED_COLLECTOR)
-                    + collectionRequestRepository.countByCollector_IdAndStatus(c.getId(), CollectionRequestStatus.ON_THE_WAY);
-            if (active < bestActive) {
-                bestActive = active;
-                bestCollectorId = c.getId();
-            }
-        }
-        if (bestCollectorId == null) {
-            return;
-        }
-        enterpriseAssignmentService.assignCollector(enterpriseId, requestId, bestCollectorId);
     }
 
     @Override
