@@ -47,6 +47,18 @@ public class EnterpriseAssignmentServiceImpl implements EnterpriseAssignmentServ
         Collector collector = requireEnterpriseCollector(enterpriseId, collectorId);
         validateCollectorAssignable(collector);
 
+        CollectionRequest requestBeforeAssign = requireEnterpriseRequest(enterpriseId, requestId);
+        if (requestBeforeAssign.getStatus() == CollectionRequestStatus.REASSIGN) {
+            Integer lastRejectedCollectorId = collectionTrackingRepository
+                    .findFirstByCollectionRequest_IdAndActionOrderByCreatedAtDesc(requestId, "rejected")
+                    .map(t -> t.getCollector() != null ? t.getCollector().getId() : null)
+                    .orElse(null);
+            if (lastRejectedCollectorId != null && lastRejectedCollectorId.equals(collectorId)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Không thể gán lại cho collector vừa từ chối nhiệm vụ");
+            }
+        }
+
         LocalDateTime now = LocalDateTime.now();
         int updated = collectionRequestRepository.assignCollector(requestId, collectorId, enterpriseId);
         if (updated == 0) {
@@ -117,11 +129,21 @@ public class EnterpriseAssignmentServiceImpl implements EnterpriseAssignmentServ
                     "Chỉ hỗ trợ tìm collector khi request ở trạng thái ACCEPTED_ENTERPRISE/REASSIGN");
         }
 
+        Integer lastRejectedCollectorId = null;
+        if (request.getStatus() == CollectionRequestStatus.REASSIGN) {
+            lastRejectedCollectorId = collectionTrackingRepository
+                    .findFirstByCollectionRequest_IdAndActionOrderByCreatedAtDesc(requestId, "rejected")
+                    .map(t -> t.getCollector() != null ? t.getCollector().getId() : null)
+                    .orElse(null);
+        }
+        final Integer lastRejectedCollectorIdFinal = lastRejectedCollectorId;
+
         var collectors = collectorRepository.findByEnterprise_IdOrderByCreatedAtDesc(enterpriseId);
         LocalDateTime now = LocalDateTime.now();
         return collectors.stream()
                 .filter(c -> c.getStatus() != null && (c.getStatus() == CollectorStatus.ACTIVE || c.getStatus() == CollectorStatus.AVAILABLE))
                 .filter(c -> c.getStatus() != CollectorStatus.SUSPEND)
+                .filter(c -> lastRejectedCollectorIdFinal == null || !lastRejectedCollectorIdFinal.equals(c.getId()))
                 .map(c -> {
                     boolean online = c.getLastLocationUpdate() != null && Duration.between(c.getLastLocationUpdate(), now).toMinutes() <= 15;
                     int active = (int) (

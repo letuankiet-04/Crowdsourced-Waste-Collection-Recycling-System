@@ -395,6 +395,16 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
 
     Optional<CollectionRequest> findByIdAndCollector_Id(Integer id, Integer collectorId);
 
+    @Query("""
+                SELECT cr
+                FROM CollectionRequest cr
+                JOIN FETCH cr.report r
+                WHERE cr.enterprise.id = :enterpriseId
+                  AND cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.REASSIGN
+                ORDER BY cr.updatedAt DESC, cr.id DESC
+            """)
+    List<CollectionRequest> findCollectorRejectedRequests(@Param("enterpriseId") Integer enterpriseId);
+
     /**
      * Cập nhật trạng thái theo điều kiện (atomic) - dùng khi muốn update bằng query
      * thay vì load entity.
@@ -441,6 +451,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
             "set cr.status = 'reassign'," +
             "cr.rejectionReason =:reason," +
             "cr.collector = null," +
+            "cr.assignedAt = null," +
             "cr.acceptedAt = null," +
             " cr.updatedAt = CURRENT_TIMESTAMP\n" +
             "        WHERE cr.id = :id\n" +
