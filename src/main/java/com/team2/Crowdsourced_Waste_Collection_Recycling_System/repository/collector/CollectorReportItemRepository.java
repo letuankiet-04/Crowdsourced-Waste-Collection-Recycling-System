@@ -44,4 +44,38 @@ public interface CollectorReportItemRepository extends JpaRepository<CollectorRe
             ORDER BY totalWeightKg DESC, wc.id ASC
             """, nativeQuery = true)
     List<AdminCategoryCollectedWeightView> sumCollectedWeightByCategoryForYear(@Param("year") Integer year);
+
+    @Query("""
+        SELECT c.name, SUM(i.quantity) 
+        FROM CollectorReportItem i 
+        JOIN i.wasteCategory c 
+        JOIN i.collectorReport cr 
+        JOIN cr.collectionRequest req 
+        JOIN req.report wr 
+        WHERE wr.citizen.id = :citizenId 
+        GROUP BY c.name
+    """)
+    List<Object[]> sumWeightByWasteTypeForCitizen(@Param("citizenId") Integer citizenId);
+
+    @Query("""
+        SELECT c.name, SUM(i.quantity) 
+        FROM CollectorReportItem i 
+        JOIN i.wasteCategory c 
+        JOIN i.collectorReport cr 
+        JOIN cr.collectionRequest req 
+        WHERE req.enterprise.id = :enterpriseId 
+        GROUP BY c.name
+    """)
+    List<Object[]> sumWeightByWasteTypeForEnterprise(@Param("enterpriseId") Integer enterpriseId);
+
+    @Query("""
+        SELECT c.name, SUM(i.quantity) 
+        FROM CollectorReportItem i 
+        JOIN i.wasteCategory c 
+        JOIN i.collectorReport cr 
+        JOIN cr.collectionRequest req 
+        WHERE req.collector.id = :collectorId 
+        GROUP BY c.name
+    """)
+    List<Object[]> sumWeightByWasteTypeForCollector(@Param("collectorId") Integer collectorId);
 }

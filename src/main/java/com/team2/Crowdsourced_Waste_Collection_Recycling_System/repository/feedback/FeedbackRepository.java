@@ -21,19 +21,22 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Integer> {
     
     List<Feedback> findByFeedbackType(String feedbackType);
     
-    List<Feedback> findBySeverity(String severity);
+    // List<Feedback> findBySeverity(String severity);
     
     List<Feedback> findByCollectionRequestId(Integer collectionRequestId);
 
     
+    @Query("SELECT f FROM Feedback f WHERE f.collectionRequest.enterprise.id = :enterpriseId ORDER BY f.createdAt DESC")
+    List<Feedback> findByEnterpriseId(@Param("enterpriseId") Integer enterpriseId);
+    
     @Query("SELECT f FROM Feedback f WHERE f.citizen.id = :citizenId ORDER BY f.createdAt DESC")
     List<Feedback> findByCitizenIdOrderByCreatedAtDesc(@Param("citizenId") Integer citizenId);
     
-    @Query("SELECT f FROM Feedback f WHERE f.status = :status AND f.severity = :severity")
-    List<Feedback> findByStatusAndSeverity(
-        @Param("status") String status,
-        @Param("severity") String severity
-    );
+    // @Query("SELECT f FROM Feedback f WHERE f.status = :status AND f.severity = :severity")
+    // List<Feedback> findByStatusAndSeverity(
+    //     @Param("status") String status,
+    //     @Param("severity") String severity
+    // );
     
 
     
@@ -55,7 +58,7 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Integer> {
     
 
     
-    @Query("SELECT f FROM Feedback f WHERE f.severity = 'high' AND f.status IN ('pending', 'in_progress') ORDER BY f.createdAt ASC")
-    List<Feedback> findUrgentFeedbacks();
+    // @Query("SELECT f FROM Feedback f WHERE f.severity = 'high' AND f.status IN ('pending', 'in_progress') ORDER BY f.createdAt ASC")
+    // List<Feedback> findUrgentFeedbacks();
 }
 
