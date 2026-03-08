@@ -587,14 +587,19 @@ public class WasteReportServiceImpl implements WasteReportService {
 
         CollectionRequest collectionRequest = collectionRequestRepository.findByReport_Id(report.getId()).orElse(null);
         
-        // Nếu khiếu nại về thưởng (tương đương POINT cũ), phải kiểm tra xem đã có giao dịch cộng điểm chưa
+        // Nếu khiếu nại về thưởng (tương đương POINT cũ), phải kiểm tra xem báo cáo đã được thu gom (COLLECTED) chưa
         if ("COMPLAINT_REWARD".equals(normalizedType)) {
-            if (collectionRequest == null) {
+            if (report.getStatus() != WasteReportStatus.COLLECTED) {
                 throw new AppException(ErrorCode.INVALID_REQUEST);
             }
-            boolean hasEarned = pointTransactionRepository.existsByCollectionRequestIdAndTransactionType(collectionRequest.getId(), "EARN");
-            if (!hasEarned) {
-                throw new AppException(ErrorCode.INVALID_REQUEST);
+        }
+
+        // Upload ảnh bằng chứng
+        String imageUrl = null;
+        if (request.getEvidenceImage() != null && !request.getEvidenceImage().isEmpty()) {
+            CloudinaryResponse uploaded = cloudinaryService.uploadImage(request.getEvidenceImage(), "feedbacks");
+            if (uploaded != null) {
+                imageUrl = uploaded.getUrl();
             }
         }
 
