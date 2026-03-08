@@ -484,7 +484,7 @@ public class CollectorServiceImpl implements CollectorService {
     }
 
     /**
-     * Cập nhật trạng thái làm việc của chính Collector (VD: Active, Offline).
+     * Cập nhật trạng thái làm việc của chính Collector (VD: Online, Offline).
      */
     @Override
     @Transactional
