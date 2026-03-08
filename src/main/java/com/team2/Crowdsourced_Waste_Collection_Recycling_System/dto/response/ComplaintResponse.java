@@ -20,5 +20,7 @@ public class ComplaintResponse {
     String type;
     String content;
     String status;
+    String imageUrl;
+    Integer rating;
     LocalDateTime createdAt;
 }

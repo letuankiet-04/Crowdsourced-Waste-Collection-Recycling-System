@@ -7,16 +7,19 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDateTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CitizenLeaderboardResponse {
-    Integer rank;
+public class CitizenPointSummaryResponse {
     Integer citizenId;
     String fullName;
-    String ward;
-    String city;
-    Integer totalPoint;
+    Integer totalPoints;
+    Long earnedPoints;
+    LocalDateTime from;
+    LocalDateTime to;
 }
+

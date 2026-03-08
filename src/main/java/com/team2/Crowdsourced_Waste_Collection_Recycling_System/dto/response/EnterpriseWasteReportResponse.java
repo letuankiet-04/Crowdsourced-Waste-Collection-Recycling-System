@@ -1,5 +1,6 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,6 +20,8 @@ public class EnterpriseWasteReportResponse {
     Integer id;
     String reportCode;
     String status;
+    @JsonProperty("submit_by")
+    String submitBy;
     String wasteType;
     String description;
     String address;

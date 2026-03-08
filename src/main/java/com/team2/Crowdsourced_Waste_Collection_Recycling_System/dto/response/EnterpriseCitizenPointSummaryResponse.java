@@ -7,16 +7,19 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.math.BigDecimal;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CitizenLeaderboardResponse {
-    Integer rank;
+public class EnterpriseCitizenPointSummaryResponse {
     Integer citizenId;
     String fullName;
-    String ward;
-    String city;
-    Integer totalPoint;
+    String phone;
+    Long totalPoints;
+    BigDecimal totalWeightKg;
+    Long totalCollections;
 }
+

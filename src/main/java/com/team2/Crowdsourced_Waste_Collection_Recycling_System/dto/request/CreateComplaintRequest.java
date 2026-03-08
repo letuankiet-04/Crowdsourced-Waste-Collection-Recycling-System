@@ -9,6 +9,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import org.springframework.web.multipart.MultipartFile;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -23,4 +27,10 @@ public class CreateComplaintRequest {
 
     @NotBlank(message = "Nội dung khiếu nại không được để trống")
     String content;
+
+    MultipartFile evidenceImage;
+
+    @Min(value = 1, message = "Rating must be at least 1")
+    @Max(value = 5, message = "Rating must be at most 5")
+    Integer rating;
 }
