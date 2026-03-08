@@ -166,17 +166,13 @@ public class EnterpriseAssignmentServiceImpl implements EnterpriseAssignmentServ
 
         // Duyệt qua từng collector để kiểm tra điều kiện
         for (Collector collector : allCollectors) {
-            // 1. Bỏ qua nếu collector không active hoặc available
-            if (collector.getStatus() == null || 
-                (collector.getStatus() != CollectorStatus.ACTIVE && collector.getStatus() != CollectorStatus.AVAILABLE)) {
+            // 1. Bỏ qua nếu collector không online
+            if (collector.getStatus() == null || collector.getStatus() != CollectorStatus.ONLINE) {
                 continue;
             }
 
-            // 2. Bỏ qua nếu bị suspend
-            if (collector.getStatus() == CollectorStatus.SUSPEND) {
-                continue;
-            }
-
+            // 2. Bỏ qua nếu bị suspend (đã bao gồm ở trên nhưng giữ lại nếu cần check riêng sau này, nhưng hiện tại bỏ qua)
+            
             // 3. Bỏ qua collector vừa từ chối (nếu có)
             if (lastRejectedCollectorId != null && lastRejectedCollectorId.equals(collector.getId())) {
                 continue;
@@ -300,9 +296,8 @@ public class EnterpriseAssignmentServiceImpl implements EnterpriseAssignmentServ
     }
 
     private static void validateCollectorAssignable(Collector collector) {
-        if (collector.getStatus() == null
-                || (collector.getStatus() != CollectorStatus.ACTIVE && collector.getStatus() != CollectorStatus.AVAILABLE)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Collector không ở trạng thái active hoặc available");
+        if (collector.getStatus() == null || collector.getStatus() != CollectorStatus.ONLINE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Collector không ở trạng thái online");
         }
     }
 
