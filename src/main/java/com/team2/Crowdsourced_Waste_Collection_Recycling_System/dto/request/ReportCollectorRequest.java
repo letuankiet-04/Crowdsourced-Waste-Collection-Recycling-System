@@ -23,7 +23,6 @@ public class ReportCollectorRequest {
     @NotEmpty(message = "Danh mục thu gom là bắt buộc")
     List<WasteReportItem> wasteReportItems;
 
-    @NotBlank(message = "Mô tả thực tế là bắt buộc")
     @Size(max = 1000, message = "Ghi chú không được vượt quá 1000 ký tự.")
     String collectorNote;
 

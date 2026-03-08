@@ -30,7 +30,6 @@ public class CreateCollectorReportRequest {
 
     List<BigDecimal> quantities;
 
-    @NotBlank(message = "Mô tả thực tế là bắt buộc")
     @Size(max = 1000, message = "Ghi chú không được vượt quá 1000 ký tự.")
     String collectorNote;
 
