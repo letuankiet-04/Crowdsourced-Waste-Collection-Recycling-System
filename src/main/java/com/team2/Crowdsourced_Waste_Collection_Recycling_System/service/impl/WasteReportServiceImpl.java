@@ -603,6 +603,15 @@ public class WasteReportServiceImpl implements WasteReportService {
             }
         }
 
+        // Upload ảnh bằng chứng
+        String imageUrl = null;
+        if (request.getEvidenceImage() != null && !request.getEvidenceImage().isEmpty()) {
+            CloudinaryResponse uploaded = cloudinaryService.uploadImage(request.getEvidenceImage(), "complaints");
+            if (uploaded != null) {
+                imageUrl = uploaded.getUrl();
+            }
+        }
+
         Feedback feedback = citizenFeatureMapper.toFeedback(request);
         feedback.setCitizen(citizen);
         
