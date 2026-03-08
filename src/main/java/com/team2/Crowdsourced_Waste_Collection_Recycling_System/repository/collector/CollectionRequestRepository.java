@@ -245,6 +245,26 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
         java.time.LocalDateTime getUpdatedAt();
     }
 
+    @Query("""
+        SELECT c.id, c.fullName, COUNT(req), COALESCE(SUM(req.actualWeightKg), 0)
+        FROM Collector c
+        LEFT JOIN CollectionRequest req ON req.collector.id = c.id AND req.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
+        GROUP BY c.id, c.fullName
+        ORDER BY COALESCE(SUM(req.actualWeightKg), 0) DESC
+    """)
+    List<Object[]> getGlobalCollectorPerformance();
+
+    @Query(value = """
+                SELECT
+                    COALESCE(SUM(cr.actual_weight_kg), 0)
+                FROM collection_requests cr
+                WHERE cr.status = 'completed'
+                  AND cr.actual_weight_kg IS NOT NULL
+            """, nativeQuery = true)
+    BigDecimal sumTotalActualWeight();
+
+    long countByStatus(CollectionRequestStatus status);
+
     interface CollectorMonthlyCompletedCountView {
         Integer getYear();
 

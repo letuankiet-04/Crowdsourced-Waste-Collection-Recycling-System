@@ -48,6 +48,18 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
         @Param("type") String type
     );
 
+    @Query("SELECT SUM(pt.points) FROM PointTransaction pt WHERE pt.transactionType = 'EARN'")
+    Long sumTotalPointsDistributed();
+
+    @Query("""
+        SELECT YEAR(pt.createdAt), MONTH(pt.createdAt), SUM(pt.points) 
+        FROM PointTransaction pt 
+        WHERE pt.transactionType = 'EARN'
+        GROUP BY YEAR(pt.createdAt), MONTH(pt.createdAt)
+        ORDER BY YEAR(pt.createdAt) DESC, MONTH(pt.createdAt) DESC
+    """)
+    List<Object[]> sumPointsDistributedPerMonth();
+
     @Query("""
             SELECT COALESCE(SUM(pt.points), 0)
             FROM PointTransaction pt
