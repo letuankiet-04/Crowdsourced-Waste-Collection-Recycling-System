@@ -19,6 +19,7 @@ import java.util.List;
 public class EnterpriseWasteReportResponse {
     Integer id;
     String reportCode;
+    Integer collectionRequestId;
     String status;
     @JsonProperty("submit_by")
     String submitBy;
