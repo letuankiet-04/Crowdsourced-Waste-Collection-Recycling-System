@@ -39,7 +39,7 @@ Multipart được bind vào DTO:
 Các validate quan trọng (tự động qua `@Valid` ở controller):
 - `images`: `@Size(min=1)` yêu cầu có ít nhất 1 ảnh.
 - `categoryIds`: `@Size(min=1)` yêu cầu chọn ít nhất 1 danh mục.
-- `collectorNote`: `@NotBlank`, `@Size(max=1000)`.
+- `collectorNote`: `@Size(max=1000)` (không bắt buộc).
 - `latitude/longitude`: `@NotNull` và range hợp lệ (lat `[-90,90]`, lng `[-180,180]`).
 
 Vì sao vẫn còn validate ở service?

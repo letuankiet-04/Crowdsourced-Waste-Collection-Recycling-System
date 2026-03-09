@@ -30,7 +30,6 @@ public class CreateCollectorReportRequest {
 
     List<BigDecimal> quantities;
 
-    @NotBlank(message = "Mô tả thực tế là bắt buộc")
     @Size(max = 1000, message = "Ghi chú không được vượt quá 1000 ký tự.")
     String collectorNote;
 
@@ -44,5 +43,7 @@ public class CreateCollectorReportRequest {
     @DecimalMax(value = "180.0", message = "Kinh độ phải nằm trong khoảng [-180, 180]")
     Double longitude;
 
-    Integer verificationRate;
+    @DecimalMin(value = "0.0", message = "Tỷ lệ xác thực phải từ 0 đến 100")
+    @DecimalMax(value = "100.0", message = "Tỷ lệ xác thực phải từ 0 đến 100")
+    Double verificationRate;
 }

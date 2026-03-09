@@ -383,11 +383,7 @@ BEGIN
     (@citizenId2, N'Bến Nghé', N'HCM', 'MONTHLY', CONVERT(date, DATEADD(DAY, 1 - DAY(@now), @now)), CONVERT(date, EOMONTH(@now)), 5000, 1, 1, 0.95, 1, @now);
 END
 
-IF NOT EXISTS (SELECT 1 FROM system_settings WHERE setting_key = 'APP_NAME')
-BEGIN
-    INSERT INTO system_settings (setting_key, setting_value, data_type, category, description, updated_by, updated_at)
-    VALUES ('APP_NAME', N'Crowdsourced Waste Collection & Recycling System', 'TEXT', 'GENERAL', N'Application display name', @adminUserId, @now);
-END
+
 
 IF NOT EXISTS (SELECT 1 FROM invalidated_tokens WHERE id = 'demo-token-1')
 BEGIN
