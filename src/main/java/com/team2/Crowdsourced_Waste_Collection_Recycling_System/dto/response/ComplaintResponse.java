@@ -20,6 +20,7 @@ public class ComplaintResponse {
     String type;
     String content;
     String status;
+    String resolution;
     Integer rating;
     LocalDateTime createdAt;
 }
