@@ -345,18 +345,46 @@ CREATE TABLE point_transactions (
 );
 GO
 
--- System Settings
-CREATE TABLE system_settings (
+-- Vouchers
+CREATE TABLE vouchers (
     id INT IDENTITY(1,1) NOT NULL,
-    setting_key NVARCHAR(100) NOT NULL,
-    setting_value NVARCHAR(MAX) NULL,
-    data_type NVARCHAR(20) NULL,
-    category NVARCHAR(50) NULL,
-    description NVARCHAR(500) NULL,
-    updated_by INT NULL,
+    voucher_code NVARCHAR(10) NULL,
+    banner_public_id NVARCHAR(255) NULL,
+    logo_public_id NVARCHAR(255) NULL,
+    banner_url NVARCHAR(1000) NULL,
+    logo_url NVARCHAR(1000) NULL,
+    title NVARCHAR(255) NOT NULL,
+    value_display NVARCHAR(100) NULL,
+    points_required INT NOT NULL,
+    valid_until DATE NULL,
+    active BIT NOT NULL,
+    remaining_stock INT NULL,
+    created_at DATETIME2 NULL,
     updated_at DATETIME2 NULL,
-    CONSTRAINT pk_system_settings PRIMARY KEY (id),
-    CONSTRAINT uq_system_settings_setting_key UNIQUE (setting_key),
-    CONSTRAINT fk_system_settings_updated_by FOREIGN KEY (updated_by) REFERENCES users(id)
+    CONSTRAINT pk_vouchers PRIMARY KEY (id),
+    CONSTRAINT uq_vouchers_code UNIQUE (voucher_code)
+);
+GO
+
+-- Voucher Terms
+CREATE TABLE voucher_terms (
+    voucher_id INT NOT NULL,
+    term NVARCHAR(500) NULL,
+    CONSTRAINT fk_voucher_terms_voucher FOREIGN KEY (voucher_id) REFERENCES vouchers(id)
+);
+GO
+
+-- Voucher Redemptions
+CREATE TABLE voucher_redemptions (
+    id INT IDENTITY(1,1) NOT NULL,
+    citizen_id INT NOT NULL,
+    voucher_id INT NOT NULL,
+    redemption_code NVARCHAR(64) NOT NULL,
+    points_spent INT NOT NULL,
+    status NVARCHAR(30) NOT NULL,
+    redeemed_at DATETIME2 NOT NULL,
+    CONSTRAINT pk_voucher_redemptions PRIMARY KEY (id),
+    CONSTRAINT fk_voucher_redemptions_citizen FOREIGN KEY (citizen_id) REFERENCES citizens(id),
+    CONSTRAINT fk_voucher_redemptions_voucher FOREIGN KEY (voucher_id) REFERENCES vouchers(id)
 );
 GO
