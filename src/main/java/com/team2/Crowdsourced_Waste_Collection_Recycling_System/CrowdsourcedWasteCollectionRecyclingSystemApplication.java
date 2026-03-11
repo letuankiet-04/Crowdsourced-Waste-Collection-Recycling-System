@@ -6,7 +6,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableScheduling
-public class CrowdsourcedWasteCollectionRecyclingSystemApplication {
+public class
+CrowdsourcedWasteCollectionRecyclingSystemApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(CrowdsourcedWasteCollectionRecyclingSystemApplication.class, args);

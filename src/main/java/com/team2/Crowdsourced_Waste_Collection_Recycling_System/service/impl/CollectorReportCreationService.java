@@ -118,7 +118,7 @@ public class CollectorReportCreationService {
         }
     }
 
-    private Calculation calculateItems(List<Integer> categoryIds, List<BigDecimal> quantities, Integer verificationRate) {
+    private Calculation calculateItems(List<Integer> categoryIds, List<BigDecimal> quantities, Double verificationRate) {
         List<CollectorReportItem> items = new ArrayList<>();
         BigDecimal totalWeightKg = BigDecimal.ZERO;
         int totalPoints = 0;
@@ -142,11 +142,7 @@ public class CollectorReportCreationService {
             }
 
             if (verificationRate != null) {
-                if (verificationRate == 0) {
-                    points = 0;
-                } else if (verificationRate == 50) {
-                    points = points / 2;
-                }
+                points = (int) (points * (verificationRate / 100.0));
             }
 
             item.setTotalPoint(points);

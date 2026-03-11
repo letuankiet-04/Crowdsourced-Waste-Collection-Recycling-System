@@ -51,8 +51,10 @@ public class CloudinaryServiceImpl implements CloudinaryService {
                 options.put("folder", folder);
             }
 
+            // Nén ảnh nếu cần thiết
+            byte[] fileBytes = FileUpLoadUtil.compressImage(file);
             Map<?, ?> result = cloudinary.uploader().upload(
-                    file.getBytes(),
+                    fileBytes,
                     options
             );
             String publicId = String.valueOf(result.get("public_id"));
