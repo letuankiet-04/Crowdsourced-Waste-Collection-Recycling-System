@@ -69,13 +69,6 @@ public class WasteReportServiceImpl implements WasteReportService {
     private static final BigDecimal DUP_LAT_DELTA = new BigDecimal("0.00030");
     private static final BigDecimal DUP_LNG_DELTA = new BigDecimal("0.00030");
     
-    // Danh sách thứ tự ưu tiên hiển thị các loại rác
-    private static final List<String> CITIZEN_CATEGORY_ORDER = List.of(
-            "Giấy", "Báo", "Giấy, hồ sơ", "Giấy tập", "Lon bia", "Sắt", "Sắt lon",
-            "Inox", "Đồng", "Nhôm", "Chai thủy tinh", "Bao bì, hỗn hợp",
-            "Meca", "Mủ", "Mủ bình", "Mủ tôn", "Mủ đen"
-    );
-
     private final WasteReportRepository wasteReportRepository;
     private final CitizenRepository citizenRepository;
     private final WasteCategoryRepository wasteCategoryRepository;
@@ -652,35 +645,14 @@ public class WasteReportServiceImpl implements WasteReportService {
     public List<WasteCategoryResponse> getWasteCategories() {
         List<WasteCategory> categories = wasteCategoryRepository.findAll();
         
-        // Sắp xếp danh sách loại rác theo thứ tự ưu tiên đã định nghĩa
-        // Sử dụng thuật toán sắp xếp cơ bản (bubble sort hoặc comparator đơn giản)
-        categories.sort((c1, c2) -> {
-            Integer idx1 = findOrderIndex(c1.getName());
-            Integer idx2 = findOrderIndex(c2.getName());
-            
-            // Nếu cả 2 đều có trong danh sách ưu tiên, so sánh index
-            if (idx1 != null && idx2 != null) {
-                return idx1.compareTo(idx2);
-            }
-            // Nếu chỉ c1 có, c1 lên trước
-            if (idx1 != null) return -1;
-            // Nếu chỉ c2 có, c2 lên trước
-            if (idx2 != null) return 1;
-            // Nếu cả 2 không có, giữ nguyên hoặc so sánh theo ID
-            return 0;
-        });
-
         List<WasteCategoryResponse> responses = new ArrayList<>();
         for (WasteCategory c : categories) {
-            // Chỉ lấy những loại rác có trong danh sách ưu tiên (theo logic cũ)
-            if (findOrderIndex(c.getName()) != null) {
-                responses.add(WasteCategoryResponse.builder()
-                        .id(c.getId())
-                        .name(c.getName())
-                        .unit(c.getUnit() != null ? c.getUnit().name() : null)
-                        .pointPerUnit(c.getPointPerUnit())
-                        .build());
-            }
+            responses.add(WasteCategoryResponse.builder()
+                    .id(c.getId())
+                    .name(c.getName())
+                    .unit(c.getUnit() != null ? c.getUnit().name() : null)
+                    .pointPerUnit(c.getPointPerUnit())
+                    .build());
         }
         return responses;
     }
@@ -982,18 +954,5 @@ public class WasteReportServiceImpl implements WasteReportService {
         } catch (NumberFormatException ex) {
             return null;
         }
-    }
-
-    private Integer findOrderIndex(String name) {
-        if (name == null) {
-            return null;
-        }
-        String normalized = name.trim().toLowerCase(Locale.ROOT);
-        for (int i = 0; i < CITIZEN_CATEGORY_ORDER.size(); i++) {
-            if (CITIZEN_CATEGORY_ORDER.get(i).toLowerCase(Locale.ROOT).equals(normalized)) {
-                return i;
-            }
-        }
-        return null;
     }
 }
