@@ -43,11 +43,11 @@ public class Enterprise {
     private String email;
 
     @Lob
-    @Column(name = "service_wards", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "service_wards")
     private String serviceWards;
 
     @Lob
-    @Column(name = "service_cities", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "service_cities")
     private String serviceCities;
 
     @Column(name = "status", length = 20)

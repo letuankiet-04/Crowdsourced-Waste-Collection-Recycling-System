@@ -50,10 +50,10 @@ public class Feedback {
     private String subject;
 
     @Lob
-    @Column(name = "content", nullable = false, columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "content", nullable = false)
     private String content;
 
-    @Column(name = "resolution", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "resolution")
     private String resolution;
 
     @Column(name = "status", length = 20)

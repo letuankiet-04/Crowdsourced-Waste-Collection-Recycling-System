@@ -60,7 +60,7 @@ public class WasteReport {
     private String address;
 
     @Lob
-    @Column(name = "images", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "images")
     private String images;
 
     @Column(name = "cloudinary_public_id", length = 255)
