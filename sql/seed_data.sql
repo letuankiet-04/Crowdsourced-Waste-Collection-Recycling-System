@@ -235,7 +235,7 @@ IF NOT EXISTS (SELECT 1 FROM waste_categories WHERE name = N'Giấy tập')
     VALUES (N'Giấy tập', NULL, 'KG', 3600.0000, @now, @now);
 IF NOT EXISTS (SELECT 1 FROM waste_categories WHERE name = N'Lon bia')
     INSERT INTO waste_categories (name, description, unit, point_per_unit, created_at, updated_at)
-    VALUES (N'Lon bia', NULL, 'CAN', 180.0000, @now, @now);
+    VALUES (N'Lon bia', NULL, 'KG', 180.0000, @now, @now);
 IF NOT EXISTS (SELECT 1 FROM waste_categories WHERE name = N'Sắt')
     INSERT INTO waste_categories (name, description, unit, point_per_unit, created_at, updated_at)
     VALUES (N'Sắt', NULL, 'KG', 3600.0000, @now, @now);
@@ -253,7 +253,7 @@ IF NOT EXISTS (SELECT 1 FROM waste_categories WHERE name = N'Nhôm')
     VALUES (N'Nhôm', NULL, 'KG', 16200.0000, @now, @now);
 IF NOT EXISTS (SELECT 1 FROM waste_categories WHERE name = N'Chai thủy tinh')
     INSERT INTO waste_categories (name, description, unit, point_per_unit, created_at, updated_at)
-    VALUES (N'Chai thủy tinh', NULL, 'BOTTLE', 450.0000, @now, @now);
+    VALUES (N'Chai thủy tinh', NULL, 'KG', 450.0000, @now, @now);
 IF NOT EXISTS (SELECT 1 FROM waste_categories WHERE name = N'Bao bì, hỗn hợp')
     INSERT INTO waste_categories (name, description, unit, point_per_unit, created_at, updated_at)
     VALUES (N'Bao bì, hỗn hợp', NULL, 'KG', 1600.0000, @now, @now);
@@ -275,10 +275,10 @@ IF NOT EXISTS (SELECT 1 FROM waste_categories WHERE name = N'Mủ đen')
 
 IF NOT EXISTS (SELECT 1 FROM waste_categories WHERE name = N'Lon nhôm')
     INSERT INTO waste_categories (name, description, unit, point_per_unit, created_at, updated_at)
-    VALUES (N'Lon nhôm', NULL, 'CAN', 180.0000, @now, @now);
+    VALUES (N'Lon nhôm', NULL, 'KG', 180.0000, @now, @now);
 IF NOT EXISTS (SELECT 1 FROM waste_categories WHERE name = N'Chai nhựa PET')
     INSERT INTO waste_categories (name, description, unit, point_per_unit, created_at, updated_at)
-    VALUES (N'Chai nhựa PET', NULL, 'BOTTLE', 120.0000, @now, @now);
+    VALUES (N'Chai nhựa PET', NULL, 'KG', 120.0000, @now, @now);
 
 DECLARE @catPaperId INT, @catCanId INT, @catPetId INT, @catCopperId INT;
 SELECT @catPaperId = id FROM waste_categories WHERE name = N'Giấy';
@@ -308,14 +308,14 @@ BEGIN
     INSERT INTO waste_report_items (report_id, waste_category_id, quantity, unit_snapshot, created_at)
     VALUES
     (@wr1, @catPaperId, 0.70, 'KG', DATEADD(HOUR, -6, @now)),
-    (@wr1, @catCanId, 2, 'CAN', DATEADD(HOUR, -6, @now));
+    (@wr1, @catCanId, 2, 'KG', DATEADD(HOUR, -6, @now));
 END
 
 IF @wr2 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM waste_report_items WHERE report_id = @wr2)
 BEGIN
     INSERT INTO waste_report_items (report_id, waste_category_id, quantity, unit_snapshot, created_at)
     VALUES
-    (@wr2, @catPetId, 4, 'BOTTLE', DATEADD(HOUR, -10, @now)),
+    (@wr2, @catPetId, 4, 'KG', DATEADD(HOUR, -10, @now)),
     (@wr2, @catCopperId, 0.25, 'KG', DATEADD(HOUR, -10, @now));
 END
 
@@ -361,7 +361,7 @@ BEGIN
     INSERT INTO collector_report_items (collector_report_id, waste_category_id, quantity, unit_snapshot, point_per_unit_snapshot, total_point, created_at)
     VALUES
     (@collectorReportId, @catPaperId, 0.70, 'KG', 2250.0000, 1575, DATEADD(HOUR, -1, @now)),
-    (@collectorReportId, @catCanId, 2, 'CAN', 180.0000, 360, DATEADD(HOUR, -1, @now));
+    (@collectorReportId, @catCanId, 2, 'KG', 180.0000, 360, DATEADD(HOUR, -1, @now));
 END
 
 IF @cr2 IS NOT NULL AND NOT EXISTS (SELECT 1 FROM point_transactions WHERE citizen_id = @citizenId2 AND collection_request_id = @cr2 AND transaction_type = 'EARN')

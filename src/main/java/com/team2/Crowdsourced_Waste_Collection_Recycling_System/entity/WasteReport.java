@@ -18,7 +18,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -43,7 +42,6 @@ public class WasteReport {
     private Citizen citizen;
 
     @Column(name = "description", length = 1000)
-    @Nationalized
     private String description;
 
     @Column(name = "waste_type", nullable = false, length = 20)
@@ -56,11 +54,10 @@ public class WasteReport {
     private BigDecimal longitude;
 
     @Column(name = "address", length = 500)
-    @Nationalized
     private String address;
 
     @Lob
-    @Column(name = "images", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "images")
     private String images;
 
     @Column(name = "cloudinary_public_id", length = 255)
@@ -80,6 +77,5 @@ public class WasteReport {
     private LocalDateTime acceptedAt;
 
     @Column(name = "rejection_reason", length = 500)
-    @Nationalized
     private String rejectionReason;
 }

@@ -107,10 +107,10 @@ IF NOT EXISTS (SELECT 1 FROM waste_categories WHERE name = N'Giấy')
     VALUES (N'Giấy', NULL, 'KG', 2250.0000, @now, @now);
 IF NOT EXISTS (SELECT 1 FROM waste_categories WHERE name = N'Lon nhôm')
     INSERT INTO waste_categories (name, description, unit, point_per_unit, created_at, updated_at)
-    VALUES (N'Lon nhôm', NULL, 'CAN', 180.0000, @now, @now);
+    VALUES (N'Lon nhôm', NULL, 'KG', 180.0000, @now, @now);
 IF NOT EXISTS (SELECT 1 FROM waste_categories WHERE name = N'Chai nhựa PET')
     INSERT INTO waste_categories (name, description, unit, point_per_unit, created_at, updated_at)
-    VALUES (N'Chai nhựa PET', NULL, 'BOTTLE', 120.0000, @now, @now);
+    VALUES (N'Chai nhựa PET', NULL, 'KG', 120.0000, @now, @now);
 
 DECLARE @catPaperId INT, @catCanId INT, @catPetId INT;
 SELECT @catPaperId = id FROM waste_categories WHERE name = N'Giấy';
@@ -139,14 +139,14 @@ BEGIN
     INSERT INTO waste_report_items (report_id, waste_category_id, quantity, unit_snapshot, created_at)
     VALUES
     (@wr1, @catPaperId, 0.70, 'KG', DATEADD(HOUR, -6, @now)),
-    (@wr1, @catCanId, 2, 'CAN', DATEADD(HOUR, -6, @now));
+    (@wr1, @catCanId, 2, 'KG', DATEADD(HOUR, -6, @now));
 END
 
 IF NOT EXISTS (SELECT 1 FROM waste_report_items WHERE report_id = @wr2)
 BEGIN
     INSERT INTO waste_report_items (report_id, waste_category_id, quantity, unit_snapshot, created_at)
     VALUES
-    (@wr2, @catPetId, 4, 'BOTTLE', DATEADD(HOUR, -10, @now)),
+    (@wr2, @catPetId, 4, 'KG', DATEADD(HOUR, -10, @now)),
     (@wr2, @catPaperId, 0.25, 'KG', DATEADD(HOUR, -10, @now));
 END
 
@@ -213,5 +213,5 @@ BEGIN
     INSERT INTO collector_report_items (collector_report_id, waste_category_id, quantity, unit_snapshot, point_per_unit_snapshot, total_point, created_at)
     VALUES
     (@collectorReportId, @catPaperId, 0.75, 'KG', 2250.0000, 1688, DATEADD(HOUR, -7, @now)),
-    (@collectorReportId, @catCanId, 3, 'CAN', 180.0000, 540, DATEADD(HOUR, -7, @now));
+    (@collectorReportId, @catCanId, 3, 'KG', 180.0000, 540, DATEADD(HOUR, -7, @now));
 END

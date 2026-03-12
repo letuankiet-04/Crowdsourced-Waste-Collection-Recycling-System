@@ -418,7 +418,7 @@ public class DataSeeder {
 //                now);
 //        createWasteCategoryIfNotFound(wasteCategoryRepository, "Giấy tập", WasteUnit.KG, new BigDecimal("3600.0000"),
 //                now);
-//        createWasteCategoryIfNotFound(wasteCategoryRepository, "Lon bia", WasteUnit.CAN, new BigDecimal("180.0000"),
+//        createWasteCategoryIfNotFound(wasteCategoryRepository, "Lon bia", WasteUnit.KG, new BigDecimal("180.0000"),
 //                now);
 //        createWasteCategoryIfNotFound(wasteCategoryRepository, "Sắt", WasteUnit.KG, new BigDecimal("3600.0000"), now);
 //        createWasteCategoryIfNotFound(wasteCategoryRepository, "Sắt lon", WasteUnit.KG, new BigDecimal("1440.0000"),
@@ -426,7 +426,7 @@ public class DataSeeder {
 //        createWasteCategoryIfNotFound(wasteCategoryRepository, "Inox", WasteUnit.KG, new BigDecimal("5400.0000"), now);
 //        createWasteCategoryIfNotFound(wasteCategoryRepository, "Đồng", WasteUnit.KG, new BigDecimal("67500.0000"), now);
 //        createWasteCategoryIfNotFound(wasteCategoryRepository, "Nhôm", WasteUnit.KG, new BigDecimal("16200.0000"), now);
-//        createWasteCategoryIfNotFound(wasteCategoryRepository, "Chai thủy tinh", WasteUnit.BOTTLE,
+//        createWasteCategoryIfNotFound(wasteCategoryRepository, "Chai thủy tinh", WasteUnit.KG,
 //                new BigDecimal("450.0000"), now);
 //        createWasteCategoryIfNotFound(wasteCategoryRepository, "Bao bì, hỗn hợp", WasteUnit.KG, new BigDecimal("1600.0000"),
 //                now);
@@ -627,7 +627,7 @@ public class DataSeeder {
         ensureTrackingIfMissing(collectionTrackingRepository, cr5, collector2, "collected",
                 now.minusDays(1).plusHours(5));
 
-        ensureCollectorReportIfMissing(collectorReportRepository, cr5, collector2,
+        ensureCollectorReportIfMissing(collectorReportRepository, cr5, collector2, "RP-SEED-005",
                 now.minusDays(1).plusHours(5));
 
         ensurePointTransaction(pointTransactionRepository, citizen, r5, cr5, now.minusDays(1).plusHours(5));
@@ -725,6 +725,7 @@ public class DataSeeder {
             CollectorReportRepository reportRepository,
             CollectionRequest request,
             Collector collector,
+            String reportCode,
             LocalDateTime collectedAt) {
         if (request == null || request.getId() == null) {
             return;
@@ -733,6 +734,7 @@ public class DataSeeder {
             return;
         }
         CollectorReport report = new CollectorReport();
+        report.setReportCode(reportCode);
         report.setCollectionRequest(request);
         report.setCollector(collector);
         report.setStatus(CollectorReportStatus.COMPLETED);

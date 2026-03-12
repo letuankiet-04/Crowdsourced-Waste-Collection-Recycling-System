@@ -1,6 +1,7 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.impl;
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.EnterpriseCitizenPointSummaryResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.EnterpriseDailyWasteVolumeResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.EnterpriseMonthlyWasteVolumeResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.EnterpriseQuarterlyWasteVolumeResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.EnterpriseWasteVolumeStatsResponse;
@@ -25,6 +26,8 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.rewar
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.EnterpriseReportCountResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -191,6 +194,130 @@ public class EnterpriseStatisticsServiceImpl implements EnterpriseStatisticsServ
             response.setTotalCollections(v.getTotalCollections() != null ? v.getTotalCollections() : 0L);
             
             result.add(response);
+        }
+
+        return result;
+    }
+
+    @Override
+    public List<EnterpriseDailyWasteVolumeResponse> getDailyWasteVolumeStats(Integer enterpriseId, Integer year, Integer month, Integer day) {
+        validateEnterprise(enterpriseId);
+        int y = normalizeYear(year);
+
+        LocalDateTime from;
+        LocalDateTime to;
+
+        if (day != null) {
+            // Thống kê ngày cụ thể
+            if (month == null) {
+                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cần cung cấp month khi filter theo day");
+            }
+            if (month < 1 || month > 12) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "month phải từ 1 đến 12");
+            }
+            int d = day;
+            int maxDay = LocalDate.of(y, month, 1).lengthOfMonth();
+            if (d < 1 || d > maxDay) {
+                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "day không hợp lệ trong tháng " + month);
+            }
+
+            from = LocalDate.of(y, month, d).atStartOfDay();
+            to = from.plusDays(1);
+        } else if (month != null) {
+            // Thống kê theo ngày trong tháng
+            if (month < 1 || month > 12) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "month phải từ 1 đến 12");
+            }
+            from = LocalDate.of(y, month, 1).atStartOfDay();
+            to = from.plusMonths(1);
+        } else {
+            // Thống kê theo ngày trong năm
+            from = LocalDate.of(y, 1, 1).atStartOfDay();
+            to = from.plusYears(1);
+        }
+
+        List<CollectionRequestRepository.EnterpriseDailyWasteVolumeView> views =
+                collectionRequestRepository.sumCompletedWeightByDayForEnterprise(enterpriseId, from, to);
+
+        List<EnterpriseDailyWasteVolumeResponse> result = new ArrayList<>();
+        for (CollectionRequestRepository.EnterpriseDailyWasteVolumeView view : views) {
+            result.add(EnterpriseDailyWasteVolumeResponse.builder()
+                    .year(view.getYearValue())
+                    .month(view.getMonthValue())
+                    .day(view.getDayValue())
+                    .totalWeightKg(nullToZero(view.getTotalWeightKg()))
+                    .totalRequests(view.getTotalRequests() != null ? view.getTotalRequests() : 0L)
+                    .build());
+        }
+
+        return result;
+    }
+
+    @Override
+    public List<EnterpriseReportCountResponse> getReportCountStats(Integer enterpriseId, Integer year, Integer month, Integer day) {
+        validateEnterprise(enterpriseId);
+        int y = normalizeYear(year);
+
+        List<EnterpriseReportCountResponse> result = new ArrayList<>();
+
+        if (day != null) {
+            // Thống kê ngày cụ thể
+            if (month == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cần cung cấp month khi filter theo day");
+            }
+            if (month < 1 || month > 12) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "month phải từ 1 đến 12");
+            }
+            int d = day;
+            int maxDay = LocalDate.of(y, month, 1).lengthOfMonth();
+            if (d < 1 || d > maxDay) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "day không hợp lệ trong tháng " + month);
+            }
+
+            // Reuse query by month but filter in java or use separate query?
+            // Reuse countCreatedReportsByDay(year, month) and filter
+            List<CollectionRequestRepository.EnterpriseDailyReportCountView> views =
+                    collectionRequestRepository.countCreatedReportsByDay(enterpriseId, y, month);
+            
+            for (CollectionRequestRepository.EnterpriseDailyReportCountView view : views) {
+                if (view.getDayValue().equals(d)) {
+                    result.add(EnterpriseReportCountResponse.builder()
+                            .year(view.getYearValue())
+                            .month(view.getMonthValue())
+                            .day(view.getDayValue())
+                            .totalReports(view.getTotalReports() != null ? view.getTotalReports() : 0L)
+                            .build());
+                }
+            }
+        } else if (month != null) {
+            // Thống kê theo ngày trong tháng
+            if (month < 1 || month > 12) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "month phải từ 1 đến 12");
+            }
+            List<CollectionRequestRepository.EnterpriseDailyReportCountView> views =
+                    collectionRequestRepository.countCreatedReportsByDay(enterpriseId, y, month);
+            
+            for (CollectionRequestRepository.EnterpriseDailyReportCountView view : views) {
+                result.add(EnterpriseReportCountResponse.builder()
+                        .year(view.getYearValue())
+                        .month(view.getMonthValue())
+                        .day(view.getDayValue())
+                        .totalReports(view.getTotalReports() != null ? view.getTotalReports() : 0L)
+                        .build());
+            }
+        } else {
+            // Thống kê theo tháng trong năm
+            List<CollectionRequestRepository.EnterpriseMonthlyReportCountView> views =
+                    collectionRequestRepository.countCreatedReportsByMonth(enterpriseId, y);
+            
+            for (CollectionRequestRepository.EnterpriseMonthlyReportCountView view : views) {
+                result.add(EnterpriseReportCountResponse.builder()
+                        .year(view.getYearValue())
+                        .month(view.getMonthValue())
+                        .day(null)
+                        .totalReports(view.getTotalReports() != null ? view.getTotalReports() : 0L)
+                        .build());
+            }
         }
 
         return result;

@@ -6,7 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.Image;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -23,7 +23,8 @@ import javax.imageio.stream.ImageOutputStream;
 
 @UtilityClass
 public class FileUpLoadUtil {
-    public static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
+    public static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB upload limit
+    public static final long MAX_COMPRESSED_SIZE = 1024 * 1024; // 1MB Cloudinary limit
     public static final Set<String> ALLOWED_IMAGE_EXTENSIONS = Set.of("jpg", "jpeg", "png", "gif", "bmp");
     public static final String DATE_FORMAT = "yyyyMMddHHmmss";
 
@@ -63,93 +64,100 @@ public class FileUpLoadUtil {
         if (!ALLOWED_IMAGE_EXTENSIONS.contains(normalizedExtension)) {
             throw new IllegalArgumentException("Only jpg, jpeg, png, gif, bmp files are supported");
         }
-
-        // Bỏ kiểm tra kích thước tối thiểu 1080px theo yêu cầu
     }
-     public static String getFileName(final String name) {
-         final DateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
-         final String date = dateFormat.format(System.currentTimeMillis());
-         return String.format(FILE_NAME_FORMAT, name, date);
-     }
+
+    public static String getFileName(final String name) {
+        final DateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
+        final String date = dateFormat.format(System.currentTimeMillis());
+        return String.format(FILE_NAME_FORMAT, name, date);
+    }
 
     public static byte[] compressImage(MultipartFile file) throws IOException {
         long fileSize = file.getSize();
-        if (fileSize <= 1024 * 1024) {
+        if (fileSize <= MAX_COMPRESSED_SIZE) {
             return file.getBytes();
         }
 
         BufferedImage originalImage = ImageIO.read(file.getInputStream());
         if (originalImage == null) {
+            // Cannot read image (e.g. corrupted or unsupported format), return original bytes
             return file.getBytes();
         }
 
-        // 1. Resize max 1280x1280
-        BufferedImage resizedImage = resizeImage(originalImage, 1280, 1280);
-
-        // 2. Compress 0.85
-        byte[] result = compressToJpg(resizedImage, 0.85f);
-        if (result.length <= 1024 * 1024) {
-            return result;
-        }
-
-        // 3. Binary search
-        float min = 0.0f;
-        float max = 0.85f;
-        byte[] bestResult = null;
-
-        for (int i = 0; i < 6; i++) {
-            float mid = (min + max) / 2;
-            byte[] compressed = compressToJpg(resizedImage, mid);
-            if (compressed.length <= 1024 * 1024) {
-                bestResult = compressed;
-                min = mid; // Try higher quality
-            } else {
-                max = mid; // Need lower quality
+        // Initial settings
+        int targetWidth = 1920;
+        int targetHeight = 1080;
+        float quality = 0.85f;
+        
+        byte[] result = null;
+        int attempts = 0;
+        
+        // Loop to reduce size until under 1MB
+        // Strategy: Reduce quality first, then dimensions if needed
+        while (attempts < 10) {
+            BufferedImage resized = resizeImage(originalImage, targetWidth, targetHeight);
+            result = compressToJpg(resized, quality);
+            
+            if (result.length <= MAX_COMPRESSED_SIZE) {
+                return result;
             }
+            
+            // Adjust parameters for next attempt
+            if (quality > 0.6f) {
+                quality -= 0.15f; // Reduce quality significantly
+            } else {
+                // If quality is already low, reduce dimensions
+                targetWidth = (int)(targetWidth * 0.75);
+                targetHeight = (int)(targetHeight * 0.75);
+                // Reset quality slightly to avoid artifacts at small resolution
+                quality = 0.8f;
+            }
+            attempts++;
         }
-
-        if (bestResult != null) {
-            return bestResult;
+        
+        // Final fallback: aggressive resize/compression if loop failed
+        if (result == null || result.length > MAX_COMPRESSED_SIZE) {
+             BufferedImage fallback = resizeImage(originalImage, 800, 800);
+             return compressToJpg(fallback, 0.5f);
         }
-
-        // 4. Fallback: resize more and compress 0.55
-        // Resize to 0.7 of 1280 (approx 896)
-        BufferedImage fallbackImage = resizeImage(resizedImage, 896, 896);
-        return compressToJpg(fallbackImage, 0.55f);
+        
+        return result;
     }
 
     private static BufferedImage resizeImage(BufferedImage original, int maxWidth, int maxHeight) {
         int originalWidth = original.getWidth();
         int originalHeight = original.getHeight();
 
-        boolean needResize = originalWidth > maxWidth || originalHeight > maxHeight;
-
-        if (!needResize && original.getType() == BufferedImage.TYPE_INT_RGB) {
-            return original;
+        // Calculate scale to fit within bounds while maintaining aspect ratio
+        double scale = Math.min((double) maxWidth / originalWidth, (double) maxHeight / originalHeight);
+        
+        // Do not upscale small images
+        if (scale > 1.0) {
+            scale = 1.0;
         }
-
-        int newWidth = originalWidth;
-        int newHeight = originalHeight;
-
-        if (needResize) {
-            double ratio = Math.min((double) maxWidth / originalWidth, (double) maxHeight / originalHeight);
-            newWidth = (int) (originalWidth * ratio);
-            newHeight = (int) (originalHeight * ratio);
-        }
+        
+        int newWidth = (int) (originalWidth * scale);
+        int newHeight = (int) (originalHeight * scale);
+        
+        // Ensure at least 1px
+        newWidth = Math.max(1, newWidth);
+        newHeight = Math.max(1, newHeight);
 
         BufferedImage outputImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = outputImage.createGraphics();
+        
+        // Fill white background (handles transparency for JPG conversion)
         g2d.setColor(Color.WHITE);
         g2d.fillRect(0, 0, newWidth, newHeight);
 
-        if (needResize) {
-            Image resultingImage = original.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH);
-            g2d.drawImage(resultingImage, 0, 0, null);
-        } else {
-            g2d.drawImage(original, 0, 0, null);
-        }
-        
+        // Quality settings for resizing
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        g2d.drawImage(original, 0, 0, newWidth, newHeight, null);
         g2d.dispose();
+
         return outputImage;
     }
 

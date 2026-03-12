@@ -6,6 +6,8 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Adm
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminMonthlyCollectedWeightResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminSystemAnalyticsResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminWasteCategoryCollectedWeightResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CitizenLeaderboardResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorLeaderboardResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionRequestRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportItemRepository;
@@ -217,6 +219,79 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
                 .month(targetMonth)
                 .totalWeightKg(totalWeightKg)
                 .daily(daily)
+                .build();
+    }
+
+    @Override
+    public List<CollectorLeaderboardResponse> getCollectorLeaderboard(Integer day, Integer month, Integer year) {
+        // Lấy dữ liệu thô từ repository: [collectorId, fullName, totalTasks, totalWeight]
+        List<Object[]> results = collectionRequestRepository.findCollectorLeaderboard(day, month, year);
+        
+        // Sử dụng AtomicInteger để tạo rank tăng dần bắt đầu từ 1
+        java.util.concurrent.atomic.AtomicInteger rank = new java.util.concurrent.atomic.AtomicInteger(1);
+        
+        // Map dữ liệu sang DTO response
+        return results.stream()
+                .map(row -> CollectorLeaderboardResponse.builder()
+                        .rank(rank.getAndIncrement())
+                        .collectorId((Integer) row[0])
+                        .fullName((String) row[1])
+                        .totalTasks((Long) row[2])
+                        .totalWeight((BigDecimal) row[3])
+                        .build())
+                .toList();
+    }
+
+    @Override
+    public List<CitizenLeaderboardResponse> getCitizenLeaderboard(Integer day, Integer month, Integer year) {
+        // Lấy dữ liệu thô từ repository: [citizenId, fullName, ward, city, totalPoint]
+        List<Object[]> results = pointTransactionRepository.findCitizenLeaderboard(day, month, year);
+        
+        // Sử dụng AtomicInteger để tạo rank tăng dần bắt đầu từ 1
+        java.util.concurrent.atomic.AtomicInteger rank = new java.util.concurrent.atomic.AtomicInteger(1);
+        
+        // Map dữ liệu sang DTO response
+        return results.stream()
+                .map(row -> CitizenLeaderboardResponse.builder()
+                        .rank(rank.getAndIncrement())
+                        .citizenId((Integer) row[0])
+                        .fullName((String) row[1])
+                        .ward((String) row[2])
+                        .city((String) row[3])
+                        .totalPoint(((Long) row[4]).intValue())
+                        .build())
+                .toList();
+    }
+
+    @Override
+    public com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminCollectedWasteByUnitResponse getCollectedWasteByUnit() {
+        List<Object[]> results = collectorReportItemRepository.sumGlobalCollectedWasteByUnit();
+        
+        BigDecimal totalWeightKg = BigDecimal.ZERO;
+        BigDecimal totalCans = BigDecimal.ZERO;
+        BigDecimal totalBottles = BigDecimal.ZERO;
+        Map<String, BigDecimal> otherUnits = new HashMap<>();
+
+        for (Object[] row : results) {
+            String unit = (String) row[0];
+            BigDecimal quantity = (BigDecimal) row[1];
+
+            if ("KG".equalsIgnoreCase(unit)) {
+                totalWeightKg = totalWeightKg.add(quantity);
+            } else if ("CAN".equalsIgnoreCase(unit)) {
+                totalCans = totalCans.add(quantity);
+            } else if ("BOTTLE".equalsIgnoreCase(unit)) {
+                totalBottles = totalBottles.add(quantity);
+            } else {
+                otherUnits.put(unit, otherUnits.getOrDefault(unit, BigDecimal.ZERO).add(quantity));
+            }
+        }
+
+        return com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminCollectedWasteByUnitResponse.builder()
+                .totalWeightKg(totalWeightKg)
+                .totalCans(totalCans)
+                .totalBottles(totalBottles)
+                .otherUnits(otherUnits)
                 .build();
     }
 

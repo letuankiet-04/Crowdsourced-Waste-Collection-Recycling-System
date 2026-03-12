@@ -539,4 +539,53 @@ public class CollectorServiceImpl implements CollectorService {
         // Nếu mọi thứ có vẻ đúng mà vẫn không update được (ít khi xảy ra)
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể cập nhật trạng thái Collection Request (Lỗi không xác định)");
     }
+
+    @Override
+    public com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorGeneralStatsResponse getGeneralStats(Integer collectorId, Integer day, Integer month, Integer year) {
+        List<Object[]> results = collectionRequestRepository.getStatsByDate(collectorId, day, month, year);
+        if (results.isEmpty() || results.get(0) == null) {
+            return com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorGeneralStatsResponse.builder()
+                    .totalWeight(BigDecimal.ZERO)
+                    .totalTasks(0L)
+                    .day(day)
+                    .month(month)
+                    .year(year)
+                    .build();
+        }
+
+        Object[] row = results.get(0);
+        BigDecimal totalWeight = (row[0] != null) ? (BigDecimal) row[0] : BigDecimal.ZERO;
+        Long totalTasks = (row[1] != null) ? (Long) row[1] : 0L;
+
+        return com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorGeneralStatsResponse.builder()
+                .totalWeight(totalWeight)
+                .totalTasks(totalTasks)
+                .day(day)
+                .month(month)
+                .year(year)
+                .build();
+    }
+
+    @Override
+    public List<com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorLeaderboardResponse> getLeaderboard(Integer month, Integer year) {
+        List<Object[]> results = collectionRequestRepository.getLeaderboardByTaskCount(month, year);
+        List<com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorLeaderboardResponse> responseList = new ArrayList<>();
+
+        int rank = 1;
+        for (Object[] row : results) {
+            Integer collectorId = (Integer) row[0];
+            String fullName = (String) row[1];
+            Long totalTasks = (row[2] != null) ? (Long) row[2] : 0L;
+            BigDecimal totalWeight = (row[3] != null) ? (BigDecimal) row[3] : BigDecimal.ZERO;
+
+            responseList.add(com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorLeaderboardResponse.builder()
+                    .rank(rank++)
+                    .collectorId(collectorId)
+                    .fullName(fullName)
+                    .totalTasks(totalTasks)
+                    .totalWeight(totalWeight)
+                    .build());
+        }
+        return responseList;
+    }
 }

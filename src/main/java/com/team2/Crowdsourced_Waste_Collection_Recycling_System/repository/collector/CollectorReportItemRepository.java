@@ -94,4 +94,16 @@ public interface CollectorReportItemRepository extends JpaRepository<CollectorRe
         GROUP BY c.name
     """)
     List<Object[]> sumWeightByWasteTypeForCollector(@Param("collectorId") Integer collectorId);
+
+    @Query(value = """
+            SELECT 
+                cri.unit_snapshot,
+                COALESCE(SUM(cri.quantity), 0)
+            FROM collector_report_items cri
+            JOIN collector_reports crp ON crp.id = cri.collector_report_id
+            JOIN collection_requests cr ON cr.id = crp.collection_request_id
+            WHERE cr.status = 'COMPLETED'
+            GROUP BY cri.unit_snapshot
+            """, nativeQuery = true)
+    List<Object[]> sumGlobalCollectedWasteByUnit();
 }

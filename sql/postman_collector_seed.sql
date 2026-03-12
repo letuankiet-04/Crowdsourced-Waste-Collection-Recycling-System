@@ -147,7 +147,7 @@ SELECT @catCanId = id FROM waste_categories WHERE name = N'Lon nhôm';
 IF @catCanId IS NULL
 BEGIN
     INSERT INTO waste_categories (name, description, unit, point_per_unit, waste_type_id, created_at, updated_at)
-    VALUES (N'Lon nhôm', N'Lon nước ngọt/lon bia', 'CAN', 180.0000, @wtRecyclableId, @now, @now);
+    VALUES (N'Lon nhôm', N'Lon nước ngọt/lon bia', 'KG', 180.0000, @wtRecyclableId, @now, @now);
     SET @catCanId = SCOPE_IDENTITY();
 END
 

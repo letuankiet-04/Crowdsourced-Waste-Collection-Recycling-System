@@ -14,7 +14,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -46,7 +45,6 @@ public class CollectorReport {
     private CollectorReportStatus status;
 
     @Column(name = "collector_note", length = 1000)
-    @Nationalized
     private String collectorNote;
 
     @Column(name = "total_point")

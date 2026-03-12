@@ -59,6 +59,87 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
      */
     @Modifying
     @Query(value = """
+                SELECT
+                    YEAR(cr.created_at) AS yearValue,
+                    MONTH(cr.created_at) AS monthValue,
+                    COUNT(*) AS totalReports
+                FROM collection_requests cr
+                WHERE cr.enterprise_id = :enterpriseId
+                  AND YEAR(cr.created_at) = :year
+                GROUP BY YEAR(cr.created_at), MONTH(cr.created_at)
+                ORDER BY yearValue ASC, monthValue ASC
+            """, nativeQuery = true)
+    List<EnterpriseMonthlyReportCountView> countCreatedReportsByMonth(
+            @Param("enterpriseId") Integer enterpriseId,
+            @Param("year") Integer year);
+
+    interface EnterpriseMonthlyReportCountView {
+        Integer getYearValue();
+        Integer getMonthValue();
+        Long getTotalReports();
+    }
+
+    @Query(value = """
+                SELECT
+                    YEAR(cr.created_at) AS yearValue,
+                    MONTH(cr.created_at) AS monthValue,
+                    DAY(cr.created_at) AS dayValue,
+                    COUNT(*) AS totalReports
+                FROM collection_requests cr
+                WHERE cr.enterprise_id = :enterpriseId
+                  AND YEAR(cr.created_at) = :year
+                  AND MONTH(cr.created_at) = :month
+                GROUP BY YEAR(cr.created_at), MONTH(cr.created_at), DAY(cr.created_at)
+                ORDER BY yearValue ASC, monthValue ASC, dayValue ASC
+            """, nativeQuery = true)
+    List<EnterpriseDailyReportCountView> countCreatedReportsByDay(
+            @Param("enterpriseId") Integer enterpriseId,
+            @Param("year") Integer year,
+            @Param("month") Integer month);
+
+    interface EnterpriseDailyReportCountView {
+        Integer getYearValue();
+        Integer getMonthValue();
+        Integer getDayValue();
+        Long getTotalReports();
+    }
+
+    interface EnterpriseDailyWasteVolumeView {
+        Integer getYearValue();
+
+        Integer getMonthValue();
+
+        Integer getDayValue();
+
+        BigDecimal getTotalWeightKg();
+
+        Long getTotalRequests();
+    }
+
+    @Query(value = """
+                SELECT
+                    YEAR(COALESCE(cr.completed_at, cr.collected_at)) AS yearValue,
+                    MONTH(COALESCE(cr.completed_at, cr.collected_at)) AS monthValue,
+                    DAY(COALESCE(cr.completed_at, cr.collected_at)) AS dayValue,
+                    SUM(COALESCE(cr.actual_weight_kg, 0)) AS totalWeightKg,
+                    COUNT(*) AS totalRequests
+                FROM collection_requests cr
+                WHERE cr.enterprise_id = :enterpriseId
+                  AND cr.status = 'completed'
+                  AND COALESCE(cr.completed_at, cr.collected_at) IS NOT NULL
+                  AND COALESCE(cr.completed_at, cr.collected_at) >= :from
+                  AND COALESCE(cr.completed_at, cr.collected_at) < :to
+                GROUP BY YEAR(COALESCE(cr.completed_at, cr.collected_at)),
+                         MONTH(COALESCE(cr.completed_at, cr.collected_at)),
+                         DAY(COALESCE(cr.completed_at, cr.collected_at))
+                ORDER BY yearValue ASC, monthValue ASC, dayValue ASC
+            """, nativeQuery = true)
+    List<EnterpriseDailyWasteVolumeView> sumCompletedWeightByDayForEnterprise(
+            @Param("enterpriseId") Integer enterpriseId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
+
+    @Query(value = """
                 UPDATE collection_requests
                 SET status = 'accepted_enterprise',
                     updated_at = CURRENT_TIMESTAMP
@@ -710,4 +791,60 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
             @Param("collectorId") Integer collectorId,
             @Param("actualWeightKg") BigDecimal actualWeightKg,
             @Param("time") LocalDateTime time);
+
+    @Query("""
+        SELECT SUM(COALESCE(cr.actualWeightKg, 0)), COUNT(cr)
+        FROM CollectionRequest cr
+        WHERE cr.collector.id = :collectorId
+          AND cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
+          AND (:year IS NULL OR YEAR(COALESCE(cr.completedAt, cr.collectedAt)) = :year)
+          AND (:month IS NULL OR MONTH(COALESCE(cr.completedAt, cr.collectedAt)) = :month)
+          AND (:day IS NULL OR DAY(COALESCE(cr.completedAt, cr.collectedAt)) = :day)
+    """)
+    List<Object[]> getStatsByDate(@Param("collectorId") Integer collectorId,
+                                  @Param("day") Integer day,
+                                  @Param("month") Integer month,
+                                  @Param("year") Integer year);
+
+    @Query("""
+        SELECT c.id, c.fullName, COUNT(req), SUM(COALESCE(req.actualWeightKg, 0))
+        FROM Collector c
+        LEFT JOIN CollectionRequest req ON req.collector.id = c.id 
+          AND req.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
+          AND (:year IS NULL OR YEAR(COALESCE(req.completedAt, req.collectedAt)) = :year)
+          AND (:month IS NULL OR MONTH(COALESCE(req.completedAt, req.collectedAt)) = :month)
+        GROUP BY c.id, c.fullName
+        ORDER BY COUNT(req) DESC
+    """)
+    List<Object[]> getLeaderboardByTaskCount(@Param("month") Integer month, @Param("year") Integer year);
+
+    /**
+     * Lấy bảng xếp hạng Collector dựa trên tổng khối lượng rác thu gom được.
+     * Chỉ tính các request đã hoàn thành (status = 'completed').
+     * Có thể lọc theo ngày, tháng, năm.
+     *
+     * @param day   Ngày lọc (có thể null)
+     * @param month Tháng lọc (có thể null)
+     * @param year  Năm lọc (có thể null)
+     * @return List Object[] gồm: id, fullName, totalTasks, totalWeight
+     */
+    @Query("""
+        SELECT 
+            c.id, 
+            c.fullName, 
+            COUNT(cr.id), 
+            SUM(COALESCE(cr.actualWeightKg, 0))
+        FROM CollectionRequest cr
+        JOIN cr.collector c
+        WHERE cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
+          AND (:day IS NULL OR DAY(COALESCE(cr.completedAt, cr.collectedAt)) = :day)
+          AND (:month IS NULL OR MONTH(COALESCE(cr.completedAt, cr.collectedAt)) = :month)
+          AND (:year IS NULL OR YEAR(COALESCE(cr.completedAt, cr.collectedAt)) = :year)
+        GROUP BY c.id, c.fullName
+        ORDER BY SUM(COALESCE(cr.actualWeightKg, 0)) DESC
+    """)
+    List<Object[]> findCollectorLeaderboard(
+            @Param("day") Integer day,
+            @Param("month") Integer month,
+            @Param("year") Integer year);
 }

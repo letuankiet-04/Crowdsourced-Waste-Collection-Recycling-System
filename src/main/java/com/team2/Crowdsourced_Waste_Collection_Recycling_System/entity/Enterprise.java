@@ -12,7 +12,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.Nationalized;
 
 import java.time.LocalDateTime;
 
@@ -29,11 +28,9 @@ public class Enterprise {
     private Integer id;
 
     @Column(name = "name", nullable = false, length = 255)
-    @Nationalized
     private String name;
 
     @Column(name = "address", length = 500)
-    @Nationalized
     private String address;
 
     @Column(name = "phone", length = 20)
@@ -43,11 +40,11 @@ public class Enterprise {
     private String email;
 
     @Lob
-    @Column(name = "service_wards", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "service_wards")
     private String serviceWards;
 
     @Lob
-    @Column(name = "service_cities", columnDefinition = "NVARCHAR(MAX)")
+    @Column(name = "service_cities")
     private String serviceCities;
 
     @Column(name = "status", length = 20)

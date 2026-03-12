@@ -75,6 +75,31 @@ public class CollectorController {
                 .build();
     }
 
+    @GetMapping("/stats/general")
+    @PreAuthorize("hasRole('COLLECTOR')")
+    @Operation(summary = "Thống kê tổng quát", description = "Thống kê khối lượng rác và số task theo ngày, tháng, năm")
+    public ApiResponse<CollectorGeneralStatsResponse> getGeneralStats(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) Integer day,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer year) {
+        Integer collectorId = extractCollectorId(jwt);
+        return ApiResponse.<CollectorGeneralStatsResponse>builder()
+                .result(collectorService.getGeneralStats(collectorId, day, month, year))
+                .build();
+    }
+
+    @GetMapping("/leaderboard")
+    @PreAuthorize("hasRole('COLLECTOR')")
+    @Operation(summary = "Bảng xếp hạng Collector", description = "Xếp hạng theo số lượng task hoàn thành (KPI)")
+    public ApiResponse<List<CollectorLeaderboardResponse>> getLeaderboard(
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer year) {
+        return ApiResponse.<List<CollectorLeaderboardResponse>>builder()
+                .result(collectorService.getLeaderboard(month, year))
+                .build();
+    }
+
     @GetMapping("/history")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Lịch sử thu gom", description = "Danh sách các task đã xử lý")

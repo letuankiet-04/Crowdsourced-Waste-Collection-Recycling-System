@@ -13,7 +13,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.Nationalized;
 
 import java.time.LocalDateTime;
 
@@ -44,7 +43,6 @@ public class VoucherRedemption {
     private Integer pointsSpent;
 
     @Column(name = "status", nullable = false, length = 30)
-    @Nationalized
     private String status;
 
     @Column(name = "redeemed_at", nullable = false)

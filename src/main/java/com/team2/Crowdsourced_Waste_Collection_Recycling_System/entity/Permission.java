@@ -8,7 +8,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.*;
-import org.hibernate.annotations.Nationalized;
 
 @Entity
 @Table(name = "permissions")
@@ -26,13 +25,11 @@ public class Permission {
     private String permissionCode;
 
     @Column(name = "permission_name", nullable = false, length = 255)
-    @Nationalized
     private String permissionName;
 
     @Column(name = "module", nullable = false, length = 50)
     private String module;
 
     @Column(name = "description", length = 500)
-    @Nationalized
     private String description;
 }

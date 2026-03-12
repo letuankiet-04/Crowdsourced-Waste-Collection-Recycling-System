@@ -23,6 +23,10 @@ public interface CollectorService {
 
     CollectorWasteVolumeStatsResponse getWasteVolumeStats(Integer collectorId, Integer year);
 
+    com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorGeneralStatsResponse getGeneralStats(Integer collectorId, Integer day, Integer month, Integer year);
+
+    List<com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorLeaderboardResponse> getLeaderboard(Integer month, Integer year);
+
     Map<String, BigDecimal> getWasteTypeStats(Integer collectorId);
 
     void acceptTask(Integer requestId, Integer collectorId);

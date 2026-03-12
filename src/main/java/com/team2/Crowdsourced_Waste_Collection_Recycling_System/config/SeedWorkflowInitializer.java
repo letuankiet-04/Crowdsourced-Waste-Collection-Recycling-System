@@ -5,6 +5,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.Collection
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectorReportStatus;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.WasteReportStatus;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.*;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.enterprise.EnterpriseRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.feedback.FeedbackRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.profile.CitizenRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.waste.ReportImageRepository;
@@ -29,51 +30,59 @@ public class SeedWorkflowInitializer {
             CollectionRequestRepository collectionRequestRepository,
             CollectionTrackingRepository collectionTrackingRepository,
             CollectorReportRepository collectorReportRepository,
-            FeedbackRepository feedbackRepository
+            FeedbackRepository feedbackRepository,
+            EnterpriseRepository enterpriseRepository,
+            CollectorRepository collectorRepository
     ) {
         return args -> {
             Citizen citizen = citizenRepository.findAll().stream().findFirst().orElse(null);
             if (citizen == null) return;
+
+            Enterprise enterprise = enterpriseRepository.findAll().stream().findFirst().orElse(null);
+            if (enterprise == null) return;
+
+            Collector collector = collectorRepository.findAll().stream().findFirst().orElse(null);
+            if (collector == null) return;
 
             LocalDateTime now = LocalDateTime.now();
 
             WasteReport r3 = createWasteReportIfNotFound(wasteReportRepository, "WR-MOD-003", citizen,
                     WasteReportStatus.PENDING, now.minusHours(4));
             createReportImageIfMissing(reportImageRepository, r3, "https://example.com/reports/mod-003.jpg");
-            CollectionRequest cr3 = ensureCollectionRequest(collectionRequestRepository, "CR-MOD-003", r3, null,
-                    null, CollectionRequestStatus.ASSIGNED,
+            CollectionRequest cr3 = ensureCollectionRequest(collectionRequestRepository, "CR-MOD-003", r3, enterprise,
+                    collector, CollectionRequestStatus.ASSIGNED,
                     now.minusHours(2), null, null, null, null, now.minusHours(4), now.minusHours(2));
-            ensureTrackingIfMissing(collectionTrackingRepository, cr3, null, "assigned", now.minusHours(2));
+            ensureTrackingIfMissing(collectionTrackingRepository, cr3, collector, "assigned", now.minusHours(2));
 
             WasteReport r4 = createWasteReportIfNotFound(wasteReportRepository, "WR-MOD-004", citizen,
                     WasteReportStatus.PENDING, now.minusHours(5));
             createReportImageIfMissing(reportImageRepository, r4, "https://example.com/reports/mod-004.jpg");
-            CollectionRequest cr4 = ensureCollectionRequest(collectionRequestRepository, "CR-MOD-004", r4, null,
-                    null, CollectionRequestStatus.ON_THE_WAY,
+            CollectionRequest cr4 = ensureCollectionRequest(collectionRequestRepository, "CR-MOD-004", r4, enterprise,
+                    collector, CollectionRequestStatus.ON_THE_WAY,
                     now.minusHours(4), now.minusHours(3), now.minusHours(2), null, null, now.minusHours(5),
                     now.minusHours(2));
-            ensureTrackingIfMissing(collectionTrackingRepository, cr4, null, "assigned", now.minusHours(4));
-            ensureTrackingIfMissing(collectionTrackingRepository, cr4, null, "accepted", now.minusHours(3));
-            ensureTrackingIfMissing(collectionTrackingRepository, cr4, null, "started", now.minusHours(2));
+            ensureTrackingIfMissing(collectionTrackingRepository, cr4, collector, "assigned", now.minusHours(4));
+            ensureTrackingIfMissing(collectionTrackingRepository, cr4, collector, "accepted", now.minusHours(3));
+            ensureTrackingIfMissing(collectionTrackingRepository, cr4, collector, "started", now.minusHours(2));
 
             WasteReport r5 = createWasteReportIfNotFound(wasteReportRepository, "WR-MOD-005", citizen,
                     WasteReportStatus.COLLECTED, now.minusDays(1));
             createReportImageIfMissing(reportImageRepository, r5, "https://example.com/reports/mod-005.jpg");
-            CollectionRequest cr5 = ensureCollectionRequest(collectionRequestRepository, "CR-MOD-005", r5, null,
-                    null, CollectionRequestStatus.COLLECTED,
+            CollectionRequest cr5 = ensureCollectionRequest(collectionRequestRepository, "CR-MOD-005", r5, enterprise,
+                    collector, CollectionRequestStatus.COLLECTED,
                     now.minusDays(1).plusHours(1), now.minusDays(1).plusHours(2), now.minusDays(1).plusHours(3),
                     new BigDecimal("8.50"),
                     now.minusDays(1).plusHours(5), now.minusDays(1), now.minusDays(1).plusHours(5));
-            ensureTrackingIfMissing(collectionTrackingRepository, cr5, null, "assigned",
+            ensureTrackingIfMissing(collectionTrackingRepository, cr5, collector, "assigned",
                     now.minusDays(1).plusHours(1));
-            ensureTrackingIfMissing(collectionTrackingRepository, cr5, null, "accepted",
+            ensureTrackingIfMissing(collectionTrackingRepository, cr5, collector, "accepted",
                     now.minusDays(1).plusHours(2));
-            ensureTrackingIfMissing(collectionTrackingRepository, cr5, null, "started",
+            ensureTrackingIfMissing(collectionTrackingRepository, cr5, collector, "started",
                     now.minusDays(1).plusHours(3));
-            ensureTrackingIfMissing(collectionTrackingRepository, cr5, null, "collected",
+            ensureTrackingIfMissing(collectionTrackingRepository, cr5, collector, "collected",
                     now.minusDays(1).plusHours(5));
 
-            ensureCollectorReportIfMissing(collectorReportRepository, cr5,
+            ensureCollectorReportIfMissing(collectorReportRepository, cr5, "RP-MOD-005",
                     now.minusDays(1).plusHours(5));
 
             ensureFeedback(feedbackRepository, citizen, cr5, now.minusDays(1).plusHours(6));
@@ -158,11 +167,14 @@ public class SeedWorkflowInitializer {
     private void ensureCollectorReportIfMissing(
             CollectorReportRepository reportRepository,
             CollectionRequest request,
+            String reportCode,
             LocalDateTime collectedAt) {
         if (request == null || request.getId() == null) return;
         if (reportRepository.existsByCollectionRequest_Id(request.getId())) return;
         CollectorReport report = new CollectorReport();
+        report.setReportCode(reportCode);
         report.setCollectionRequest(request);
+        report.setCollector(request.getCollector());
         report.setStatus(CollectorReportStatus.COMPLETED);
         report.setCollectorNote("Modular seed completed");
         report.setCollectedAt(collectedAt);
