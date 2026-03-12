@@ -59,6 +59,87 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
      */
     @Modifying
     @Query(value = """
+                SELECT
+                    YEAR(cr.created_at) AS yearValue,
+                    MONTH(cr.created_at) AS monthValue,
+                    COUNT(*) AS totalReports
+                FROM collection_requests cr
+                WHERE cr.enterprise_id = :enterpriseId
+                  AND YEAR(cr.created_at) = :year
+                GROUP BY YEAR(cr.created_at), MONTH(cr.created_at)
+                ORDER BY yearValue ASC, monthValue ASC
+            """, nativeQuery = true)
+    List<EnterpriseMonthlyReportCountView> countCreatedReportsByMonth(
+            @Param("enterpriseId") Integer enterpriseId,
+            @Param("year") Integer year);
+
+    interface EnterpriseMonthlyReportCountView {
+        Integer getYearValue();
+        Integer getMonthValue();
+        Long getTotalReports();
+    }
+
+    @Query(value = """
+                SELECT
+                    YEAR(cr.created_at) AS yearValue,
+                    MONTH(cr.created_at) AS monthValue,
+                    DAY(cr.created_at) AS dayValue,
+                    COUNT(*) AS totalReports
+                FROM collection_requests cr
+                WHERE cr.enterprise_id = :enterpriseId
+                  AND YEAR(cr.created_at) = :year
+                  AND MONTH(cr.created_at) = :month
+                GROUP BY YEAR(cr.created_at), MONTH(cr.created_at), DAY(cr.created_at)
+                ORDER BY yearValue ASC, monthValue ASC, dayValue ASC
+            """, nativeQuery = true)
+    List<EnterpriseDailyReportCountView> countCreatedReportsByDay(
+            @Param("enterpriseId") Integer enterpriseId,
+            @Param("year") Integer year,
+            @Param("month") Integer month);
+
+    interface EnterpriseDailyReportCountView {
+        Integer getYearValue();
+        Integer getMonthValue();
+        Integer getDayValue();
+        Long getTotalReports();
+    }
+
+    interface EnterpriseDailyWasteVolumeView {
+        Integer getYearValue();
+
+        Integer getMonthValue();
+
+        Integer getDayValue();
+
+        BigDecimal getTotalWeightKg();
+
+        Long getTotalRequests();
+    }
+
+    @Query(value = """
+                SELECT
+                    YEAR(COALESCE(cr.completed_at, cr.collected_at)) AS yearValue,
+                    MONTH(COALESCE(cr.completed_at, cr.collected_at)) AS monthValue,
+                    DAY(COALESCE(cr.completed_at, cr.collected_at)) AS dayValue,
+                    SUM(COALESCE(cr.actual_weight_kg, 0)) AS totalWeightKg,
+                    COUNT(*) AS totalRequests
+                FROM collection_requests cr
+                WHERE cr.enterprise_id = :enterpriseId
+                  AND cr.status = 'completed'
+                  AND COALESCE(cr.completed_at, cr.collected_at) IS NOT NULL
+                  AND COALESCE(cr.completed_at, cr.collected_at) >= :from
+                  AND COALESCE(cr.completed_at, cr.collected_at) < :to
+                GROUP BY YEAR(COALESCE(cr.completed_at, cr.collected_at)),
+                         MONTH(COALESCE(cr.completed_at, cr.collected_at)),
+                         DAY(COALESCE(cr.completed_at, cr.collected_at))
+                ORDER BY yearValue ASC, monthValue ASC, dayValue ASC
+            """, nativeQuery = true)
+    List<EnterpriseDailyWasteVolumeView> sumCompletedWeightByDayForEnterprise(
+            @Param("enterpriseId") Integer enterpriseId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
+
+    @Query(value = """
                 UPDATE collection_requests
                 SET status = 'accepted_enterprise',
                     updated_at = CURRENT_TIMESTAMP

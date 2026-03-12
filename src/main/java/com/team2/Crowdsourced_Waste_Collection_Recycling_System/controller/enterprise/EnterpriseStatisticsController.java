@@ -17,7 +17,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.EnterpriseDailyWasteVolumeResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.EnterpriseGeneralStatsResponse;
+
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.EnterpriseReportCountResponse;
 
 @RestController
 @RequestMapping("/api/enterprise/reports")
@@ -43,6 +46,30 @@ public class EnterpriseStatisticsController extends EnterpriseControllerSupport 
             @RequestParam Integer year) {
         Integer enterpriseId = extractEnterpriseId(jwt);
         return ok(enterpriseStatisticsService.getWasteVolumeStats(enterpriseId, year));
+    }
+
+    @GetMapping("/waste-volume/daily")
+    @PreAuthorize("hasAnyRole('ENTERPRISE', 'ENTERPRISE_ADMIN')")
+    @Operation(summary = "Thống kê khối lượng rác thu được theo ngày", description = "Trả về danh sách ngày có thu gom rác trong tháng (hoặc năm) chỉ định. Nếu có day, chỉ trả về ngày đó.")
+    public ApiResponse<List<EnterpriseDailyWasteVolumeResponse>> getDailyWasteVolumeStats(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer day) {
+        Integer enterpriseId = extractEnterpriseId(jwt);
+        return ok(enterpriseStatisticsService.getDailyWasteVolumeStats(enterpriseId, year, month, day));
+    }
+
+    @GetMapping("/count")
+    @PreAuthorize("hasAnyRole('ENTERPRISE', 'ENTERPRISE_ADMIN')")
+    @Operation(summary = "Thống kê số lượng report của citizen theo ngày/tháng", description = "Nếu có param month: thống kê theo ngày trong tháng. Nếu không có param month: thống kê theo tháng trong năm. Nếu có day: thống kê theo ngày cụ thể.")
+    public ApiResponse<List<EnterpriseReportCountResponse>> getReportCountStats(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) Integer day) {
+        Integer enterpriseId = extractEnterpriseId(jwt);
+        return ok(enterpriseStatisticsService.getReportCountStats(enterpriseId, year, month, day));
     }
 
     @GetMapping("/citizens")
