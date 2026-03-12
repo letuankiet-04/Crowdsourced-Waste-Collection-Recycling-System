@@ -22,7 +22,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/analytics")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAuthority('ROLE_ADMIN')")
 @RequiredArgsConstructor
 @Tag(name = "Admin – Analytics", description = "Phân tích dữ liệu toàn hệ thống")
 public class AdminAnalyticsController {

@@ -627,7 +627,7 @@ public class DataSeeder {
         ensureTrackingIfMissing(collectionTrackingRepository, cr5, collector2, "collected",
                 now.minusDays(1).plusHours(5));
 
-        ensureCollectorReportIfMissing(collectorReportRepository, cr5, collector2,
+        ensureCollectorReportIfMissing(collectorReportRepository, cr5, collector2, "RP-SEED-005",
                 now.minusDays(1).plusHours(5));
 
         ensurePointTransaction(pointTransactionRepository, citizen, r5, cr5, now.minusDays(1).plusHours(5));
@@ -725,6 +725,7 @@ public class DataSeeder {
             CollectorReportRepository reportRepository,
             CollectionRequest request,
             Collector collector,
+            String reportCode,
             LocalDateTime collectedAt) {
         if (request == null || request.getId() == null) {
             return;
@@ -733,6 +734,7 @@ public class DataSeeder {
             return;
         }
         CollectorReport report = new CollectorReport();
+        report.setReportCode(reportCode);
         report.setCollectionRequest(request);
         report.setCollector(collector);
         report.setStatus(CollectorReportStatus.COMPLETED);

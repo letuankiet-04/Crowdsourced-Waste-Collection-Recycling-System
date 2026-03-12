@@ -52,6 +52,9 @@ springdoc:
 app:
   seed:
     enabled: true
+    modular: true
+  cors:
+    allowed-origins: "*"
 
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:dawzawtbz}
