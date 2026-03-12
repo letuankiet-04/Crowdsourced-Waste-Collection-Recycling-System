@@ -103,5 +103,35 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
         ORDER BY YEAR(pt.createdAt) DESC, MONTH(pt.createdAt) DESC
     """)
     List<Object[]> sumPointsDistributedByEnterprisePerMonth(@Param("enterpriseId") Integer enterpriseId);
+
+    /**
+     * Lấy bảng xếp hạng Citizen dựa trên tổng điểm tích lũy (chỉ tính điểm kiếm được 'EARN').
+     * Có thể lọc theo ngày, tháng, năm.
+     *
+     * @param day   Ngày lọc (có thể null)
+     * @param month Tháng lọc (có thể null)
+     * @param year  Năm lọc (có thể null)
+     * @return List Object[] gồm: id, fullName, ward, city, totalPoints
+     */
+    @Query("""
+        SELECT 
+            c.id, 
+            c.fullName, 
+            c.ward, 
+            c.city, 
+            SUM(pt.points)
+        FROM PointTransaction pt
+        JOIN pt.citizen c
+        WHERE pt.transactionType = 'EARN'
+          AND (:day IS NULL OR DAY(pt.createdAt) = :day)
+          AND (:month IS NULL OR MONTH(pt.createdAt) = :month)
+          AND (:year IS NULL OR YEAR(pt.createdAt) = :year)
+        GROUP BY c.id, c.fullName, c.ward, c.city
+        ORDER BY SUM(pt.points) DESC
+    """)
+    List<Object[]> findCitizenLeaderboard(
+            @Param("day") Integer day,
+            @Param("month") Integer month,
+            @Param("year") Integer year);
 }
 

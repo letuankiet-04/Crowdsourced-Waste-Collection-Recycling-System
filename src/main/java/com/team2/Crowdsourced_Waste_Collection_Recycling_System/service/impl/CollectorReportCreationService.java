@@ -14,7 +14,6 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.WasteRepo
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectorReportStatus;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.WasteReportStatus;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.WasteUnit;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportImageRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportItemRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportRepository;
@@ -150,9 +149,7 @@ public class CollectorReportCreationService {
             items.add(item);
             totalPoints += points;
 
-            if (category.getUnit() == WasteUnit.KG) {
-                totalWeightKg = totalWeightKg.add(quantity);
-            }
+            totalWeightKg = totalWeightKg.add(quantity);
         }
 
         return new Calculation(items, totalPoints, totalWeightKg);

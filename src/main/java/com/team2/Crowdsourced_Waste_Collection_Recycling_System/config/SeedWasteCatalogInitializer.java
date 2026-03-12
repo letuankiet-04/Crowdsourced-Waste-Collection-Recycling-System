@@ -23,13 +23,13 @@ public class SeedWasteCatalogInitializer {
             createWasteCategoryIfNotFound(wasteCategoryRepository, "Báo", WasteUnit.KG, new BigDecimal("3600.0000"), now);
             createWasteCategoryIfNotFound(wasteCategoryRepository, "Giấy, hồ sơ", WasteUnit.KG, new BigDecimal("3150.0000"), now);
             createWasteCategoryIfNotFound(wasteCategoryRepository, "Giấy tập", WasteUnit.KG, new BigDecimal("3600.0000"), now);
-            createWasteCategoryIfNotFound(wasteCategoryRepository, "Lon bia", WasteUnit.CAN, new BigDecimal("180.0000"), now);
+            createWasteCategoryIfNotFound(wasteCategoryRepository, "Lon bia", WasteUnit.KG, new BigDecimal("180.0000"), now);
             createWasteCategoryIfNotFound(wasteCategoryRepository, "Sắt", WasteUnit.KG, new BigDecimal("3600.0000"), now);
             createWasteCategoryIfNotFound(wasteCategoryRepository, "Sắt lon", WasteUnit.KG, new BigDecimal("1440.0000"), now);
             createWasteCategoryIfNotFound(wasteCategoryRepository, "Inox", WasteUnit.KG, new BigDecimal("5400.0000"), now);
             createWasteCategoryIfNotFound(wasteCategoryRepository, "Đồng", WasteUnit.KG, new BigDecimal("67500.0000"), now);
             createWasteCategoryIfNotFound(wasteCategoryRepository, "Nhôm", WasteUnit.KG, new BigDecimal("16200.0000"), now);
-            createWasteCategoryIfNotFound(wasteCategoryRepository, "Chai thủy tinh", WasteUnit.BOTTLE, new BigDecimal("450.0000"), now);
+            createWasteCategoryIfNotFound(wasteCategoryRepository, "Chai thủy tinh", WasteUnit.KG, new BigDecimal("450.0000"), now);
             createWasteCategoryIfNotFound(wasteCategoryRepository, "Bao bì, hỗn hợp", WasteUnit.KG, new BigDecimal("1600.0000"), now);
             createWasteCategoryIfNotFound(wasteCategoryRepository, "Meca", WasteUnit.KG, new BigDecimal("450.0000"), now);
             createWasteCategoryIfNotFound(wasteCategoryRepository, "Mủ", WasteUnit.KG, new BigDecimal("3600.0000"), now);

@@ -266,15 +266,15 @@ BEGIN
     (N'Bìa carton', N'Thùng carton, bìa cứng', 'KG', 2000.0000, @wtRecyclableId, @now, @now),
     (N'Hộp sữa giấy', N'Hộp sữa/Tetra Pak', 'KG', 1800.0000, @wtRecyclableId, @now, @now),
     (N'Báo - tạp chí', N'Báo giấy, tạp chí cũ', 'KG', 1600.0000, @wtRecyclableId, @now, @now),
-    (N'Chai nhựa PET', N'Chai nước suối, nước ngọt (PET)', 'BOTTLE', 120.0000, @wtRecyclableId, @now, @now),
-    (N'Chai nhựa HDPE', N'Can/chai nhựa cứng (HDPE)', 'BOTTLE', 150.0000, @wtRecyclableId, @now, @now),
+    (N'Chai nhựa PET', N'Chai nước suối, nước ngọt (PET)', 'KG', 120.0000, @wtRecyclableId, @now, @now),
+    (N'Chai nhựa HDPE', N'Can/chai nhựa cứng (HDPE)', 'KG', 150.0000, @wtRecyclableId, @now, @now),
     (N'Nhựa PP cứng', N'Nhựa cứng PP (đồ gia dụng)', 'KG', 2500.0000, @wtRecyclableId, @now, @now),
     (N'Nhựa mềm', N'Nhựa dẻo, màng bọc', 'KG', 1000.0000, @wtRecyclableId, @now, @now),
     (N'Túi nilon', N'Túi nylon, bao bì mỏng', 'KG', 800.0000, @wtRecyclableId, @now, @now),
     (N'Thủy tinh vỡ', N'Mảnh thủy tinh', 'KG', 500.0000, @wtRecyclableId, @now, @now),
-    (N'Chai thủy tinh', N'Chai thủy tinh còn nguyên', 'BOTTLE', 200.0000, @wtRecyclableId, @now, @now),
-    (N'Lon nhôm', N'Lon nước ngọt/lon bia', 'CAN', 180.0000, @wtRecyclableId, @now, @now),
-    (N'Lon thiếc', N'Lon đồ hộp/thiếc', 'CAN', 120.0000, @wtRecyclableId, @now, @now),
+    (N'Chai thủy tinh', N'Chai thủy tinh còn nguyên', 'KG', 200.0000, @wtRecyclableId, @now, @now),
+    (N'Lon nhôm', N'Lon nước ngọt/lon bia', 'KG', 180.0000, @wtRecyclableId, @now, @now),
+    (N'Lon thiếc', N'Lon đồ hộp/thiếc', 'KG', 120.0000, @wtRecyclableId, @now, @now),
     (N'Sắt vụn', N'Sắt thép phế liệu', 'KG', 3500.0000, @wtRecyclableId, @now, @now),
     (N'Inox', N'Inox phế liệu', 'KG', 8000.0000, @wtRecyclableId, @now, @now),
     (N'Đồng', N'Đồng phế liệu', 'KG', 67500.0000, @wtRecyclableId, @now, @now),
@@ -459,7 +459,7 @@ BEGIN
             INSERT INTO collector_report_items (collector_report_id, waste_category_id, quantity, unit_snapshot, point_per_unit_snapshot, total_point, created_at)
             VALUES
             (@collectorReportId, @catPaperId, 0.35, 'KG', 2250.0000, 788, DATEADD(HOUR, -1, @now)),
-            (@collectorReportId, @catCanId, 5, 'CAN', 180.0000, 900, DATEADD(HOUR, -1, @now));
+            (@collectorReportId, @catCanId, 5, 'KG', 180.0000, 900, DATEADD(HOUR, -1, @now));
         END
     END
 END

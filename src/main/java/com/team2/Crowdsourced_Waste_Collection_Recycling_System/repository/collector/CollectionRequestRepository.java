@@ -791,4 +791,60 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
             @Param("collectorId") Integer collectorId,
             @Param("actualWeightKg") BigDecimal actualWeightKg,
             @Param("time") LocalDateTime time);
+
+    @Query("""
+        SELECT SUM(COALESCE(cr.actualWeightKg, 0)), COUNT(cr)
+        FROM CollectionRequest cr
+        WHERE cr.collector.id = :collectorId
+          AND cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
+          AND (:year IS NULL OR YEAR(COALESCE(cr.completedAt, cr.collectedAt)) = :year)
+          AND (:month IS NULL OR MONTH(COALESCE(cr.completedAt, cr.collectedAt)) = :month)
+          AND (:day IS NULL OR DAY(COALESCE(cr.completedAt, cr.collectedAt)) = :day)
+    """)
+    List<Object[]> getStatsByDate(@Param("collectorId") Integer collectorId,
+                                  @Param("day") Integer day,
+                                  @Param("month") Integer month,
+                                  @Param("year") Integer year);
+
+    @Query("""
+        SELECT c.id, c.fullName, COUNT(req), SUM(COALESCE(req.actualWeightKg, 0))
+        FROM Collector c
+        LEFT JOIN CollectionRequest req ON req.collector.id = c.id 
+          AND req.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
+          AND (:year IS NULL OR YEAR(COALESCE(req.completedAt, req.collectedAt)) = :year)
+          AND (:month IS NULL OR MONTH(COALESCE(req.completedAt, req.collectedAt)) = :month)
+        GROUP BY c.id, c.fullName
+        ORDER BY COUNT(req) DESC
+    """)
+    List<Object[]> getLeaderboardByTaskCount(@Param("month") Integer month, @Param("year") Integer year);
+
+    /**
+     * Lấy bảng xếp hạng Collector dựa trên tổng khối lượng rác thu gom được.
+     * Chỉ tính các request đã hoàn thành (status = 'completed').
+     * Có thể lọc theo ngày, tháng, năm.
+     *
+     * @param day   Ngày lọc (có thể null)
+     * @param month Tháng lọc (có thể null)
+     * @param year  Năm lọc (có thể null)
+     * @return List Object[] gồm: id, fullName, totalTasks, totalWeight
+     */
+    @Query("""
+        SELECT 
+            c.id, 
+            c.fullName, 
+            COUNT(cr.id), 
+            SUM(COALESCE(cr.actualWeightKg, 0))
+        FROM CollectionRequest cr
+        JOIN cr.collector c
+        WHERE cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
+          AND (:day IS NULL OR DAY(COALESCE(cr.completedAt, cr.collectedAt)) = :day)
+          AND (:month IS NULL OR MONTH(COALESCE(cr.completedAt, cr.collectedAt)) = :month)
+          AND (:year IS NULL OR YEAR(COALESCE(cr.completedAt, cr.collectedAt)) = :year)
+        GROUP BY c.id, c.fullName
+        ORDER BY SUM(COALESCE(cr.actualWeightKg, 0)) DESC
+    """)
+    List<Object[]> findCollectorLeaderboard(
+            @Param("day") Integer day,
+            @Param("month") Integer month,
+            @Param("year") Integer year);
 }
