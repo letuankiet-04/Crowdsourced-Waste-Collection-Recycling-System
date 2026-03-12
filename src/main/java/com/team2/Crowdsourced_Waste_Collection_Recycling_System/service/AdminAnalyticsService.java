@@ -19,4 +19,6 @@ public interface AdminAnalyticsService {
     List<CollectorLeaderboardResponse> getCollectorLeaderboard(Integer day, Integer month, Integer year);
 
     List<CitizenLeaderboardResponse> getCitizenLeaderboard(Integer day, Integer month, Integer year);
+
+    com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminCollectedWasteByUnitResponse getCollectedWasteByUnit();
 }

@@ -263,6 +263,38 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
                 .toList();
     }
 
+    @Override
+    public com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminCollectedWasteByUnitResponse getCollectedWasteByUnit() {
+        List<Object[]> results = collectorReportItemRepository.sumGlobalCollectedWasteByUnit();
+        
+        BigDecimal totalWeightKg = BigDecimal.ZERO;
+        BigDecimal totalCans = BigDecimal.ZERO;
+        BigDecimal totalBottles = BigDecimal.ZERO;
+        Map<String, BigDecimal> otherUnits = new HashMap<>();
+
+        for (Object[] row : results) {
+            String unit = (String) row[0];
+            BigDecimal quantity = (BigDecimal) row[1];
+
+            if ("KG".equalsIgnoreCase(unit)) {
+                totalWeightKg = totalWeightKg.add(quantity);
+            } else if ("CAN".equalsIgnoreCase(unit)) {
+                totalCans = totalCans.add(quantity);
+            } else if ("BOTTLE".equalsIgnoreCase(unit)) {
+                totalBottles = totalBottles.add(quantity);
+            } else {
+                otherUnits.put(unit, otherUnits.getOrDefault(unit, BigDecimal.ZERO).add(quantity));
+            }
+        }
+
+        return com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminCollectedWasteByUnitResponse.builder()
+                .totalWeightKg(totalWeightKg)
+                .totalCans(totalCans)
+                .totalBottles(totalBottles)
+                .otherUnits(otherUnits)
+                .build();
+    }
+
     private BigDecimal safeWeight(BigDecimal value) {
         return value != null ? value : BigDecimal.ZERO;
     }

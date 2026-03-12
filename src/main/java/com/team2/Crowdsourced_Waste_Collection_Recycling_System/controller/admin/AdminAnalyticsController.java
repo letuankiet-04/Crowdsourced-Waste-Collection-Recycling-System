@@ -89,4 +89,14 @@ public class AdminAnalyticsController {
                 .message("Lấy bảng xếp hạng Citizen thành công")
                 .build());
     }
+
+    @GetMapping("/collected-waste-by-unit")
+    @Operation(summary = "Thống kê tổng lượng rác thu gom theo đơn vị (KG, CAN, BOTTLE)")
+    public ResponseEntity<ApiResponse<com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminCollectedWasteByUnitResponse>> getCollectedWasteByUnit() {
+        com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminCollectedWasteByUnitResponse result = adminAnalyticsService.getCollectedWasteByUnit();
+        return ResponseEntity.ok(ApiResponse.<com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminCollectedWasteByUnitResponse>builder()
+                .result(result)
+                .message("Lấy thống kê rác theo đơn vị thành công")
+                .build());
+    }
 }
