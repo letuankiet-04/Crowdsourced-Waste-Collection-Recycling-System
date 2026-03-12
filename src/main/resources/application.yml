@@ -3,20 +3,25 @@ spring:
     name: Crowdsourced-Waste-Collection-Recycling-System
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://centerbeam.proxy.rlwy.net:56568/railway?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
-    username: ${SPRING_DATASOURCE_USERNAME:root}
-    password: ${SPRING_DATASOURCE_PASSWORD:gumGGQneXVhliEFceJppmKlqBthbzQQC}
+    url: jdbc:mysql://${MYSQLHOST:centerbeam.proxy.rlwy.net}:${MYSQLPORT:56568}/${MYSQLDATABASE:railway}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${MYSQLUSER:root}
+    password: ${MYSQLPASSWORD:gumGGQneXVhliEFceJppmKlqBthbzQQC}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
   servlet:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+    open-in-view: false
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
 
 server:
   port: ${PORT:8080}
@@ -30,14 +35,14 @@ workrule:
   reassign-radius-km: 10.0
 
 jwt:
-  signerKey: "72d6236b1a543277ad6973b2693a14ab13c437f8749b185a301f5034bbe3de36"
-  valid-duration: 3600 # 1 hour in seconds
+  signerKey: 72d6236b1a543277ad6973b2693a14ab13c437f8749b185a301f5034bbe3de36
+  valid-duration: 3600
 
 open:
   api:
-    title: "Crowdsourced Waste Collection & Recycling System API"
-    version: "1.0.0"
-    description: "Tài liệu API cho hệ thống thu gom và tái chế rác thải dựa trên cộng đồng."
+    title: Crowdsourced Waste Collection & Recycling System API
+    version: 1.0.0
+    description: Tài liệu API cho hệ thống thu gom và tái chế rác thải dựa trên cộng đồng.
 
 springdoc:
   api-docs:
@@ -51,7 +56,7 @@ springdoc:
 
 app:
   seed:
-    enabled: true
+    enabled: false
     modular: true
   cors:
     allowed-origins: "*"
@@ -60,6 +65,3 @@ cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:dawzawtbz}
   api-key: ${CLOUDINARY_API_KEY:647161479214626}
   api-secret: ${CLOUDINARY_API_SECRET:vFNgCCXljSShEbrbn7EAls1Lfh0}
-
-
-
