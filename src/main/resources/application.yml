@@ -3,7 +3,7 @@ spring:
     name: Crowdsourced-Waste-Collection-Recycling-System
 
   datasource:
-    url: jdbc:mysql://${{MYSQLUSER}}:${{MYSQL_ROOT_PASSWORD}}@${{RAILWAY_PRIVATE_DOMAIN}}:3306/${{MYSQL_DATABASE}}
+    url: jdbc:mysql://${MYSQLHOST:centerbeam.proxy.rlwy.net}:${MYSQLPORT:56568}/${MYSQLDATABASE:railway}
     username: ${MYSQLUSER:root}
     password: ${MYSQLPASSWORD:gumGGQneXVhliEFceJppmKlqBthbzQQC}
     driver-class-name: com.mysql.cj.jdbc.Driver
