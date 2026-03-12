@@ -14,7 +14,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.Nationalized;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -49,11 +48,9 @@ public class Voucher {
     private String logoUrl;
 
     @Column(name = "title", nullable = false, length = 255)
-    @Nationalized
     private String title;
 
     @Column(name = "value_display", length = 100)
-    @Nationalized
     private String valueDisplay;
 
     @Column(name = "points_required", nullable = false)
@@ -71,7 +68,6 @@ public class Voucher {
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "voucher_terms", joinColumns = @JoinColumn(name = "voucher_id"))
     @Column(name = "term", length = 500)
-    @Nationalized
     private List<String> terms = new ArrayList<>();
 
     @Column(name = "created_at")
