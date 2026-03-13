@@ -38,6 +38,7 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
     private final WasteReportItemRepository wasteReportItemRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<EnterpriseWasteReportResponse> getReports(Integer enterpriseId, String status) {
         Enterprise enterprise = validateEnterprise(enterpriseId);
 
@@ -61,6 +62,7 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EnterpriseWasteReportResponse> getPendingReports(Integer enterpriseId) {
         Enterprise enterprise = validateEnterprise(enterpriseId);
 
@@ -154,6 +156,7 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
     }
 
     @Override
+    @Transactional(readOnly = true)
     public EnterpriseWasteReportResponse getReportById(Integer enterpriseId, Integer reportId) {
         Enterprise enterprise = validateEnterprise(enterpriseId);
         WasteReport report = validateReport(reportId);
@@ -230,14 +233,14 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
         String lowerAddress = address.toLowerCase();
 
         boolean wardOk = wardList == null || wardList.isBlank()
-                || Arrays.stream(wardList.split(","))
+                || Arrays.stream(wardList.split("[,;]"))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .map(String::toLowerCase)
                 .anyMatch(lowerAddress::contains);
 
         boolean cityOk = cityList == null || cityList.isBlank()
-                || Arrays.stream(cityList.split(","))
+                || Arrays.stream(cityList.split("[,;]"))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .map(String::toLowerCase)

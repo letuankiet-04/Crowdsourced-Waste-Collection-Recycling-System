@@ -125,7 +125,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                     COUNT(*) AS totalRequests
                 FROM collection_requests cr
                 WHERE cr.enterprise_id = :enterpriseId
-                  AND cr.status = 'completed'
+                  AND UPPER(cr.status) = 'COMPLETED'
                   AND COALESCE(cr.completed_at, cr.collected_at) IS NOT NULL
                   AND COALESCE(cr.completed_at, cr.collected_at) >= :from
                   AND COALESCE(cr.completed_at, cr.collected_at) < :to
@@ -139,14 +139,15 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to);
 
+    @Modifying
     @Query(value = """
                 UPDATE collection_requests
-                SET status = 'accepted_enterprise',
+                SET status = 'ACCEPTED_ENTERPRISE',
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = :requestId
                   AND enterprise_id = :enterpriseId
                   AND collector_id IS NULL
-                  AND status = 'pending'
+                  AND UPPER(status) = 'PENDING'
             """, nativeQuery = true)
     int acceptByEnterprise(
             @Param("requestId") Integer requestId,
@@ -155,12 +156,12 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     @Modifying
     @Query(value = """
                 UPDATE collection_requests
-                SET status = 'accepted_enterprise',
+                SET status = 'ACCEPTED_ENTERPRISE',
                     updated_at = CURRENT_TIMESTAMP
                 WHERE request_code = :requestCode
                   AND enterprise_id = :enterpriseId
                   AND collector_id IS NULL
-                  AND status = 'pending'
+                  AND UPPER(status) = 'PENDING'
             """, nativeQuery = true)
     int acceptByEnterpriseByRequestCode(
             @Param("requestCode") String requestCode,
@@ -174,13 +175,13 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     @Query(value = """
                 UPDATE collection_requests
                 SET collector_id = :collectorId,
-                status = 'assigned',
+                status = 'ASSIGNED',
                 assigned_at = CURRENT_TIMESTAMP,
                 updated_at = CURRENT_TIMESTAMP
                 WHERE id = :requestId
                   AND enterprise_id = :enterpriseId
                   AND collector_id IS NULL
-                  AND status IN ('accepted_enterprise', 'reassign')
+                  AND UPPER(status) IN ('ACCEPTED_ENTERPRISE', 'REASSIGN')
             """, nativeQuery = true)
     int assignCollector(
             @Param("requestId") Integer requestId,
@@ -197,13 +198,13 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     @Query(value = """
                 UPDATE collection_requests
                 SET collector_id = :collectorId,
-                status = 'assigned',
+                status = 'ASSIGNED',
                 assigned_at = CURRENT_TIMESTAMP,
                 updated_at = CURRENT_TIMESTAMP
                 WHERE request_code = :requestCode
                   AND enterprise_id = :enterpriseId
                   AND collector_id IS NULL
-                  AND status IN ('accepted_enterprise', 'reassign')
+                  AND UPPER(status) IN ('ACCEPTED_ENTERPRISE', 'REASSIGN')
             """, nativeQuery = true)
     int assignCollectorByRequestCode(
             @Param("requestCode") String requestCode,
@@ -271,7 +272,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                 FROM collection_requests cr
                 LEFT JOIN waste_reports wr ON cr.report_id = wr.id
                 WHERE cr.collector_id = :collectorId
-                  AND cr.status IN ('assigned', 'accepted_collector', 'on_the_way', 'collected')
+                  AND UPPER(cr.status) IN ('ASSIGNED', 'ACCEPTED_COLLECTOR', 'ON_THE_WAY', 'COLLECTED')
                 ORDER BY
                     CASE WHEN cr.assigned_at IS NULL THEN 1 ELSE 0 END,
                     cr.assigned_at DESC,
@@ -339,12 +340,25 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                 SELECT
                     COALESCE(SUM(cr.actual_weight_kg), 0)
                 FROM collection_requests cr
-                WHERE cr.status = 'completed'
+                WHERE UPPER(cr.status) = 'COMPLETED'
                   AND cr.actual_weight_kg IS NOT NULL
             """, nativeQuery = true)
     BigDecimal sumTotalActualWeight();
 
     long countByStatus(CollectionRequestStatus status);
+
+    interface StatusCountView {
+        CollectionRequestStatus getStatus();
+
+        Long getTotal();
+    }
+
+    @Query("""
+            select cr.status as status, count(cr) as total
+            from CollectionRequest cr
+            group by cr.status
+            """)
+    List<StatusCountView> countByStatusGroup();
 
     interface CollectorMonthlyCompletedCountView {
         Integer getYear();
@@ -444,7 +458,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                 JOIN waste_reports wr ON cr.report_id = wr.id
                 JOIN enterprise e ON cr.enterprise_id = e.id
                 WHERE cr.collector_id = :collectorId
-                  AND cr.status IN ('on_the_way', 'collected', 'completed', 'rejected')
+                  AND UPPER(cr.status) IN ('ON_THE_WAY', 'COLLECTED', 'COMPLETED', 'REJECTED')
                 ORDER BY
                     COALESCE(cr.completed_at, cr.collected_at, cr.started_at, cr.updated_at) DESC,
                     cr.id DESC
@@ -488,7 +502,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                     COUNT(*) AS total
                 FROM collection_requests cr
                 WHERE cr.collector_id = :collectorId
-                  AND cr.status IN ('collected', 'completed')
+                  AND UPPER(cr.status) IN ('COLLECTED', 'COMPLETED')
                   AND COALESCE(cr.completed_at, cr.collected_at) IS NOT NULL
                   AND YEAR(COALESCE(cr.completed_at, cr.collected_at)) = :year
                 GROUP BY YEAR(COALESCE(cr.completed_at, cr.collected_at)), MONTH(COALESCE(cr.completed_at, cr.collected_at))
@@ -504,7 +518,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                     MONTH(COALESCE(cr.completed_at, cr.collected_at)) AS month,
                     COALESCE(SUM(cr.actual_weight_kg), 0) AS totalWeightKg
                 FROM collection_requests cr
-                WHERE cr.status = 'completed'
+                WHERE UPPER(cr.status) = 'COMPLETED'
                   AND cr.actual_weight_kg IS NOT NULL
                   AND COALESCE(cr.completed_at, cr.collected_at) IS NOT NULL
                   AND YEAR(COALESCE(cr.completed_at, cr.collected_at)) = :year
@@ -517,7 +531,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                 SELECT
                     COALESCE(SUM(cr.actual_weight_kg), 0)
                 FROM collection_requests cr
-                WHERE cr.status = 'completed'
+                WHERE UPPER(cr.status) = 'COMPLETED'
                   AND cr.actual_weight_kg IS NOT NULL
                   AND COALESCE(cr.completed_at, cr.collected_at) IS NOT NULL
                   AND YEAR(COALESCE(cr.completed_at, cr.collected_at)) = :year
@@ -531,7 +545,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                     DAY(COALESCE(cr.completed_at, cr.collected_at)) AS day,
                     COALESCE(SUM(cr.actual_weight_kg), 0) AS totalWeightKg
                 FROM collection_requests cr
-                WHERE cr.status = 'completed'
+                WHERE UPPER(cr.status) = 'COMPLETED'
                   AND cr.actual_weight_kg IS NOT NULL
                   AND COALESCE(cr.completed_at, cr.collected_at) IS NOT NULL
                   AND YEAR(COALESCE(cr.completed_at, cr.collected_at)) = :year
@@ -549,7 +563,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                 SELECT
                     COALESCE(SUM(cr.actual_weight_kg), 0)
                 FROM collection_requests cr
-                WHERE cr.status = 'completed'
+                WHERE UPPER(cr.status) = 'COMPLETED'
                   AND cr.actual_weight_kg IS NOT NULL
                   AND COALESCE(cr.completed_at, cr.collected_at) IS NOT NULL
                   AND YEAR(COALESCE(cr.completed_at, cr.collected_at)) = :year
@@ -567,7 +581,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                     COUNT(*) AS totalRequests
                 FROM collection_requests cr
                 WHERE cr.collector_id = :collectorId
-                  AND cr.status = 'completed'
+                  AND UPPER(cr.status) = 'COMPLETED'
                   AND COALESCE(cr.completed_at, cr.collected_at) IS NOT NULL
                   AND COALESCE(cr.completed_at, cr.collected_at) >= :from
                   AND COALESCE(cr.completed_at, cr.collected_at) < :to
@@ -582,16 +596,16 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     @Query(value = """
                 SELECT
                     YEAR(COALESCE(cr.completed_at, cr.collected_at)) AS yearValue,
-                    FLOOR((MONTH(COALESCE(cr.completed_at, cr.collected_at)) + 2) / 3) AS quarterValue,
+                    QUARTER(COALESCE(cr.completed_at, cr.collected_at)) AS quarterValue,
                     SUM(COALESCE(cr.actual_weight_kg, 0)) AS totalWeightKg,
                     COUNT(*) AS totalRequests
                 FROM collection_requests cr
                 WHERE cr.collector_id = :collectorId
-                  AND cr.status = 'completed'
+                  AND UPPER(cr.status) = 'COMPLETED'
                   AND COALESCE(cr.completed_at, cr.collected_at) IS NOT NULL
                   AND COALESCE(cr.completed_at, cr.collected_at) >= :from
                   AND COALESCE(cr.completed_at, cr.collected_at) < :to
-                GROUP BY YEAR(COALESCE(cr.completed_at, cr.collected_at)), FLOOR((MONTH(COALESCE(cr.completed_at, cr.collected_at)) + 2) / 3)
+                GROUP BY YEAR(COALESCE(cr.completed_at, cr.collected_at)), QUARTER(COALESCE(cr.completed_at, cr.collected_at))
                 ORDER BY yearValue ASC, quarterValue ASC
             """, nativeQuery = true)
     List<CollectorQuarterlyWasteVolumeView> sumCompletedWeightByQuarterForCollector(
@@ -607,7 +621,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                     COUNT(*) AS totalRequests
                 FROM collection_requests cr
                 WHERE cr.enterprise_id = :enterpriseId
-                  AND cr.status = 'completed'
+                  AND UPPER(cr.status) = 'COMPLETED'
                   AND COALESCE(cr.completed_at, cr.collected_at) IS NOT NULL
                   AND COALESCE(cr.completed_at, cr.collected_at) >= :from
                   AND COALESCE(cr.completed_at, cr.collected_at) < :to
@@ -622,16 +636,16 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     @Query(value = """
                 SELECT
                     YEAR(COALESCE(cr.completed_at, cr.collected_at)) AS yearValue,
-                    FLOOR((MONTH(COALESCE(cr.completed_at, cr.collected_at)) + 2) / 3) AS quarterValue,
+                    QUARTER(COALESCE(cr.completed_at, cr.collected_at)) AS quarterValue,
                     SUM(COALESCE(cr.actual_weight_kg, 0)) AS totalWeightKg,
                     COUNT(*) AS totalRequests
                 FROM collection_requests cr
                 WHERE cr.enterprise_id = :enterpriseId
-                  AND cr.status = 'completed'
+                  AND UPPER(cr.status) = 'COMPLETED'
                   AND COALESCE(cr.completed_at, cr.collected_at) IS NOT NULL
                   AND COALESCE(cr.completed_at, cr.collected_at) >= :from
                   AND COALESCE(cr.completed_at, cr.collected_at) < :to
-                GROUP BY YEAR(COALESCE(cr.completed_at, cr.collected_at)), FLOOR((MONTH(COALESCE(cr.completed_at, cr.collected_at)) + 2) / 3)
+                GROUP BY YEAR(COALESCE(cr.completed_at, cr.collected_at)), QUARTER(COALESCE(cr.completed_at, cr.collected_at))
                 ORDER BY yearValue ASC, quarterValue ASC
             """, nativeQuery = true)
     List<EnterpriseQuarterlyWasteVolumeView> sumCompletedWeightByQuarterForEnterprise(
@@ -654,7 +668,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                        ON pt.collection_request_id = cr.id
                       AND pt.transaction_type = 'EARN'
                 WHERE cr.enterprise_id = :enterpriseId
-                  AND cr.status = 'completed'
+                  AND UPPER(cr.status) = 'COMPLETED'
                   AND COALESCE(cr.completed_at, cr.collected_at) IS NOT NULL
                   AND COALESCE(cr.completed_at, cr.collected_at) >= :from
                   AND COALESCE(cr.completed_at, cr.collected_at) < :to
@@ -672,6 +686,8 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                 SELECT cr
                 FROM CollectionRequest cr
                 JOIN FETCH cr.report r
+                JOIN FETCH r.citizen c
+                JOIN FETCH c.user u
                 WHERE cr.enterprise.id = :enterpriseId
                   AND cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.REASSIGN
                 ORDER BY cr.updatedAt DESC, cr.id DESC
@@ -702,12 +718,12 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     @Modifying
     @Query("""
                 UPDATE CollectionRequest cr
-                SET cr.status = 'accepted_collector',
+                SET cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.ACCEPTED_COLLECTOR,
                     cr.acceptedAt = :time,
                     cr.updatedAt = :time
                 WHERE cr.id = :id
                   AND cr.collector.id = :collectorId
-                  AND cr.status = 'assigned'
+                  AND cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.ASSIGNED
             """)
     int acceptTask(
             @Param("id") Integer id,
@@ -721,7 +737,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
      */
     @Modifying
     @Query("update CollectionRequest cr " +
-            "set cr.status = 'reassign'," +
+            "set cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.REASSIGN," +
             "cr.rejectionReason =:reason," +
             "cr.collector = null," +
             "cr.assignedAt = null," +
@@ -729,7 +745,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
             " cr.updatedAt = CURRENT_TIMESTAMP\n" +
             "        WHERE cr.id = :id\n" +
             "          AND cr.collector.id = :collectorId\n" +
-            "          AND cr.status = 'assigned'")
+            "          AND cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.ASSIGNED")
     int rejectTask(
             @Param("id") Integer id,
             @Param("collectorId") Integer collectorId,
@@ -743,12 +759,12 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     @Modifying
     @Query("""
                 UPDATE CollectionRequest cr
-                SET cr.status = 'collected',
+                SET cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COLLECTED,
                     cr.collectedAt = :time,
                     cr.updatedAt = :time
                 WHERE cr.id = :id
                   AND cr.collector.id = :collectorId
-                  AND cr.status = 'on_the_way'
+                  AND cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.ON_THE_WAY
             """)
     int completeTask(
             @Param("id") Integer id,
@@ -763,12 +779,12 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     @Modifying
     @Query("""
                 UPDATE CollectionRequest cr
-                SET cr.status = 'completed',
+                SET cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED,
                     cr.completedAt = :time,
                     cr.updatedAt = :time
                 WHERE cr.id = :id
                   AND cr.collector.id = :collectorId
-                  AND cr.status = 'collected'
+                  AND cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COLLECTED
             """)
     int confirmCompleted(
             @Param("id") Integer id,
@@ -778,13 +794,13 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     @Modifying
     @Query("""
                 UPDATE CollectionRequest cr
-                SET cr.status = 'completed',
+                SET cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED,
                     cr.completedAt = :time,
                     cr.actualWeightKg = :actualWeightKg,
                     cr.updatedAt = :time
                 WHERE cr.id = :id
                   AND cr.collector.id = :collectorId
-                  AND cr.status = 'collected'
+                  AND cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COLLECTED
             """)
     int confirmCompletedWithWeight(
             @Param("id") Integer id,
@@ -807,7 +823,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                                   @Param("year") Integer year);
 
     @Query("""
-        SELECT c.id, c.fullName, COUNT(req), SUM(COALESCE(req.actualWeightKg, 0))
+        SELECT c.id, c.fullName, COUNT(req), COALESCE(SUM(req.actualWeightKg), 0)
         FROM Collector c
         LEFT JOIN CollectionRequest req ON req.collector.id = c.id 
           AND req.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
@@ -833,15 +849,15 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
             c.id, 
             c.fullName, 
             COUNT(cr.id), 
-            SUM(COALESCE(cr.actualWeightKg, 0))
-        FROM CollectionRequest cr
-        JOIN cr.collector c
-        WHERE cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
+            COALESCE(SUM(cr.actualWeightKg), 0)
+        FROM Collector c
+        LEFT JOIN CollectionRequest cr ON cr.collector.id = c.id
+          AND cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
           AND (:day IS NULL OR DAY(COALESCE(cr.completedAt, cr.collectedAt)) = :day)
           AND (:month IS NULL OR MONTH(COALESCE(cr.completedAt, cr.collectedAt)) = :month)
           AND (:year IS NULL OR YEAR(COALESCE(cr.completedAt, cr.collectedAt)) = :year)
         GROUP BY c.id, c.fullName
-        ORDER BY SUM(COALESCE(cr.actualWeightKg, 0)) DESC
+        ORDER BY COALESCE(SUM(cr.actualWeightKg), 0) DESC
     """)
     List<Object[]> findCollectorLeaderboard(
             @Param("day") Integer day,

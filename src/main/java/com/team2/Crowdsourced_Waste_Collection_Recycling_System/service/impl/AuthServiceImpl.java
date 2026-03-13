@@ -5,6 +5,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Aut
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.IntrospectResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Citizen;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Collector;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Enterprise;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.InvalidatedToken;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Role;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.User;
@@ -15,6 +16,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.colle
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.InvalidatedTokenRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.RoleRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.UserRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.enterprise.EnterpriseRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.AuthService;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.util.JWTHelper;
 import com.nimbusds.jose.JOSEException;
@@ -52,6 +54,7 @@ public class AuthServiceImpl implements AuthService {
     RoleRepository roleRepository;
     CitizenRepository citizenRepository;
     CollectorRepository collectorRepository;
+    EnterpriseRepository enterpriseRepository;
     InvalidatedTokenRepository invalidatedTokenRepository;
     PasswordEncoder passwordEncoder;
     JWTHelper jwtHelper;
@@ -158,6 +161,10 @@ public class AuthServiceImpl implements AuthService {
             } else if ("ENTERPRISE".equalsIgnoreCase(roleCode) || "ENTERPRISE_ADMIN".equalsIgnoreCase(roleCode)) {
                 if (user.getEnterprise() != null) {
                     enterpriseId = user.getEnterprise().getId();
+                } else if (user.getEmail() != null && !user.getEmail().isBlank()) {
+                    enterpriseId = enterpriseRepository.findByEmailIgnoreCase(user.getEmail())
+                            .map(Enterprise::getId)
+                            .orElse(null);
                 }
             }
         }

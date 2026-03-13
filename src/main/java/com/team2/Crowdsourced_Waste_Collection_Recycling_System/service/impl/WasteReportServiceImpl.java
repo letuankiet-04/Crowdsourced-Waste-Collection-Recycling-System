@@ -309,6 +309,7 @@ public class WasteReportServiceImpl implements WasteReportService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<WasteReportResponse> getMyReports(String citizenEmail) {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
 
@@ -362,6 +363,7 @@ public class WasteReportServiceImpl implements WasteReportService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public WasteReportResponse getMyReportById(Integer reportId, String citizenEmail) {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
         WasteReport report = requireOwnedReport(reportId, citizen);
@@ -404,6 +406,7 @@ public class WasteReportServiceImpl implements WasteReportService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CitizenReportResultResponse getMyReportResult(Integer reportId, String citizenEmail) {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
         WasteReport report = requireOwnedReport(reportId, citizen);
@@ -507,6 +510,7 @@ public class WasteReportServiceImpl implements WasteReportService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CitizenPointSummaryResponse getMyPointSummary(String citizenEmail, Integer year, Integer quarter, Integer month) {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
 
@@ -642,6 +646,7 @@ public class WasteReportServiceImpl implements WasteReportService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<WasteCategoryResponse> getWasteCategories() {
         List<WasteCategory> categories = wasteCategoryRepository.findAll();
         
@@ -658,6 +663,7 @@ public class WasteReportServiceImpl implements WasteReportService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CitizenReportStatsResponse getMyReportStats(String citizenEmail) {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
 

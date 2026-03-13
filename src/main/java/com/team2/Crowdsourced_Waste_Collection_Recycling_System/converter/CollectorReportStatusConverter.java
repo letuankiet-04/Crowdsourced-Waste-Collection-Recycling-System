@@ -12,7 +12,7 @@ public class CollectorReportStatusConverter implements AttributeConverter<Collec
         if (attribute == null) {
             return null;
         }
-        return attribute.name().toLowerCase();
+        return attribute.name();
     }
 
     @Override

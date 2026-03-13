@@ -10,5 +10,7 @@ import java.util.List;
 public interface ReportImageRepository extends JpaRepository<ReportImage, Integer> {
     List<ReportImage> findByReport_Id(Integer reportId);
 
+    List<ReportImage> findByReport_IdIn(List<Integer> reportIds);
+
     void deleteByReport_Id(Integer reportId);
 }
