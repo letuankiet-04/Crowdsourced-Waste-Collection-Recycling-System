@@ -53,6 +53,8 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
 
     Optional<CollectionRequest> findByReport_Id(Integer reportId);
 
+    List<CollectionRequest> findByReport_IdIn(List<Integer> reportIds);
+
     /**
      * Enterprise accept request: pending -> accepted_enterprise (chỉ khi chưa gán
      * collector).

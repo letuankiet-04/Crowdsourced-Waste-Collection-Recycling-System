@@ -1,6 +1,7 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.feedback;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -12,6 +13,14 @@ import java.util.Optional;
 
 @Repository
 public interface FeedbackRepository extends JpaRepository<Feedback, Integer> {
+
+    @Override
+    @EntityGraph(attributePaths = { "citizen", "citizen.user", "collectionRequest" })
+    List<Feedback> findAll();
+
+    @Override
+    @EntityGraph(attributePaths = { "citizen", "citizen.user", "collectionRequest", "collectionRequest.collector" })
+    Optional<Feedback> findById(Integer id);
     
     Optional<Feedback> findByFeedbackCode(String feedbackCode);
     

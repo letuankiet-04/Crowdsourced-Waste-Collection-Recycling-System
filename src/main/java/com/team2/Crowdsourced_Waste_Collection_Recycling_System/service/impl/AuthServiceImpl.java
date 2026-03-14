@@ -123,7 +123,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         var user = userRepository
-                .findByEmail(request.getEmail())
+                .findOneWithAuthByEmail(request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
         boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());

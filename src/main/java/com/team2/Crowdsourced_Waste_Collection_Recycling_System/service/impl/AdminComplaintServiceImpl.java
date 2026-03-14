@@ -37,6 +37,7 @@ public class AdminComplaintServiceImpl implements AdminComplaintService {
     private final CollectorRepository collectorRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<EnterpriseFeedbackResponse> getAllComplaints() {
         // Lấy tất cả feedback từ DB
         List<Feedback> allFeedbacks = feedbackRepository.findAll();
@@ -50,6 +51,7 @@ public class AdminComplaintServiceImpl implements AdminComplaintService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public EnterpriseFeedbackResponse getComplaintDetail(Integer id) {
         Feedback feedback = feedbackRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Complaint không tồn tại"));
