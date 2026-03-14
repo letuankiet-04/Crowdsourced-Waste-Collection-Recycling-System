@@ -20,12 +20,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.transaction.annotation.Transactional;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.util.AddressMatchUtil;
 
 @Service
 @RequiredArgsConstructor
@@ -56,7 +56,7 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
         WasteReportStatus finalStatusFilter = statusFilter;
         return reports.stream()
                 .filter(report -> finalStatusFilter == null || report.getStatus() == finalStatusFilter)
-                .filter(report -> isInServiceArea(enterprise, report))
+                .filter(report -> AddressMatchUtil.isInServiceArea(report.getAddress(), enterprise.getServiceWards(), enterprise.getServiceCities()))
                 .map(this::toResponse)
                 .toList();
     }
@@ -69,7 +69,7 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
         List<WasteReport> pendingReports = wasteReportRepository.findByStatus(WasteReportStatus.PENDING);
 
         return pendingReports.stream()
-                .filter(report -> isInServiceArea(enterprise, report))
+                .filter(report -> AddressMatchUtil.isInServiceArea(report.getAddress(), enterprise.getServiceWards(), enterprise.getServiceCities()))
                 .map(this::toResponse)
                 .toList();
     }
@@ -161,7 +161,7 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
         Enterprise enterprise = validateEnterprise(enterpriseId);
         WasteReport report = validateReport(reportId);
 
-        if (!isInServiceArea(enterprise, report)) {
+        if (!AddressMatchUtil.isInServiceArea(report.getAddress(), enterprise.getServiceWards(), enterprise.getServiceCities())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Báo cáo không tồn tại");
         }
 
@@ -212,7 +212,7 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Enterprise không hỗ trợ loại rác này");
         }
         
-        if (!isInServiceArea(enterprise, report)) {
+        if (!AddressMatchUtil.isInServiceArea(report.getAddress(), enterprise.getServiceWards(), enterprise.getServiceCities())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Báo cáo nằm ngoài khu vực hoạt động của Enterprise");
         }
     }
@@ -220,32 +220,5 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
     private boolean isSupportedWasteType(Enterprise enterprise, String wasteType) {
         // TODO: Implement check for supported waste types
         return true;
-    }
-
-    private boolean isInServiceArea(Enterprise enterprise, WasteReport report) {
-        String address = report.getAddress();
-        if (address == null || address.isBlank()) {
-            return false;
-        }
-
-        String wardList = enterprise.getServiceWards();
-        String cityList = enterprise.getServiceCities();
-        String lowerAddress = address.toLowerCase();
-
-        boolean wardOk = wardList == null || wardList.isBlank()
-                || Arrays.stream(wardList.split("[,;]"))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .map(String::toLowerCase)
-                .anyMatch(lowerAddress::contains);
-
-        boolean cityOk = cityList == null || cityList.isBlank()
-                || Arrays.stream(cityList.split("[,;]"))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .map(String::toLowerCase)
-                .anyMatch(lowerAddress::contains);
-
-        return wardOk && cityOk;
     }
 }

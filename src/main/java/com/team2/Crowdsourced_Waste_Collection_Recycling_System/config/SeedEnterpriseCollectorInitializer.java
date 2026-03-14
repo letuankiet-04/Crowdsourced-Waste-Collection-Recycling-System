@@ -49,8 +49,6 @@ public class SeedEnterpriseCollectorInitializer {
             enterprise.setName("Test Enterprise");
             enterprise.setEmail(email);
             enterprise.setStatus("active");
-            enterprise.setServiceWards("Ward 1,Ward 2");
-            enterprise.setServiceCities("City A");
             enterprise.setCreatedAt(LocalDateTime.now());
             enterprise.setUpdatedAt(LocalDateTime.now());
             return enterpriseRepository.save(enterprise);
@@ -60,18 +58,29 @@ public class SeedEnterpriseCollectorInitializer {
     private void ensureEnterpriseSeedFields(EnterpriseRepository enterpriseRepository, Enterprise enterprise) {
         if (enterprise == null || enterprise.getId() == null) return;
         boolean changed = false;
-        if (enterprise.getServiceWards() == null || enterprise.getServiceWards().isBlank()) {
-            enterprise.setServiceWards("Ward 1,Ward 2");
+        if (isPlaceholderServiceArea(enterprise.getServiceWards())) {
+            enterprise.setServiceWards(null);
             changed = true;
         }
-        if (enterprise.getServiceCities() == null || enterprise.getServiceCities().isBlank()) {
-            enterprise.setServiceCities("City A");
+        if (isPlaceholderServiceArea(enterprise.getServiceCities())) {
+            enterprise.setServiceCities(null);
             changed = true;
         }
         if (changed) {
             enterprise.setUpdatedAt(LocalDateTime.now());
             enterpriseRepository.save(enterprise);
         }
+    }
+
+    private boolean isPlaceholderServiceArea(String value) {
+        if (value == null) return false;
+        String simplified = value.trim().toLowerCase().replaceAll("\\s+", "");
+        return "citya".equals(simplified)
+                || "ward1".equals(simplified)
+                || "ward2".equals(simplified)
+                || "ward1,ward2".equals(simplified)
+                || "ward1;ward2".equals(simplified)
+                || "ward1|ward2".equals(simplified);
     }
 
     private void linkEnterpriseToUserIfMissing(UserRepository userRepository, User enterpriseUser, Enterprise enterprise) {

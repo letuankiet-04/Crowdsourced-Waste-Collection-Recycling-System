@@ -59,7 +59,7 @@ app:
     enabled: false
     modular: true
   cors:
-    allowed-origins: "https://crowdsourced-waste-collection-recyc-khaki.vercel.app, http://localhost:5173"
+    allowed-origins: "https://crowdsourced-waste-collection-recyc-khaki.vercel.app, https://*.vercel.app, http://localhost:5173"
 
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:dawzawtbz}

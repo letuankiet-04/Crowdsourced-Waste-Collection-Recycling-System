@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCollectorStatusRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorService;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.http.HttpStatus;
@@ -23,16 +24,29 @@ import java.math.BigDecimal;
 @Tag(name = "Collector", description = "Endpoint dành cho người thu gom")
 public class CollectorController {
     private final com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorService collectorService;
+    private final CollectorRepository collectorRepository;
 
-    public CollectorController(CollectorService collectorService) {
+    public CollectorController(CollectorService collectorService, CollectorRepository collectorRepository) {
         this.collectorService = collectorService;
+        this.collectorRepository = collectorRepository;
     }
 
     @GetMapping("/dashboard")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Trang tổng quan Collector", description = "Thông tin tổng quan nhanh cho Collector")
-    public ResponseEntity<String> getDashboard() {
-        return ResponseEntity.ok("Hello Collector! This is your dashboard.");
+    public ApiResponse<Map<String, Object>> getDashboard(@AuthenticationPrincipal Jwt jwt) {
+        Integer collectorId = extractCollectorId(jwt);
+        String status = collectorRepository.findById(collectorId)
+                .map(c -> c.getStatus() != null ? c.getStatus().name() : null)
+                .orElse(null);
+        boolean online = "ONLINE".equalsIgnoreCase(status);
+        return ApiResponse.<Map<String, Object>>builder()
+                .result(Map.of(
+                        "collectorId", collectorId,
+                        "status", status,
+                        "online", online
+                ))
+                .build();
     }
 
     @GetMapping("/stats/performance")
