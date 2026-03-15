@@ -53,8 +53,8 @@ public class DataInit implements CommandLineRunner {
         Role enterpriseRole = getOrCreateRole("ENTERPRISE", "Enterprise");
         Role collectorRole = getOrCreateRole("COLLECTOR", "Collector");
 
-        Enterprise demoEnterprise = getOrCreateEnterprise("enterprise@demo.local", "Demo Enterprise");
-        Enterprise ecoEnterprise = getOrCreateEnterprise("enterprise2@demo.local", "Eco Enterprise");
+        Enterprise demoEnterprise = getOrCreateEnterprise("enterprise@gmail.com", "Demo Enterprise");
+        Enterprise ecoEnterprise = getOrCreateEnterprise("enterprise2@gmail.com", "Eco Enterprise");
 
         LocalDateTime now = LocalDateTime.now();
 
@@ -157,6 +157,45 @@ public class DataInit implements CommandLineRunner {
             LocalDateTime now
     ) {
         return userRepository.findByEmail(email)
+                .map(existing -> {
+                    boolean changed = false;
+
+                    if (existing.getRole() == null || (role != null && existing.getRole().getId() != null
+                            && !existing.getRole().getId().equals(role.getId()))) {
+                        existing.setRole(role);
+                        changed = true;
+                    }
+
+                    if (enterprise != null && (existing.getEnterprise() == null || existing.getEnterprise().getId() == null
+                            || !existing.getEnterprise().getId().equals(enterprise.getId()))) {
+                        existing.setEnterprise(enterprise);
+                        changed = true;
+                    }
+
+                    if (fullName != null && !fullName.isBlank()
+                            && (existing.getFullName() == null || !existing.getFullName().equals(fullName))) {
+                        existing.setFullName(fullName);
+                        changed = true;
+                    }
+
+                    if (phone != null && !phone.isBlank()
+                            && (existing.getPhone() == null || !existing.getPhone().equals(phone))) {
+                        existing.setPhone(phone);
+                        changed = true;
+                    }
+
+                    if (status != null && !status.isBlank()
+                            && (existing.getStatus() == null || !existing.getStatus().equalsIgnoreCase(status))) {
+                        existing.setStatus(status);
+                        changed = true;
+                    }
+
+                    if (changed) {
+                        existing.setUpdatedAt(now);
+                        return userRepository.save(existing);
+                    }
+                    return existing;
+                })
                 .orElseGet(() -> {
                     User user = new User();
                     user.setEmail(email);

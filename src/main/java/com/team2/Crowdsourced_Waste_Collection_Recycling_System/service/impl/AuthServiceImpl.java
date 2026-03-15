@@ -62,7 +62,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public AuthenticationResponse register(RegisterRequest request) {
         // Validate dữ liệu đầu vào và tạo user mới, sau đó đăng nhập để trả token.
-        String email = request.getEmail();
+        String email = request.getEmail() != null ? request.getEmail().trim() : null;
         if (email == null || email.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email không được để trống");
         }
@@ -77,12 +77,21 @@ public class AuthServiceImpl implements AuthService {
         }
 
         Role role = roleRepository.findByRoleCodeIgnoreCase("CITIZEN")
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quyền (Role) không tồn tại"));
+                .orElseGet(() -> {
+                    Role r = new Role();
+                    r.setRoleCode("CITIZEN");
+                    r.setRoleName("Citizen");
+                    return roleRepository.save(r);
+                });
+
+        if (role.getRoleCode() == null || !"CITIZEN".equalsIgnoreCase(role.getRoleCode())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cấu hình role đăng ký không hợp lệ");
+        }
 
         User u = new User();
         u.setEmail(email);
         u.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        u.setFullName(request.getFullName());
+        u.setFullName(request.getFullName().trim());
         u.setPhone(request.getPhone());
         u.setRole(role);
         u.setStatus("active");
@@ -167,13 +176,19 @@ public class AuthServiceImpl implements AuthService {
                 }
                 enterpriseId = collector.getEnterprise().getId();
             } else if ("ENTERPRISE".equalsIgnoreCase(roleCode) || "ENTERPRISE_ADMIN".equalsIgnoreCase(roleCode)) {
-                if (user.getEnterprise() != null) {
-                    enterpriseId = user.getEnterprise().getId();
-                } else if (user.getEmail() != null && !user.getEmail().isBlank()) {
-                    enterpriseId = enterpriseRepository.findByEmailIgnoreCase(user.getEmail())
-                            .map(Enterprise::getId)
-                            .orElse(null);
+                Enterprise enterprise = user.getEnterprise();
+                if (enterprise == null && user.getEmail() != null && !user.getEmail().isBlank()) {
+                    enterprise = enterpriseRepository.findByEmailIgnoreCase(user.getEmail()).orElse(null);
+                    if (enterprise != null) {
+                        user.setEnterprise(enterprise);
+                        userRepository.save(user);
+                    }
                 }
+
+                if (enterprise == null || enterprise.getId() == null) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Tài khoản ENTERPRISE thiếu enterprise");
+                }
+                enterpriseId = enterprise.getId();
             }
         }
         
