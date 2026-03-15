@@ -1,6 +1,8 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.admin;
 
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateUserRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCitizenAccountRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCollectorAccountRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateEnterpriseAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminUserResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.AdminAccountService;
@@ -32,18 +34,36 @@ public class AdminAccountController {
 
     private final AdminAccountService adminAccountService;
 
-    /**
-     * Admin tạo tài khoản cho role CITIZEN/COLLECTOR/ENTERPRISE.
-     * Không cho phép tạo ADMIN hoặc ENTERPRISE_ADMIN.
-     */
-    @PostMapping
-    @Operation(summary = "Tạo tài khoản", description = "Admin tạo user cho role CITIZEN, COLLECTOR, ENTERPRISE")
-    public ApiResponse<AdminUserResponse> createUser(
-            @RequestBody AdminCreateUserRequest request,
+        @PostMapping("/citizens")
+        @Operation(summary = "Tạo tài khoản CITIZEN")
+        public ApiResponse<AdminUserResponse> createCitizenAccount(
+            @RequestBody AdminCreateCitizenAccountRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         String adminEmail = extractAdminEmail(jwt);
         return ApiResponse.<AdminUserResponse>builder()
-                .result(adminAccountService.createUser(request, adminEmail))
+            .result(adminAccountService.createCitizenAccount(request, adminEmail))
+            .build();
+        }
+
+        @PostMapping("/collectors")
+        @Operation(summary = "Tạo tài khoản COLLECTOR")
+        public ApiResponse<AdminUserResponse> createCollectorAccount(
+            @RequestBody AdminCreateCollectorAccountRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String adminEmail = extractAdminEmail(jwt);
+        return ApiResponse.<AdminUserResponse>builder()
+            .result(adminAccountService.createCollectorAccount(request, adminEmail))
+            .build();
+        }
+
+        @PostMapping("/enterprises")
+        @Operation(summary = "Tạo tài khoản ENTERPRISE")
+        public ApiResponse<AdminUserResponse> createEnterpriseAccount(
+            @RequestBody AdminCreateEnterpriseAccountRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String adminEmail = extractAdminEmail(jwt);
+        return ApiResponse.<AdminUserResponse>builder()
+            .result(adminAccountService.createEnterpriseAccount(request, adminEmail))
                 .build();
     }
 
