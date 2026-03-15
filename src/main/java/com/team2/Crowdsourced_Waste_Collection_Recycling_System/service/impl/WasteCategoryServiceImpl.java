@@ -8,6 +8,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.AppExc
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.ErrorCode;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.waste.WasteCategoryRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.WasteCategoryService;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.util.WasteCategoryAllowlist;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,7 @@ public class WasteCategoryServiceImpl implements WasteCategoryService {
     public List<WasteCategoryAdminResponse> getAllCategories() {
         return wasteCategoryRepository.findAll()
                 .stream()
+                .filter(c -> WasteCategoryAllowlist.isAllowed(c.getName()))
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }

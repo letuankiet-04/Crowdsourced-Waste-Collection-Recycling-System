@@ -65,16 +65,7 @@ public class WasteCategoryInit implements CommandLineRunner {
                 new CategorySeed("Mủ", "RECYCLABLE WASTE", WasteUnit.KG, new BigDecimal("3600")),
                 new CategorySeed("Mủ bình", "RECYCLABLE WASTE", WasteUnit.KG, new BigDecimal("4500")),
                 new CategorySeed("Mủ tôn", "RECYCLABLE WASTE", WasteUnit.KG, new BigDecimal("1800")),
-                new CategorySeed("Mủ đen", "RECYCLABLE WASTE", WasteUnit.KG, new BigDecimal("150")),
-
-                new CategorySeed("Pin tiểu", "HAZARDOUS WASTE (đơn vị: viên)", WasteUnit.CAN, new BigDecimal("2000")),
-                new CategorySeed("Pin sạc", "HAZARDOUS WASTE (đơn vị: viên)", WasteUnit.CAN, new BigDecimal("3000")),
-                new CategorySeed("Ắc quy", "HAZARDOUS WASTE", WasteUnit.KG, new BigDecimal("8000")),
-                new CategorySeed("Bóng đèn huỳnh quang", "HAZARDOUS WASTE (đơn vị: bóng)", WasteUnit.CAN, new BigDecimal("1500")),
-                new CategorySeed("Bóng đèn LED hỏng", "HAZARDOUS WASTE (đơn vị: bóng)", WasteUnit.CAN, new BigDecimal("1200")),
-                new CategorySeed("Thuốc quá hạn", "HAZARDOUS WASTE", WasteUnit.KG, new BigDecimal("4000")),
-                new CategorySeed("Hóa chất gia dụng", "HAZARDOUS WASTE", WasteUnit.KG, new BigDecimal("6000")),
-                new CategorySeed("Thiết bị điện tử nhỏ (rác điện tử)", "HAZARDOUS WASTE", WasteUnit.KG, new BigDecimal("7500"))
+                new CategorySeed("Mủ đen", "RECYCLABLE WASTE", WasteUnit.KG, new BigDecimal("150"))
         );
     }
 

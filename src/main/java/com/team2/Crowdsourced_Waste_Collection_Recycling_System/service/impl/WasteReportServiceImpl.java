@@ -38,6 +38,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.waste
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CloudinaryService;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.WasteReportService;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.util.WasteCategoryAllowlist;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -652,6 +653,9 @@ public class WasteReportServiceImpl implements WasteReportService {
         
         List<WasteCategoryResponse> responses = new ArrayList<>();
         for (WasteCategory c : categories) {
+            if (!WasteCategoryAllowlist.isAllowed(c.getName())) {
+                continue;
+            }
             responses.add(WasteCategoryResponse.builder()
                     .id(c.getId())
                     .name(c.getName())
