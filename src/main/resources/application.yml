@@ -55,7 +55,7 @@ springdoc:
 
 app:
   seed:
-    enabled: false
+    enabled: true
     modular: true
   cors:
     allowed-origins: "https://crowdsourced-waste-collection-recyc-khaki.vercel.app, https://*.vercel.app, http://localhost:5173"
