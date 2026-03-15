@@ -6,4 +6,4 @@ spring:
 app:
   seed:
     enabled: true
-    modular: false
+    modular: true
