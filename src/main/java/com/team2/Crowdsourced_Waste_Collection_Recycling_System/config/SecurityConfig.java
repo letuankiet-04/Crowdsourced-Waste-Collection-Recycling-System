@@ -1,6 +1,6 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.config;
 
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.InvalidatedTokenRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.security.TokenDenylistService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -45,7 +45,7 @@ public class SecurityConfig {
     private String signerKey;
 
     @Autowired
-    private InvalidatedTokenRepository invalidatedTokenRepository;
+    private TokenDenylistService tokenDenylistService;
 
     
 
@@ -117,7 +117,7 @@ public class SecurityConfig {
                 .build();
 
         OAuth2TokenValidator<Jwt> withTimestamp = JwtValidators.createDefault();
-        OAuth2TokenValidator<Jwt> withDenylist = new JtiDenylistValidator(invalidatedTokenRepository);
+        OAuth2TokenValidator<Jwt> withDenylist = new JtiDenylistValidator(tokenDenylistService);
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(withTimestamp, withDenylist));
         return decoder;
     }

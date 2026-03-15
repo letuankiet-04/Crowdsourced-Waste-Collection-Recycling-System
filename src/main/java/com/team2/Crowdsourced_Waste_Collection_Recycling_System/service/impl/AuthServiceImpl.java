@@ -6,18 +6,17 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Int
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Citizen;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Collector;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Enterprise;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.InvalidatedToken;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Role;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.User;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.AppException;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.ErrorCode;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.profile.CitizenRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.InvalidatedTokenRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.RoleRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.UserRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.enterprise.EnterpriseRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.AuthService;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.security.TokenDenylistService;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.util.JWTHelper;
 import com.nimbusds.jose.JOSEException;
 import lombok.AccessLevel;
@@ -55,7 +54,7 @@ public class AuthServiceImpl implements AuthService {
     CitizenRepository citizenRepository;
     CollectorRepository collectorRepository;
     EnterpriseRepository enterpriseRepository;
-    InvalidatedTokenRepository invalidatedTokenRepository;
+    TokenDenylistService tokenDenylistService;
     PasswordEncoder passwordEncoder;
     JWTHelper jwtHelper;
 
@@ -209,9 +208,7 @@ public class AuthServiceImpl implements AuthService {
             String jit = signToken.getJWTClaimsSet().getJWTID();
             Date expiryTime = signToken.getJWTClaimsSet().getExpirationTime();
 
-            InvalidatedToken invalidatedToken = InvalidatedToken.builder().id(jit).expiryTime(expiryTime).build();
-
-            invalidatedTokenRepository.save(invalidatedToken);
+            tokenDenylistService.invalidate(jit, expiryTime != null ? expiryTime.toInstant() : null);
         } catch (Exception ignored) {
         } finally {
             SecurityContextHolder.clearContext();

@@ -3,7 +3,7 @@ package com.team2.Crowdsourced_Waste_Collection_Recycling_System.util;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.User;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.AppException;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.ErrorCode;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.InvalidatedTokenRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.security.TokenDenylistService;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -37,7 +37,7 @@ import java.util.UUID;
 public class JWTHelper{
     static String ISSUER = "team2.com";
 
-    InvalidatedTokenRepository invalidatedTokenRepository;
+    TokenDenylistService tokenDenylistService;
 
     @NonFinal
     @Value("${jwt.signerKey}")
@@ -62,7 +62,11 @@ public class JWTHelper{
 
         if (!(verified && expiryTime.after(new Date()))) throw new AppException(ErrorCode.UNAUTHENTICATED);
 
-        if (invalidatedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID()))
+        if (tokenDenylistService.isTokenRevoked(
+                signedJWT.getJWTClaimsSet().getJWTID(),
+                signedJWT.getJWTClaimsSet().getExpirationTime() != null
+                        ? signedJWT.getJWTClaimsSet().getExpirationTime().toInstant()
+                        : null))
             throw new AppException(ErrorCode.UNAUTHENTICATED);
 
         return signedJWT;
