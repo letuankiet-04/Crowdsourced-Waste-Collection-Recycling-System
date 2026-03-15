@@ -5,5 +5,5 @@ spring:
 
 app:
   seed:
-    enabled: false
+    enabled: true
     modular: false
