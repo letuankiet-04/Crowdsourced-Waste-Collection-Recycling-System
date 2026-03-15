@@ -69,7 +69,7 @@ public class DataInit implements CommandLineRunner {
 
         ensureUser(
                 "enterprise@gmail.com",
-                "enterprise123git ",
+                "enterprise123",
                 "Enterprise Admin Demo",
                 "0900000003",
                 "active",
