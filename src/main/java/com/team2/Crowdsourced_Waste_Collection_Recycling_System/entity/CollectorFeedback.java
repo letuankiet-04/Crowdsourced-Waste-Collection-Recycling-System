@@ -29,7 +29,7 @@ public class CollectorFeedback {
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    @Column(name = "feedback_code", nullable = false, unique = true, length = 20)
+    @Column(name = "feedback_code", nullable = false, unique = true, length = 50)
     private String feedbackCode;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

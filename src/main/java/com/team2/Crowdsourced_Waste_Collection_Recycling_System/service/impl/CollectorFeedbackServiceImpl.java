@@ -45,7 +45,7 @@ public class CollectorFeedbackServiceImpl implements CollectorFeedbackService {
         LocalDateTime now = LocalDateTime.now();
 
         CollectorFeedback feedback = new CollectorFeedback();
-        feedback.setFeedbackCode("TEMP-CF-" + java.util.UUID.randomUUID());
+        feedback.setFeedbackCode("CF-" + java.util.UUID.randomUUID());
         feedback.setCollector(collector);
         feedback.setCollectionRequest(collectionRequest);
         feedback.setFeedbackType(request.getType());
@@ -57,10 +57,7 @@ public class CollectorFeedbackServiceImpl implements CollectorFeedbackService {
         feedback.setUpdatedAt(now);
 
         CollectorFeedback saved = collectorFeedbackRepository.save(feedback);
-        saved.setFeedbackCode(String.format("CF%03d", saved.getId()));
-        CollectorFeedback saved2 = collectorFeedbackRepository.save(saved);
-
-        return toResponse(saved2);
+        return toResponse(saved);
     }
 
     @Override

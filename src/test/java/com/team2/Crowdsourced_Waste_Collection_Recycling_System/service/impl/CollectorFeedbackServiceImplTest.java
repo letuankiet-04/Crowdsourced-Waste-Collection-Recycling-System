@@ -21,7 +21,6 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -71,14 +70,14 @@ class CollectorFeedbackServiceImplTest {
         var res = service.createFeedback(collectorId, req);
 
         assertThat(res.getId()).isEqualTo(12);
-        assertThat(res.getFeedbackCode()).isEqualTo("CF012");
+        assertThat(res.getFeedbackCode()).startsWith("CF-");
         assertThat(res.getCollectorId()).isEqualTo(collectorId);
         assertThat(res.getCollectionRequestId()).isEqualTo(99);
         assertThat(res.getType()).isEqualTo("SYSTEM");
         assertThat(res.getStatus()).isEqualTo("PENDING");
         assertThat(res.getRating()).isEqualTo(4);
 
-        verify(collectorFeedbackRepository, times(2)).save(any(CollectorFeedback.class));
+        verify(collectorFeedbackRepository).save(any(CollectorFeedback.class));
     }
 
     @Test

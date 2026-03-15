@@ -122,11 +122,20 @@ public class AuthServiceImpl implements AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu không được để trống");
         }
 
+        log.info("Bắt đầu xử lý đăng nhập cho email: {}", request.getEmail());
+        long start = System.currentTimeMillis();
+
         var user = userRepository
                 .findOneWithAuthByEmail(request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        
+        log.debug("Tìm thấy user trong {} ms", System.currentTimeMillis() - start);
+        long mark = System.currentTimeMillis();
 
         boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
+
+        log.debug("Xác thực mật khẩu trong {} ms", System.currentTimeMillis() - mark);
+        mark = System.currentTimeMillis();
 
         if (!authenticated)
             throw new AppException(ErrorCode.UNAUTHENTICATED);
@@ -168,8 +177,13 @@ public class AuthServiceImpl implements AuthService {
                 }
             }
         }
+        
+        log.debug("Xử lý role/id phụ trong {} ms", System.currentTimeMillis() - mark);
+        mark = System.currentTimeMillis();
 
         var token = jwtHelper.issueToken(user, citizenId, collectorId, enterpriseId);
+        
+        log.info("Hoàn tất đăng nhập cho email: {} trong tổng cộng {} ms", request.getEmail(), System.currentTimeMillis() - start);
         return AuthenticationResponse.builder()
                 .token(token)
                 .authenticated(true)

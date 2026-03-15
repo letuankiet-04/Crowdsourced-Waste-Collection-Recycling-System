@@ -10,7 +10,7 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Integer> {
     Optional<User> findByEmail(String email);
 
-    @EntityGraph(attributePaths = { "role", "role.rolePermissions", "role.rolePermissions.permission" })
+    @EntityGraph(attributePaths = { "role", "role.rolePermissions", "role.rolePermissions.permission", "enterprise" })
     Optional<User> findOneWithAuthByEmail(String email);
 
     boolean existsByEmail(String email);
