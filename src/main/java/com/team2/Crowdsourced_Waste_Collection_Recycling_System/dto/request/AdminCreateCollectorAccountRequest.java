@@ -12,29 +12,14 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class AdminCreateUserRequest {
+public class AdminCreateCollectorAccountRequest {
     String email;
     String password;
     String fullName;
     String phone;
 
-    // Supported: CITIZEN, COLLECTOR, ENTERPRISE
-    String roleCode;
-
-    // Required when roleCode = COLLECTOR
     Integer enterpriseId;
     String employeeCode;
     String vehicleType;
     String vehiclePlate;
-
-    // Required when roleCode = ENTERPRISE
-    String enterpriseName;
-    String enterpriseAddress;
-    String enterprisePhone;
-    String enterpriseEmail;
-
-    // Optional citizen profile fields
-    String citizenAddress;
-    String citizenWard;
-    String citizenCity;
 }
