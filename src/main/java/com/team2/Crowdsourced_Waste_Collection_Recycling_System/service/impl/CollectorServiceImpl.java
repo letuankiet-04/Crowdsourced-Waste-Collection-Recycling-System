@@ -29,6 +29,8 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.Collecto
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.EnterpriseAssignmentService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -66,6 +68,10 @@ public class CollectorServiceImpl implements CollectorService {
      * Có thể lọc theo trạng thái hoặc lấy tất cả.
      */
     @Override
+    @Cacheable(
+            value = "collectorTasks",
+            key = "#collectorId + ':' + (#status != null ? #status : 'ALL') + ':' + #all"
+    )
     public List<CollectorTaskResponse> getTasks(Integer collectorId, String status, boolean all) {
         // Sử dụng unpaged để lấy tất cả dữ liệu mà không phân trang
         Pageable unpaged = Pageable.unpaged();
@@ -107,6 +113,10 @@ public class CollectorServiceImpl implements CollectorService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    @Cacheable(
+            value = "collectorTaskDetail",
+            key = "#collectorId + ':' + #requestId"
+    )
     public EnterpriseWasteReportResponse getTaskDetail(Integer collectorId, Integer requestId) {
         Optional<CollectionRequest> owned = collectionRequestRepository.findByIdAndCollector_Id(requestId, collectorId);
         if (owned.isEmpty()) {
@@ -150,6 +160,10 @@ public class CollectorServiceImpl implements CollectorService {
      * Ví dụ: ASSIGNED: 5, COMPLETED: 10
      */
     @Override
+    @Cacheable(
+            value = "collectorTaskStatusCounts",
+            key = "#collectorId"
+    )
     public List<CollectorTaskStatusCountResponse> getTaskStatusCounts(Integer collectorId) {
         // Lấy dữ liệu thô từ database
         List<CollectionRequestRepository.CollectorTaskStatusCountView> rows =
@@ -190,6 +204,10 @@ public class CollectorServiceImpl implements CollectorService {
      * Lấy lịch sử làm việc của Collector.
      */
     @Override
+    @Cacheable(
+            value = "collectorWorkHistory",
+            key = "#collectorId + ':' + (#status != null ? #status : 'ALL')"
+    )
     public List<CollectorWorkHistoryItemResponse> getWorkHistory(Integer collectorId, String status) {
         Pageable unpaged = Pageable.unpaged();
         Page<CollectionRequestRepository.CollectorWorkHistoryView> historyPage;
@@ -230,6 +248,10 @@ public class CollectorServiceImpl implements CollectorService {
      * Lấy thống kê hiệu suất làm việc theo năm.
      */
     @Override
+    @Cacheable(
+            value = "collectorPerformanceStats",
+            key = "#collectorId + ':' + (#year != null ? #year : T(java.time.LocalDate).now().getYear())"
+    )
     public CollectorPerformanceStatsResponse getStats(Integer collectorId, Integer year) {
         // Nếu không truyền năm, lấy năm hiện tại
         int selectedYear;
@@ -271,6 +293,10 @@ public class CollectorServiceImpl implements CollectorService {
      * Thống kê khối lượng rác thu gom được.
      */
     @Override
+    @Cacheable(
+            value = "collectorWasteVolumeStats",
+            key = "#collectorId + ':' + (#year != null ? #year : T(java.time.LocalDate).now().getYear())"
+    )
     public CollectorWasteVolumeStatsResponse getWasteVolumeStats(Integer collectorId, Integer year) {
         // Xử lý năm
         int y;
@@ -363,6 +389,10 @@ public class CollectorServiceImpl implements CollectorService {
      * Thống kê khối lượng rác theo từng loại rác.
      */
     @Override
+    @Cacheable(
+            value = "collectorWasteTypeStats",
+            key = "#collectorId"
+    )
     public Map<String, BigDecimal> getWasteTypeStats(Integer collectorId) {
         List<Object[]> rows = collectorReportItemRepository.sumWeightByWasteTypeForCollector(collectorId);
         Map<String, BigDecimal> resultMap = new HashMap<>();
@@ -385,6 +415,20 @@ public class CollectorServiceImpl implements CollectorService {
      */
     @Override
     @Transactional
+    @CacheEvict(
+            value = {
+                    "collectorTasks",
+                    "collectorTaskDetail",
+                    "collectorTaskStatusCounts",
+                    "collectorWorkHistory",
+                    "collectorPerformanceStats",
+                    "collectorWasteVolumeStats",
+                    "collectorWasteTypeStats",
+                    "collectorGeneralStats",
+                    "collectorLeaderboard"
+            },
+            allEntries = true
+    )
     public void updateStatus(Integer requestId, Integer collectorId, String statusStr) {
         if ("ON_THE_WAY".equalsIgnoreCase(statusStr)) {
             startTask(requestId, collectorId);
@@ -399,6 +443,20 @@ public class CollectorServiceImpl implements CollectorService {
      */
     @Override
     @Transactional
+    @CacheEvict(
+            value = {
+                    "collectorTasks",
+                    "collectorTaskDetail",
+                    "collectorTaskStatusCounts",
+                    "collectorWorkHistory",
+                    "collectorPerformanceStats",
+                    "collectorWasteVolumeStats",
+                    "collectorWasteTypeStats",
+                    "collectorGeneralStats",
+                    "collectorLeaderboard"
+            },
+            allEntries = true
+    )
     public void acceptTask(Integer requestId, Integer collectorId) {
         LocalDateTime now = LocalDateTime.now();
         
@@ -423,6 +481,20 @@ public class CollectorServiceImpl implements CollectorService {
      */
     @Override
     @Transactional
+    @CacheEvict(
+            value = {
+                    "collectorTasks",
+                    "collectorTaskDetail",
+                    "collectorTaskStatusCounts",
+                    "collectorWorkHistory",
+                    "collectorPerformanceStats",
+                    "collectorWasteVolumeStats",
+                    "collectorWasteTypeStats",
+                    "collectorGeneralStats",
+                    "collectorLeaderboard"
+            },
+            allEntries = true
+    )
     public void startTask(Integer requestId, Integer collectorId) {
         LocalDateTime now = LocalDateTime.now();
         
@@ -442,6 +514,20 @@ public class CollectorServiceImpl implements CollectorService {
      */
     @Override
     @Transactional
+    @CacheEvict(
+            value = {
+                    "collectorTasks",
+                    "collectorTaskDetail",
+                    "collectorTaskStatusCounts",
+                    "collectorWorkHistory",
+                    "collectorPerformanceStats",
+                    "collectorWasteVolumeStats",
+                    "collectorWasteTypeStats",
+                    "collectorGeneralStats",
+                    "collectorLeaderboard"
+            },
+            allEntries = true
+    )
     public void rejectTask(Integer requestId, Integer collectorId, String reason) {
         // Kiểm tra lý do từ chối
         if (reason == null || reason.trim().isEmpty()) {
@@ -488,6 +574,20 @@ public class CollectorServiceImpl implements CollectorService {
      */
     @Override
     @Transactional
+    @CacheEvict(
+            value = {
+                    "collectorTasks",
+                    "collectorTaskDetail",
+                    "collectorTaskStatusCounts",
+                    "collectorWorkHistory",
+                    "collectorPerformanceStats",
+                    "collectorWasteVolumeStats",
+                    "collectorWasteTypeStats",
+                    "collectorGeneralStats",
+                    "collectorLeaderboard"
+            },
+            allEntries = true
+    )
     public void completeTask(Integer requestId, Integer collectorId) {
         LocalDateTime now = LocalDateTime.now();
         
@@ -506,6 +606,20 @@ public class CollectorServiceImpl implements CollectorService {
      */
     @Override
     @Transactional
+    @CacheEvict(
+            value = {
+                    "collectorTasks",
+                    "collectorTaskDetail",
+                    "collectorTaskStatusCounts",
+                    "collectorWorkHistory",
+                    "collectorPerformanceStats",
+                    "collectorWasteVolumeStats",
+                    "collectorWasteTypeStats",
+                    "collectorGeneralStats",
+                    "collectorLeaderboard"
+            },
+            allEntries = true
+    )
     public void updateAvailabilityStatus(Integer collectorId, String statusStr) {
         if (statusStr == null || statusStr.trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Trạng thái không được để trống");
@@ -641,6 +755,10 @@ public class CollectorServiceImpl implements CollectorService {
     }
 
     @Override
+    @Cacheable(
+            value = "collectorGeneralStats",
+            key = "#collectorId + ':' + (#day != null ? #day : 'null') + ':' + (#month != null ? #month : 'null') + ':' + (#year != null ? #year : 'null')"
+    )
     public com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorGeneralStatsResponse getGeneralStats(Integer collectorId, Integer day, Integer month, Integer year) {
         List<Object[]> results = collectionRequestRepository.getStatsByDate(collectorId, day, month, year);
         if (results.isEmpty() || results.get(0) == null) {
@@ -667,6 +785,10 @@ public class CollectorServiceImpl implements CollectorService {
     }
 
     @Override
+    @Cacheable(
+            value = "collectorLeaderboard",
+            key = "(#month != null ? #month : 'null') + ':' + (#year != null ? #year : 'null')"
+    )
     public List<com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorLeaderboardResponse> getLeaderboard(Integer month, Integer year) {
         List<Object[]> results = collectionRequestRepository.getLeaderboardByTaskCount(month, year);
         List<com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorLeaderboardResponse> responseList = new ArrayList<>();

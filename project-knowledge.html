@@ -29,7 +29,8 @@
     <li><span class="tag">Backend</span> Java + Spring Boot</li>
     <li><span class="tag">ORM</span> Spring Data JPA / Hibernate (code-first, entity &lt;-&gt; bảng DB)</li>
     <li><span class="tag">DB</span> Quan hệ (MySQL / tương đương; dùng index tối ưu query)</li>
-    <li><span class="tag">Auth</span> JWT + Token denylist (bảng <code>invalidated_tokens</code> + cache in-memory)</li>
+    <li><span class="tag">Cache</span> Redis (Spring Data Redis + Lettuce, dùng làm cache cho dashboard/thống kê Collector và lưu token tạm thời)</li>
+    <li><span class="tag">Auth</span> JWT + Token denylist (bảng <code>invalidated_tokens</code> + cache in-memory, có thể nâng cấp dùng Redis)</li>
     <li><span class="tag">Storage</span> Cloudinary để lưu ảnh (báo cáo rác, voucher banner/logo)</li>
     <li><span class="tag">Scheduling</span> Spring <code>@Scheduled</code> cho các job tự động (timeout, SLA)</li>
   </ul>
@@ -294,6 +295,142 @@ public class WasteReport {
     </li>
   </ol>
 
+  <p><strong>Chi tiết endpoint Collector & validate</strong></p>
+  <ul>
+    <li><code>GET /api/collector/dashboard</code>
+      <ul>
+        <li><strong>Controller</strong>: <code>CollectorController.getDashboard</code></li>
+        <li><strong>Service/Repo</strong>: dùng <code>CollectorJwtSupport.extractCollectorId</code> lấy <code>collectorId</code>, sau đó <code>CollectorRepository.findById</code> để lấy <code>status</code>.</li>
+        <li><strong>Validate</strong>:
+          <ul>
+            <li>Bắt buộc role <code>COLLECTOR</code> (<code>@PreAuthorize("hasRole('COLLECTOR')")</code>).</li>
+            <li>Nếu không tìm thấy collector theo id trong JWT → trả về <code>status = null</code>, <code>online = false</code> (không ném exception để dashboard vẫn hiển thị được).</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><code>GET /api/collector/stats/performance</code>
+      <ul>
+        <li><strong>Controller</strong>: <code>CollectorController.getPerformanceStats</code></li>
+        <li><strong>Service</strong>: <code>CollectorServiceImpl.getStats</code></li>
+        <li><strong>Validate & luồng</strong>:
+          <ul>
+            <li>Lấy <code>collectorId</code> từ JWT, nếu không hợp lệ thì Spring Security chặn trước.</li>
+            <li>Nếu không truyền <code>year</code> → mặc định lấy năm hiện tại.</li>
+            <li>Dùng <code>CollectionRequestRepository.countByCollector_IdAndStatus</code> đếm số task <code>COMPLETED</code> và <code>COLLECTED</code>.</li>
+            <li>Dùng query <code>countCompletedByMonth</code> để lấy thống kê theo từng tháng → map sang DTO <code>CollectorMonthlyCompletedCountResponse</code>.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><code>GET /api/collector/stats/waste-volume</code>
+      <ul>
+        <li><strong>Controller</strong>: <code>CollectorController.getWasteVolumeStats</code></li>
+        <li><strong>Service</strong>: <code>CollectorServiceImpl.getWasteVolumeStats</code></li>
+        <li><strong>Validate & luồng</strong>:
+          <ul>
+            <li>Nếu không truyền <code>year</code> → lấy năm hiện tại.</li>
+            <li>Validate: <code>1970 ≤ year ≤ 2100</code>, nếu sai → <code>400 BAD_REQUEST</code> với message "Năm không hợp lệ (phải từ 1970 đến 2100)".</li>
+            <li>Tính khoảng thời gian <code>[01/01/year, 01/01/year+1)</code> làm filter.</li>
+            <li>Dùng query <code>sumCompletedWeightByMonthForCollector</code>, <code>sumCompletedWeightByQuarterForCollector</code> để tổng hợp <code>totalWeightKg</code>, <code>totalRequests</code>, xử lý null → 0.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><code>GET /api/collector/stats/waste-type</code>
+      <ul>
+        <li><strong>Controller</strong>: <code>CollectorController.getWasteTypeStats</code></li>
+        <li><strong>Service</strong>: <code>CollectorServiceImpl.getWasteTypeStats</code></li>
+        <li><strong>Luồng</strong>:
+          <ul>
+            <li>Dùng repo <code>CollectorReportItemRepository.sumWeightByWasteTypeForCollector</code> trả về list <code>Object[]</code> (<code>wasteTypeCode</code>, <code>totalWeight</code>).</li>
+            <li>Map thành <code>Map&lt;String, BigDecimal&gt;</code>, nếu <code>weight == null</code> → thay bằng <code>BigDecimal.ZERO</code>.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><code>GET /api/collector/stats/tasks</code>
+      <ul>
+        <li><strong>Controller</strong>: <code>CollectorController.getTaskStatusCounts</code></li>
+        <li><strong>Service</strong>: <code>CollectorServiceImpl.getTaskStatusCounts</code></li>
+        <li><strong>Validate & rule</strong>:
+          <ul>
+            <li>Repo trả về list projection <code>CollectorTaskStatusCountView</code> (status, total).</li>
+            <li>Map về <code>Map&lt;status, total&gt;</code>, xử lý null → 0.</li>
+            <li>Luôn trả đủ tất cả state trong enum <code>CollectionRequestStatus</code> (kể cả những trạng thái chưa có bản ghi nào, count = 0) để UI render cố định.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><code>GET /api/collector/stats/general</code>
+      <ul>
+        <li><strong>Controller</strong>: <code>CollectorController.getGeneralStats</code></li>
+        <li><strong>Service</strong>: <code>CollectorServiceImpl.getGeneralStats</code></li>
+        <li><strong>Luồng</strong>:
+          <ul>
+            <li>Nhận bộ lọc <code>day/month/year</code>, truyền thẳng xuống <code>CollectionRequestRepository.getStatsByDate</code>.</li>
+            <li>Nếu repo không trả dữ liệu → trả về DTO với <code>totalWeight = 0</code>, <code>totalTasks = 0</code>.</li>
+            <li>Nếu có dữ liệu: đọc <code>row[0]</code> (tổng khối lượng), <code>row[1]</code> (số task) với fallback null → 0.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><code>GET /api/collector/leaderboard</code>
+      <ul>
+        <li><strong>Controller</strong>: <code>CollectorController.getLeaderboard</code></li>
+        <li><strong>Service</strong>: <code>CollectorServiceImpl.getLeaderboard</code></li>
+        <li><strong>Luồng</strong>:
+          <ul>
+            <li>Dùng query <code>getLeaderboardByTaskCount(month, year)</code> để lấy <code>collectorId</code>, <code>fullName</code>, <code>totalTasks</code>, <code>totalWeight</code>.</li>
+            <li>Map sang <code>CollectorLeaderboardResponse</code> và tự tăng <code>rank</code> từ 1 → n.</li>
+            <li>NULL <code>totalTasks</code> hoặc <code>totalWeight</code> được thay bằng giá trị 0 tương ứng.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><code>GET /api/collector/history</code>
+      <ul>
+        <li><strong>Controller</strong>: <code>CollectorController.getWorkHistory</code></li>
+        <li><strong>Service</strong>: <code>CollectorServiceImpl.getWorkHistory</code></li>
+        <li><strong>Validate & luồng</strong>:
+          <ul>
+            <li>Cho phép filter theo <code>status</code> (string); nếu rỗng/null → gọi <code>findWorkHistoryForCollector</code> (tất cả lịch sử).</li>
+            <li>Nếu có status → gọi <code>findWorkHistoryForCollectorByStatus</code>.</li>
+            <li>Dùng projection <code>CollectorWorkHistoryView</code> để trả về các field cần cho UI (requestCode, enterpriseName, wasteTypeName, thời gian,...).</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><code>PATCH /api/collector/status</code>
+      <ul>
+        <li><strong>Controller</strong>: <code>CollectorController.updateMyStatus</code> (body: <code>UpdateCollectorStatusRequest</code>).</li>
+        <li><strong>Service</strong>: <code>CollectorServiceImpl.updateAvailabilityStatus</code></li>
+        <li><strong>Rule validate</strong>:
+          <ul>
+            <li>Truyền <code>status</code> dạng string (AVAILABLE/ACTIVE/INACTIVE/SUSPEND).</li>
+            <li>Nếu null/rỗng → 400 "Trạng thái không được để trống".</li>
+            <li>Nếu không map được sang enum <code>CollectorStatus</code> → 400 "Trạng thái không hợp lệ".</li>
+            <li>Không cho phép tự chuyển sang <code>SUSPEND</code> → 403.</li>
+            <li>Nếu không tìm thấy collector theo <code>collectorId</code> → 404.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><code>PUT /api/collector/profile</code>
+      <ul>
+        <li><strong>Controller</strong>: <code>CollectorController.updateMyProfile</code></li>
+        <li><strong>Service</strong>: <code>ProfileService.updateCollectorProfile</code></li>
+        <li><strong>Validate (tầng service)</strong>:
+          <ul>
+            <li>Check collector tồn tại theo <code>collectorId</code> lấy từ JWT.</li>
+            <li>Validate các trường cơ bản: tên, email, phương tiện, biển số, số điện thoại (format, độ dài,...).</li>
+            <li>Đảm bảo không vi phạm unique email/phone nếu có constraint ở DB.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+  </ul>
+
   <h3>5.3. Luồng điểm thưởng & leaderboard công dân</h3>
   <ol>
     <li><strong>Lịch sử điểm của công dân</strong>
@@ -327,6 +464,216 @@ public class WasteReport {
       </ul>
     </li>
   </ol>
+
+  <h2>5.x. Bảng tổng hợp Endpoint toàn hệ thống</h2>
+  <p class="section-note">
+    Mục này liệt kê <strong>toàn bộ endpoint REST</strong> trong hệ thống (theo từng module), kèm:
+    <code>HTTP method</code>, <code>URL</code>, <code>Controller method</code>, <code>Service chính</code> và
+    các điểm <strong>validate / rule nghiệp vụ</strong> quan trọng (ở mức tóm tắt, chi tiết logic xem trong service tương ứng).
+  </p>
+
+  <h3>5.x.1. Auth</h3>
+  <ul>
+    <li><code>POST /api/auth/introspect</code> → <code>AuthController.introspect</code> → <code>AuthService.introspect</code>
+      <ul>
+        <li>Kiểm tra token có hợp lệ, chưa hết hạn, chưa bị revoke trong denylist (bảng <code>invalidated_tokens</code> + cache).</li>
+      </ul>
+    </li>
+    <li><code>POST /api/auth/register</code> → <code>AuthController.register</code> → <code>AuthService.register</code>
+      <ul>
+        <li>Validate email không trùng, mật khẩu đủ mạnh, role hợp lệ; tạo user + thực thể domain (citizen/collector/enterprise) tương ứng.</li>
+      </ul>
+    </li>
+    <li><code>POST /api/auth/login</code> → <code>AuthController.login</code> → <code>AuthService.login</code>
+      <ul>
+        <li>Check credential, trạng thái tài khoản (active/suspended), trả về JWT với <code>roles</code>, <code>jti</code>, <code>exp</code>.</li>
+      </ul>
+    </li>
+    <li><code>POST /api/auth/logout</code> → <code>AuthController.logout</code> → <code>AuthService.logout</code>
+      <ul>
+        <li>Lấy token từ header <code>Authorization</code> hoặc body, parse JWT, ghi <code>jti</code> vào denylist đến khi hết hạn.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h3>5.x.2. Citizen</h3>
+  <ul>
+    <li><code>GET /api/citizen/reports/stats</code> → <code>CitizenController.getMyReportStats</code> → <code>WasteReportService.getMyReportStats</code></li>
+    <li><code>POST /api/citizen/reports</code> (multipart) → <code>createReport</code> → <code>WasteReportService.createReport</code>
+      <ul>
+        <li>Validate ảnh, toạ độ, danh sách loại rác, chống spam như mô tả ở mục 3.1.</li>
+      </ul>
+    </li>
+    <li><code>PUT /api/citizen/reports/{id}</code> (multipart) → <code>updateReport</code> → <code>WasteReportService.updateReport</code>
+      <ul>
+        <li>Chỉ cho phép owner sửa khi report đang <code>PENDING</code> và chưa có <code>CollectionRequest</code>.</li>
+      </ul>
+    </li>
+    <li><code>DELETE /api/citizen/reports/{id}</code> → <code>deleteReport</code> → <code>WasteReportService.deleteReport</code></li>
+    <li><code>GET /api/citizen/reports</code> → <code>getMyReports</code> → <code>WasteReportService.getMyReports</code></li>
+    <li><code>GET /api/citizen/reports/{id}</code> → <code>getMyReportById</code> → <code>WasteReportService.getMyReportById</code></li>
+    <li><code>GET /api/citizen/reports/{id}/result</code> → <code>getMyReportResult</code> → <code>WasteReportService.getMyReportResult</code></li>
+    <li><code>GET /api/citizen/rewards/history</code> → <code>getRewardHistory</code> → <code>WasteReportService.getRewardHistory</code>
+      <ul>
+        <li>Validate khoảng thời gian; nếu có <code>startDate/endDate</code> dùng filter DB, không load toàn bộ history.</li>
+      </ul>
+    </li>
+    <li><code>GET /api/citizen/leaderboard</code> → <code>getLeaderboard</code> → <code>WasteReportService.getLeaderboard</code></li>
+    <li><code>GET /api/citizen/points/summary</code> → <code>getMyPointSummary</code> → <code>WasteReportService.getMyPointSummary</code></li>
+    <li><code>POST /api/citizen/complaints</code> (multipart) → <code>createComplaint</code> → <code>WasteReportService.createComplaint</code></li>
+    <li><code>GET /api/citizen/complaints</code> → <code>getComplaints</code> → <code>WasteReportService.getComplaints</code></li>
+    <li><code>GET /api/citizen/waste-categories</code> → <code>getWasteCategories</code> → <code>WasteCategoryService.getAllCategories</code> (thông qua <code>WasteReportService</code>)</li>
+    <li><code>PUT /api/citizen/profile</code> → <code>updateMyProfile</code> → <code>ProfileService.updateCitizenProfile</code></li>
+  </ul>
+
+  <h3>5.x.3. Citizen Voucher</h3>
+  <ul>
+    <li><code>GET /api/citizen/vouchers</code> → <code>CitizenVoucherController.getAvailableVouchers</code> → <code>VoucherService.getAvailableVouchers</code></li>
+    <li><code>POST /api/citizen/vouchers/{voucherId}/redeem</code> → <code>redeem</code> → <code>VoucherService.redeem</code>
+      <ul>
+        <li>Validate citizen đủ điểm, voucher active, số lượng còn, hạn dùng, …</li>
+      </ul>
+    </li>
+    <li><code>GET /api/citizen/vouchers/my</code> → <code>getMyVouchers</code> → <code>VoucherService.getMyVouchers</code></li>
+  </ul>
+
+  <h3>5.x.4. Collector – Task & Report</h3>
+  <p class="section-note">Đã mô tả luồng chi tiết ở 5.2; dưới đây là bảng endpoint đầy đủ.</p>
+  <ul>
+    <li><code>GET /api/collector/collections/tasks</code> → <code>CollectionController.getTasks</code> → <code>CollectorService.getTasks</code></li>
+    <li><code>GET /api/collector/collections/tasks/{requestId}</code> → <code>getTaskDetail</code> → <code>CollectorService.getTaskDetail</code></li>
+    <li><code>GET /api/collector/collections/tasks/status_counts</code> → <code>getTaskStatusCounts</code> → <code>CollectorService.getTaskStatusCounts</code></li>
+    <li><code>GET /api/collector/collections/work_history</code> → <code>getWorkHistory</code> → <code>CollectorService.getWorkHistory</code></li>
+    <li><code>GET /api/collector/collections/stats</code> → <code>getStats</code> → <code>CollectorService.getStats</code></li>
+    <li><code>GET /api/collector/collections/waste-volume</code> → <code>getWasteVolumeStats</code> → <code>CollectorService.getWasteVolumeStats</code></li>
+    <li><code>GET /api/collector/collections/history</code> → <code>getHistory</code> → <code>CollectorService.getTasks</code> + <code>CollectorReportService.getReportsByCollector</code></li>
+    <li><code>POST /api/collector/collections/{requestId}/accept</code> → <code>acceptTask</code> → <code>CollectorService.acceptTask</code></li>
+    <li><code>POST /api/collector/collections/{requestId}/start</code> → <code>startTask</code> → <code>CollectorService.startTask</code></li>
+    <li><code>POST /api/collector/collections/{requestId}/reject</code> → <code>rejectTask</code> → <code>CollectorService.rejectTask</code></li>
+    <li><code>POST /api/collector/collections/{requestId}/collected</code> → <code>markCollected</code> → <code>CollectorService.completeTask</code></li>
+    <li><code>PATCH /api/collector/collections/{requestId}/status</code> → <code>updateStatus</code> → <code>CollectorService.updateStatus</code></li>
+    <li><code>GET /api/collector/collections/{requestId}/create_report</code> → <code>getCreateReport</code> → <code>CollectorReportService.getCreateReport</code></li>
+    <li><code>POST /api/collector/collections/{requestId}/complete</code> (multipart) → <code>createCollectorReport</code> → <code>CollectorReportCreationService.createCollectorReport</code></li>
+    <li><code>GET /api/collector/collections/{requestId}/report</code> → <code>getReportByCollectionRequest</code> → <code>CollectorReportService.getReportByCollectionRequest</code></li>
+    <li><code>GET /api/collector/collections/list_reports</code> → <code>getMyReports</code> → <code>CollectorReportService.getReportsByCollector</code></li>
+    <li><code>GET /api/collector/collections/reports/{reportId}</code> → <code>getReportById</code> → <code>CollectorReportService.getReportById</code></li>
+  </ul>
+
+  <h3>5.x.5. Collector – Dashboard & Profile</h3>
+  <ul>
+    <li><code>GET /api/collector/dashboard</code> → <code>CollectorController.getDashboard</code></li>
+    <li><code>GET /api/collector/stats/performance</code> → <code>getPerformanceStats</code> → <code>CollectorService.getStats</code></li>
+    <li><code>GET /api/collector/stats/waste-volume</code> → <code>getWasteVolumeStats</code> → <code>CollectorService.getWasteVolumeStats</code></li>
+    <li><code>GET /api/collector/stats/waste-type</code> → <code>getWasteTypeStats</code> → <code>CollectorService.getWasteTypeStats</code></li>
+    <li><code>GET /api/collector/stats/tasks</code> → <code>getTaskStatusCounts</code> → <code>CollectorService.getTaskStatusCounts</code></li>
+    <li><code>GET /api/collector/stats/general</code> → <code>getGeneralStats</code> → <code>CollectorService.getGeneralStats</code></li>
+    <li><code>GET /api/collector/leaderboard</code> → <code>getLeaderboard</code> → <code>CollectorService.getLeaderboard</code></li>
+    <li><code>GET /api/collector/history</code> → <code>getWorkHistory</code> → <code>CollectorService.getWorkHistory</code></li>
+    <li><code>PATCH /api/collector/status</code> → <code>updateMyStatus</code> → <code>CollectorService.updateAvailabilityStatus</code></li>
+    <li><code>PUT /api/collector/profile</code> → <code>updateMyProfile</code> → <code>ProfileService.updateCollectorProfile</code></li>
+  </ul>
+
+  <h3>5.x.6. Collector – Feedback</h3>
+  <ul>
+    <li><code>POST /api/collector/feedbacks</code> → <code>CollectorFeedbackController.create</code> → <code>CollectorFeedbackService.createFeedback</code></li>
+    <li><code>GET /api/collector/feedbacks</code> → <code>getMyFeedbacks</code> → <code>CollectorFeedbackService.getMyFeedbacks</code></li>
+  </ul>
+
+  <h3>5.x.7. Enterprise – Requests & Assignment</h3>
+  <ul>
+    <li><code>POST /api/enterprise/requests/reports/{reportCode}/assign-collector</code> → <code>assignCollectorByReportCode</code> → <code>EnterpriseAssignmentService.assignCollectorByReportCode</code></li>
+    <li><code>POST /api/enterprise/requests/{requestId}/assign-collector</code> → <code>assignCollectorByRequestId</code> → <code>EnterpriseAssignmentService.assignCollector</code></li>
+    <li><code>GET /api/enterprise/requests/{requestId}/eligible-collectors</code> → <code>getEligibleCollectors</code> → <code>EnterpriseAssignmentService.findEligibleCollectors</code></li>
+    <li><code>GET /api/enterprise/requests/{requestId}/report-detail</code> → <code>getRequestReportDetail</code> → <code>EnterpriseReportDetailService.getRequestReportDetail</code></li>
+    <li><code>POST /api/enterprise/requests/accept/{reportCode}</code> → <code>acceptWasteReport</code> → <code>EnterpriseRequestService.acceptWasteReport</code></li>
+    <li><code>POST /api/enterprise/requests/reject/{reportCode}</code> → <code>rejectWasteReport</code> → <code>EnterpriseRequestService.rejectWasteReport</code></li>
+    <li><code>GET /api/enterprise/requests/collector-rejections</code> → <code>getCollectorRejections</code> → <code>EnterpriseCollectorRejectionService.getCollectorRejections</code></li>
+  </ul>
+
+  <h3>5.x.8. Enterprise – Waste Reports</h3>
+  <ul>
+    <li><code>GET /api/enterprise/waste-reports</code> → <code>EnterpriseWasteReportController.getReports</code> → <code>EnterpriseWasteReportService.getReports</code></li>
+    <li><code>GET /api/enterprise/waste-reports/pending</code> → <code>getPendingReports</code> → <code>EnterpriseWasteReportService.getPendingReports</code></li>
+    <li><code>GET /api/enterprise/waste-reports/{id}</code> → <code>getReportById</code> → <code>EnterpriseWasteReportService.getReportById</code></li>
+  </ul>
+
+  <h3>5.x.9. Enterprise – Collector Reports</h3>
+  <ul>
+    <li><code>GET /api/enterprise/collector-reports</code> → <code>EnterpriseCollectorReportController.getCollectorReports</code> → <code>EnterpriseCollectorReportService.getCollectorReports</code></li>
+  </ul>
+
+  <h3>5.x.10. Enterprise – Feedback</h3>
+  <ul>
+    <li><code>GET /api/enterprise/feedbacks</code> → <code>EnterpriseFeedbackController.getFeedbacks</code> → <code>EnterpriseFeedbackService.getFeedbacks</code></li>
+    <li><code>GET /api/enterprise/feedbacks/{id}</code> → <code>getFeedbackDetail</code> → <code>EnterpriseFeedbackService.getFeedbackDetail</code></li>
+    <li><code>POST /api/enterprise/feedbacks/{id}/resolve</code> → <code>resolveFeedback</code> → <code>EnterpriseFeedbackService.resolveFeedback</code></li>
+  </ul>
+
+  <h3>5.x.11. Enterprise – Statistics</h3>
+  <ul>
+    <li><code>GET /api/enterprise/reports/general</code> → <code>EnterpriseStatisticsController.getGeneralStats</code> → <code>EnterpriseStatisticsService.getGeneralStats</code></li>
+    <li><code>GET /api/enterprise/reports/waste-volume</code> → <code>getWasteVolumeStats</code> → <code>EnterpriseStatisticsService.getWasteVolumeStats</code></li>
+    <li><code>GET /api/enterprise/reports/waste-volume/daily</code> → <code>getDailyWasteVolumeStats</code> → <code>EnterpriseStatisticsService.getDailyWasteVolumeStats</code></li>
+    <li><code>GET /api/enterprise/reports/count</code> → <code>getReportCountStats</code> → <code>EnterpriseStatisticsService.getReportCountStats</code></li>
+    <li><code>GET /api/enterprise/reports/citizens</code> → <code>getCitizenPointSummaries</code> → <code>EnterpriseStatisticsService.getCitizenPointSummaries</code></li>
+  </ul>
+
+  <h3>5.x.12. Enterprise – Profile & Voucher</h3>
+  <ul>
+    <li><code>PUT /api/enterprise/profile</code> → <code>EnterpriseProfileController.updateMyProfile</code> → <code>ProfileService.updateEnterpriseProfile</code></li>
+    <li><code>GET /api/enterprise/vouchers</code> → <code>EnterpriseVoucherController.list</code> → <code>EnterpriseVoucherService.list</code></li>
+    <li><code>GET /api/enterprise/vouchers/{id}</code> → <code>getById</code> → <code>EnterpriseVoucherService.getById</code></li>
+    <li><code>POST /api/enterprise/vouchers</code> (multipart) → <code>create</code> → <code>EnterpriseVoucherService.create</code></li>
+    <li><code>PUT /api/enterprise/vouchers/{id}</code> → <code>update</code> → <code>EnterpriseVoucherService.update</code></li>
+    <li><code>DELETE /api/enterprise/vouchers/{id}</code> → <code>delete</code> → <code>EnterpriseVoucherService.softDelete</code></li>
+  </ul>
+
+  <h3>5.x.13. Admin – Accounts & Points</h3>
+  <ul>
+    <li><code>POST /api/admin/accounts/citizens</code> → <code>AdminAccountController.createCitizenAccount</code> → <code>AdminAccountService.createCitizenAccount</code></li>
+    <li><code>POST /api/admin/accounts/collectors</code> → <code>createCollectorAccount</code> → <code>AdminAccountService.createCollectorAccount</code></li>
+    <li><code>POST /api/admin/accounts/enterprises</code> → <code>createEnterpriseAccount</code> → <code>AdminAccountService.createEnterpriseAccount</code></li>
+    <li><code>GET /api/admin/accounts</code> → <code>getAllUsers</code> → <code>AdminAccountService.getAllUsers</code></li>
+    <li><code>GET /api/admin/accounts/{userId}</code> → <code>getUserDetail</code> → <code>AdminAccountService.getUserDetail</code></li>
+    <li><code>PATCH /api/admin/accounts/{userId}/suspend</code> → <code>suspendUser</code> → <code>AdminAccountService.suspendUser</code></li>
+    <li><code>PATCH /api/admin/accounts/{userId}/activate</code> → <code>activateUser</code> → <code>AdminAccountService.activateUser</code></li>
+    <li><code>GET /api/admin/points/citizens</code> → <code>AdminPointController.getAllCitizenPoints</code> → <code>WasteReportService.getLeaderboard</code></li>
+  </ul>
+
+  <h3>5.x.14. Admin – Complaints, Reports, Waste Category, Point Rule</h3>
+  <ul>
+    <li><code>GET /api/admin/complaints</code> → <code>AdminComplaintController.getAllComplaints</code> → <code>AdminComplaintService.getAllComplaints</code></li>
+    <li><code>GET /api/admin/complaints/{id}</code> → <code>getComplaintDetail</code> → <code>AdminComplaintService.getComplaintDetail</code></li>
+    <li><code>POST /api/admin/complaints/{id}/resolve</code> → <code>resolveComplaint</code> → <code>AdminComplaintService.resolveComplaint</code></li>
+    <li><code>GET /api/admin/reports/waste-reports</code> → <code>AdminReportController.getWasteReports</code> → <code>EnterpriseWasteReportService.getReports</code></li>
+    <li><code>GET /api/admin/reports/waste-reports/pending</code> → <code>getPendingWasteReports</code> → <code>EnterpriseWasteReportService.getPendingReports</code></li>
+    <li><code>GET /api/admin/reports/waste/{id}</code> → <code>getWasteReportById</code> → <code>EnterpriseWasteReportService.getReportById</code></li>
+    <li><code>GET /api/admin/reports/collector</code> → <code>getCollectorReports</code> → <code>EnterpriseCollectorReportService.getCollectorReports</code></li>
+    <li><code>GET /api/admin/waste-categories</code> → <code>AdminWasteCategoryController.getAllCategories</code> → <code>WasteCategoryService.getAllCategories</code></li>
+    <li><code>GET /api/admin/waste-categories/{id}</code> → <code>getCategory</code> → <code>WasteCategoryService.getCategory</code></li>
+    <li><code>POST /api/admin/waste-categories</code> → <code>createCategory</code> → <code>WasteCategoryService.createCategory</code></li>
+    <li><code>PATCH /api/admin/waste-categories/{id}</code> → <code>updateCategory</code> → <code>WasteCategoryService.updateCategory</code></li>
+    <li><code>DELETE /api/admin/waste-categories/{id}</code> → <code>deleteCategory</code> → <code>WasteCategoryService.deleteCategory</code></li>
+    <li><code>GET /api/admin/point-rule</code> → <code>AdminPointRuleController.getPointRule</code> → <code>PointRuleService.getPointRule</code></li>
+    <li><code>PUT /api/admin/point-rule</code> → <code>updatePointRule</code> → <code>PointRuleService.updatePointRule</code></li>
+  </ul>
+
+  <h3>5.x.15. Admin – Analytics</h3>
+  <ul>
+    <li><code>GET /api/admin/analytics/system</code> → <code>AdminAnalyticsController.getSystemAnalytics</code> → <code>AdminAnalyticsService.getSystemAnalytics</code></li>
+    <li><code>GET /api/admin/analytics/collected-weight</code> → <code>getCollectedWeightChart</code> → <code>AdminAnalyticsService.getCollectedWeightChart</code></li>
+    <li><code>GET /api/admin/analytics/collected-weight/daily</code> → <code>getCollectedWeightDailyChart</code> → <code>AdminAnalyticsService.getCollectedWeightDailyChart</code></li>
+    <li><code>GET /api/admin/analytics/leaderboard/collectors</code> → <code>getCollectorLeaderboard</code> → <code>AdminAnalyticsService.getCollectorLeaderboard</code></li>
+    <li><code>GET /api/admin/analytics/leaderboard/citizens</code> → <code>getCitizenLeaderboard</code> → <code>AdminAnalyticsService.getCitizenLeaderboard</code></li>
+    <li><code>GET /api/admin/analytics/collected-waste-by-unit</code> → <code>getCollectedWasteByUnit</code> → <code>AdminAnalyticsService.getCollectedWasteByUnit</code></li>
+  </ul>
+
+  <h3>5.x.16. Files & Home</h3>
+  <ul>
+    <li><code>POST /api/files/images</code> (multipart) → <code>FileController.uploadImage</code> → <code>CloudinaryService.uploadImage</code></li>
+    <li><code>DELETE /api/files/images</code> → <code>deleteImage</code> → <code>CloudinaryService.deleteImage</code></li>
+    <li><code>GET /</code> → <code>HomeController.index</code> (trả về JSON đơn giản: message, status, documentation).</li>
+  </ul>
 
   <h2>6. Tối ưu hiệu năng & tránh N+1</h2>
 
@@ -369,7 +716,7 @@ public class WasteReport {
     <li><code>vouchers</code>: index theo <code>active,id</code>, <code>title</code>.</li>
   </ul>
 
-  <h2>7. Auth & Token Denylist</h2>
+  <h2>7. Auth, Token Denylist & Redis trong dự án</h2>
   <ul>
     <li><strong>Bảng</strong> <code>invalidated_tokens</code> lưu <code>id (jti)</code> + <code>expiryTime</code> cho token bị thu hồi.</li>
     <li><strong>Service</strong> <code>TokenDenylistService</code>:
@@ -377,6 +724,282 @@ public class WasteReport {
         <li>Dùng <code>ConcurrentHashMap</code> làm cache in-memory (max 50k entry) với TTL dương/âm để giảm hit DB.</li>
         <li>Khi logout hoặc revoke: ghi vào DB + update cache.</li>
         <li>Khi check: ưu tiên lấy từ cache, miss thì hỏi DB rồi update cache.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h3>7.1. Redis – Cách dùng trong dự án</h3>
+  <ul>
+    <li><strong>Cấu hình</strong>:
+      <ul>
+        <li>Dùng starter <code>spring-boot-starter-data-redis</code> (Spring Boot 3.4.1) + client Lettuce.</li>
+        <li>Class <code>RedisConfig</code> tạo <code>LettuceConnectionFactory</code> với <code>RedisStandaloneConfiguration</code> (host, port, password).</li>
+        <li>Cấu hình <code>RedisCacheManager</code> làm <code>CacheManager</code> mặc định cho Spring Cache, TTL mặc định ~5 phút.</li>
+        <li>Key cache là String, value serialize bằng <code>GenericJackson2JsonRedisSerializer</code>.</li>
+      </ul>
+    </li>
+    <li><strong>Cache dashboard & thống kê Collector</strong> (tối ưu performance, giảm truy vấn MySQL):
+      <ul>
+        <li>Các hàm đọc nhiều dữ liệu/tổng hợp trong <code>CollectorServiceImpl</code> được gắn <code>@Cacheable</code>:
+          <ul>
+            <li><code>getTasks</code> → cache theo <code>collectorId</code>, <code>status</code>, cờ <code>all</code> (danh sách nhiệm vụ).</li>
+            <li><code>getTaskDetail</code> → cache chi tiết 1 task theo <code>collectorId</code> + <code>requestId</code>.</li>
+            <li><code>getTaskStatusCounts</code> → cache map số lượng task theo trạng thái cho 1 collector.</li>
+            <li><code>getWorkHistory</code> → cache lịch sử làm việc theo <code>collectorId</code> + <code>status</code>.</li>
+            <li><code>getStats</code>, <code>getWasteVolumeStats</code>, <code>getWasteTypeStats</code> → cache dữ liệu thống kê theo năm/collector.</li>
+            <li><code>getGeneralStats</code> → cache tổng khối lượng + số task theo bộ lọc day/month/year.</li>
+            <li><code>getLeaderboard</code> → cache bảng xếp hạng collector theo month/year.</li>
+          </ul>
+        </li>
+        <li>Nhờ đó:
+          <ul>
+            <li>Lần gọi API đầu tiên sẽ query DB và đẩy kết quả vào Redis.</li>
+            <li>Các lần gọi sau với cùng tham số sẽ đọc trực tiếp từ Redis (RAM) → nhanh hơn, giảm tải MySQL.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><strong>Invalid cache khi dữ liệu Collector thay đổi</strong>:
+      <ul>
+        <li>Các hàm thay đổi trạng thái nhiệm vụ hoặc trạng thái làm việc Collector trong <code>CollectorServiceImpl</code> được gắn <code>@CacheEvict(allEntries = true)</code>:
+          <ul>
+            <li><code>updateStatus</code>, <code>acceptTask</code>, <code>startTask</code>, <code>rejectTask</code>, <code>completeTask</code>, <code>updateAvailabilityStatus</code>.</li>
+          </ul>
+        </li>
+        <li>Cách triển khai đơn giản cho sinh viên:
+          <ul>
+            <li>Mỗi khi có ghi/đổi trạng thái, xóa toàn bộ cache của các vùng: <code>collectorTasks</code>, <code>collectorTaskDetail</code>, <code>collectorTaskStatusCounts</code>, <code>collectorWorkHistory</code>, <code>collectorPerformanceStats</code>, <code>collectorWasteVolumeStats</code>, <code>collectorWasteTypeStats</code>, <code>collectorGeneralStats</code>, <code>collectorLeaderboard</code>.</li>
+            <li>Không đổi logic nghiệp vụ, chỉ thêm annotation cache ở tầng service.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><strong>Lưu token trong Redis</strong> (mở rộng từ denylist trong DB):
+      <ul>
+        <li>Entity <code>RedisToken</code> dùng <code>@RedisHash("redis_token")</code>, gồm:
+          <ul>
+            <li><code>id</code> (string) – thường là userId/tokenId.</li>
+            <li><code>accessToken</code>, <code>refreshToken</code>.</li>
+            <li><code>ttl</code> với <code>@TimeToLive</code> để Redis tự xóa sau khi hết hạn.</li>
+          </ul>
+        </li>
+        <li>Repository <code>RedisTokenRepository</code> (extends <code>CrudRepository&lt;RedisToken, String&gt;</code>) + service <code>RedisTokenService</code> cho phép:
+          <ul>
+            <li><code>save</code>: lưu token tạm vào Redis.</li>
+            <li><code>findById</code>: lấy token theo id.</li>
+            <li><code>deleteById</code>: xóa khi logout/thu hồi.</li>
+          </ul>
+        </li>
+        <li>Ý nghĩa: có thể dùng Redis như kho token/session tập trung, dễ scale nhiều instance và hỗ trợ force logout, blacklist token.</li>
+      </ul>
+    </li>
+    <li><strong>Lưu ý về hiệu năng & RAM khi dùng Redis</strong>:
+      <ul>
+        <li>Redis lưu dữ liệu trên RAM → cache càng nhiều, tốn RAM hơn nhưng đổi lại đọc rất nhanh.</li>
+        <li>TTL ~5 phút trong <code>RedisConfig</code> giúp dữ liệu cache tự hết hạn, tránh phình RAM lâu dài.</li>
+        <li>Các API dashboard/thống kê được cache là dữ liệu JSON vừa phải, phù hợp cho môi trường sinh viên/lab.</li>
+      </ul>
+    </li>
+    <li><strong>Cách chạy Redis bằng Docker & tự kiểm tra dữ liệu</strong> (dành cho sinh viên mới):
+      <ul>
+        <li><strong>Bật Redis</strong>:
+          <ul>
+            <li>Ở thư mục gốc dự án (chứa <code>docker-compose.yml</code>): chạy <code>docker-compose up -d</code>.</li>
+            <li>Lệnh này khởi động container <code>redis-local</code> dùng image <code>redis:7-alpine</code> và giới hạn bộ nhớ với <code>--maxmemory 256mb</code>, <code>--maxmemory-policy allkeys-lru</code>.</li>
+            <li>Dùng <code>docker ps</code> để kiểm tra container <code>redis-local</code> đang chạy.</li>
+          </ul>
+        </li>
+        <li><strong>Xem log Redis</strong>:
+          <ul>
+            <li><code>docker logs redis-local</code> → xem log khởi động.</li>
+            <li><code>docker logs -f redis-local</code> → theo dõi log realtime (Ctrl+C để thoát).</li>
+          </ul>
+        </li>
+        <li><strong>Mở Redis CLI bên trong container</strong>:
+          <ul>
+            <li><code>docker exec -it redis-local redis-cli</code> → vào shell Redis với prompt <code>127.0.0.1:6379&gt;</code>.</li>
+            <li><code>KEYS *</code> → liệt kê nhanh tất cả key (chỉ nên dùng trong môi trường lab, dữ liệu ít).</li>
+            <li><code>SCAN 0</code> → cách an toàn hơn để duyệt key theo từng trang.</li>
+            <li><code>GET "collectorPerformanceStats:1:2025"</code> (ví dụ) → xem dữ liệu cache JSON cho key cụ thể.</li>
+            <li><code>TTL "collectorPerformanceStats:1:2025"</code> → xem còn bao nhiêu giây trước khi key hết hạn.</li>
+            <li>Gõ <code>exit</code> để thoát <code>redis-cli</code>.</li>
+          </ul>
+        </li>
+        <li><strong>Kịch bản test đơn giản để “thấy Redis hoạt động”</strong>:
+          <ul>
+            <li>B1: Khởi động Redis: <code>docker-compose up -d</code>.</li>
+            <li>B2: Gọi 1 API có cache, ví dụ <code>GET /api/collector/stats/performance</code> khi đang đăng nhập bằng collector.</li>
+            <li>B3: Mở <code>redis-cli</code> và chạy <code>KEYS *</code> → quan sát các key dạng <code>collectorPerformanceStats:&lt;collectorId&gt;:&lt;year&gt;</code>, <code>collectorTasks:...</code>.</li>
+            <li>B4: Gọi lại cùng API thêm vài lần → kết quả vẫn đúng nhưng số query đến MySQL giảm (có thể bật <code>spring.jpa.show-sql=true</code> để quan sát).</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+  </ul>
+
+  <h2>7.x. Ghi chú ôn tập theo nhóm Endpoint</h2>
+  <p class="section-note">
+    Phần này không liệt kê lại toàn bộ URL (đã có ở 5.x) mà tập trung vào <strong>kiến thức, nghiệp vụ và validate chính</strong>
+    cho từng nhóm endpoint để bạn dễ ôn thi/ôn tập.
+  </p>
+
+  <h3>7.x.1. Nhóm Auth</h3>
+  <ul>
+    <li><strong>Đăng ký</strong> (<code>POST /api/auth/register</code>):
+      <ul>
+        <li>Nghiệp vụ: tạo user + entity domain (Citizen/Collector/Enterprise) và trả JWT ngay sau đăng ký.</li>
+        <li>Validate: email unique &amp; đúng format, mật khẩu đủ mạnh, role hợp lệ.</li>
+      </ul>
+    </li>
+    <li><strong>Đăng nhập</strong> (<code>POST /api/auth/login</code>):
+      <ul>
+        <li>Nghiệp vụ: kiểm tra credential, trả JWT chứa <code>sub</code>, <code>roles</code>, <code>jti</code>, <code>exp</code>.</li>
+        <li>Validate: tài khoản tồn tại, không bị <code>SUSPEND</code>/<code>INACTIVE</code>, mật khẩu khớp hash.</li>
+      </ul>
+    </li>
+    <li><strong>Introspect</strong> (<code>POST /api/auth/introspect</code>):
+      <ul>
+        <li>Nghiệp vụ: kiểm tra token có hợp lệ và chưa bị thu hồi.</li>
+        <li>Validate: verify chữ ký JWT, thời hạn, và check <code>jti</code> không nằm trong bảng <code>invalidated_tokens</code>.</li>
+      </ul>
+    </li>
+    <li><strong>Logout</strong> (<code>POST /api/auth/logout</code>):
+      <ul>
+        <li>Nghiệp vụ: thu hồi token hiện tại bằng cách thêm <code>jti</code> vào denylist đến khi hết hạn.</li>
+        <li>Validate: lấy token từ header/body, parse được; nếu token rỗng hoặc không parse được → lỗi 400.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h3>7.x.2. Nhóm Citizen</h3>
+  <ul>
+    <li><strong>Báo cáo rác</strong> (<code>/api/citizen/reports</code>):
+      <ul>
+        <li>Nghiệp vụ: citizen tạo/sửa/xoá report, upload ảnh, gửi vị trí, loại rác.</li>
+        <li>Validate:
+          <ul>
+            <li>Ảnh: bắt buộc, MIME <code>image/*</code>, dung lượng input ≤ 10MB, nén xuống &lt; 1MB trước upload.</li>
+            <li>Danh sách loại rác: không rỗng, số lượng record khớp số category, quantity ≥ 0.</li>
+            <li>Toạ độ: lat ∈ [-90, 90], lng ∈ [-180, 180].</li>
+            <li>Chống spam: không cho phép report trùng vị trí (~30m) trong vòng 10 phút.</li>
+            <li>Update/delete: chỉ khi report thuộc về citizen hiện tại, status <code>PENDING</code> và chưa có <code>CollectionRequest</code>.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><strong>Điểm thưởng &amp; leaderboard</strong> (<code>/rewards/history</code>, <code>/points/summary</code>, <code>/leaderboard</code>):
+      <ul>
+        <li>Nghiệp vụ: xem lịch sử điểm, tổng kết theo tháng/quý/năm, bảng xếp hạng citizen.</li>
+        <li>Validate: kiểm tra tồn tại citizen; tham số thời gian (year/quarter/month, startDate/endDate) trong range hợp lệ; luôn filter trên DB (không load toàn bộ rồi lọc).</li>
+      </ul>
+    </li>
+    <li><strong>Khiếu nại</strong> (<code>/complaints</code>):
+      <ul>
+        <li>Nghiệp vụ: citizen gửi complaint về thu gom/điểm thưởng/hệ thống.</li>
+        <li>Validate: loại complaint nằm trong tập cho phép; với complaint về điểm thưởng thì report phải đã <code>COLLECTED</code>; chỉ được complaint trên report của chính mình.</li>
+      </ul>
+    </li>
+    <li><strong>Hồ sơ &amp; danh mục</strong> (<code>/profile</code>, <code>/waste-categories</code>):
+      <ul>
+        <li>Nghiệp vụ: cập nhật thông tin cá nhân; lấy danh sách loại rác.</li>
+        <li>Validate: format/độ dài các trường (email, phone, address); không vi phạm unique (nếu có) trên DB.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h3>7.x.3. Nhóm Collector</h3>
+  <ul>
+    <li><strong>Task &amp; trạng thái</strong> (<code>/api/collector/collections/...</code>):
+      <ul>
+        <li>Nghiệp vụ: xem task list, accept/start/reject/collected, tạo report thu gom.</li>
+        <li>Validate:
+          <ul>
+            <li>Mọi thao tác luôn check task thuộc về collector hiện tại (<code>findByIdAndCollector_Id</code> hoặc kiểm tra sau khi query).</li>
+            <li>Cập nhật trạng thái dùng JPQL update có điều kiện trạng thái cũ (ASSIGNED → ACCEPTED_COLLECTOR → ON_THE_WAY → COLLECTED), nếu mismatch → lỗi 400.</li>
+            <li>Khi reject phải có lý do; chỉ reject khi status là <code>ASSIGNED</code>.</li>
+            <li>Mỗi lần đổi trạng thái đều cập nhật <code>WasteReport.status</code> tương ứng và ghi log <code>CollectionTracking</code>.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><strong>Dashboard &amp; thống kê</strong> (<code>/api/collector/stats/...</code>, <code>/leaderboard</code>, <code>/history</code>):
+      <ul>
+        <li>Nghiệp vụ: xem hiệu suất, khối lượng rác theo tháng/quý, thống kê theo loại rác, trạng thái task, leaderboard.</li>
+        <li>Kiến thức:
+          <ul>
+            <li>Dùng aggregate SQL (COUNT, SUM, GROUP BY) + projection interface để tránh N+1.</li>
+            <li>Luôn trả đủ mọi trạng thái trong enum <code>CollectionRequestStatus</code> với count=0 nếu không có dữ liệu (giúp UI ổn định).</li>
+            <li>Validate năm trong khoảng [1970, 2100].</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><strong>Trạng thái làm việc &amp; hồ sơ</strong> (<code>/api/collector/status</code>, <code>/profile</code>):
+      <ul>
+        <li>Nghiệp vụ: collector tự chuyển trạng thái (ONLINE/OFFLINE/AVAILABLE/ACTIVE/INACTIVE) và cập nhật thông tin cá nhân.</li>
+        <li>Validate: không cho phép tự chuyển sang <code>SUSPEND</code>; status string phải map được sang enum; kiểm tra tồn tại collector trước khi update.</li>
+      </ul>
+    </li>
+    <li><strong>Feedback</strong> (<code>/api/collector/feedbacks</code>):
+      <ul>
+        <li>Nghiệp vụ: collector gửi feedback (có thể gắn với collection request) và xem lại các feedback của mình.</li>
+        <li>Validate: feedback phải gắn đúng với collector hiện tại; nếu có <code>collectionRequestId</code> thì request đó cũng phải thuộc collector.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h3>7.x.4. Nhóm Enterprise</h3>
+  <ul>
+    <li><strong>Accept/Reject &amp; phân công</strong> (<code>/api/enterprise/requests/...</code>):
+      <ul>
+        <li>Nghiệp vụ: enterprise nhận report từ citizen, quyết định accept/reject, tạo request và gán collector phù hợp.</li>
+        <li>Validate: enterprise chỉ thao tác trên report trong phạm vi của mình; chỉ accept report <code>PENDING</code>; chỉ gán collector ở trạng thái phù hợp và trong bán kính cho phép.</li>
+      </ul>
+    </li>
+    <li><strong>Xem report &amp; collector report</strong> (<code>/waste-reports</code>, <code>/collector-reports</code>):
+      <ul>
+        <li>Nghiệp vụ: xem danh sách/chi tiết báo cáo rác và báo cáo thu gom của các collector thuộc mình.</li>
+        <li>Validate: mọi query đều filter theo <code>enterpriseId</code> lấy từ JWT; dùng <code>@EntityGraph</code> hoặc projection để tối ưu.</li>
+      </ul>
+    </li>
+    <li><strong>Feedback</strong> (<code>/enterprise/feedbacks</code>):
+      <ul>
+        <li>Nghiệp vụ: enterprise xem và giải quyết complaint từ citizen, đồng thời đánh giá collector.</li>
+        <li>Validate: chỉ feedback gắn với enterprise hiện tại mới được truy cập; khi resolve có thể tăng violation count cho collector nếu complaint đúng.</li>
+      </ul>
+    </li>
+    <li><strong>Statistics &amp; voucher</strong> (<code>/enterprise/reports/...</code>, <code>/enterprise/vouchers</code>):
+      <ul>
+        <li>Nghiệp vụ: xem thống kê khối lượng rác, báo cáo theo ngày/tháng, điểm citizen; quản lý voucher.</li>
+        <li>Validate: tham số thời gian hợp lệ; với voucher chỉ enterprise owner (hoặc ENTERPRISE_ADMIN) mới được CRUD.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h3>7.x.5. Nhóm Admin</h3>
+  <ul>
+    <li><strong>Accounts &amp; quyền</strong> (<code>/api/admin/accounts</code>):
+      <ul>
+        <li>Nghiệp vụ: admin tạo account cho mọi role, khoá/mở khoá tài khoản, xem danh sách và chi tiết user.</li>
+        <li>Validate: không cho phép admin tự khoá chính mình; mọi hành động đều gắn với <code>adminEmail</code> lấy từ JWT.</li>
+      </ul>
+    </li>
+    <li><strong>Complaints &amp; reports</strong> (<code>/api/admin/complaints</code>, <code>/api/admin/reports/...</code>):
+      <ul>
+        <li>Nghiệp vụ: admin giám sát toàn bộ complaint và report (citizen + collector), có thể đưa ra quyết định cuối cùng.</li>
+        <li>Kiến thức: dùng lại service enterprise cho phần lớn truy vấn nhưng bỏ giới hạn theo enterpriseId (hoặc cho phép truyền enterpriseId làm filter tuỳ chọn).</li>
+      </ul>
+    </li>
+    <li><strong>Waste category &amp; point rule</strong> (<code>/api/admin/waste-categories</code>, <code>/api/admin/point-rule</code>):
+      <ul>
+        <li>Nghiệp vụ: cấu hình loại rác, đơn vị, điểm thưởng/đơn vị; quy tắc điểm tổng thể.</li>
+        <li>Validate: ensure các giá trị (điểm, hệ số) không âm và hợp lý; update kiểu PATCH chỉ thay đổi trường được gửi lên.</li>
+      </ul>
+    </li>
+    <li><strong>Analytics</strong> (<code>/api/admin/analytics/...</code>):
+      <ul>
+        <li>Nghiệp vụ: dashboard admin cho toàn hệ thống (khối lượng rác, leaderboard, thống kê theo đơn vị,...).</li>
+        <li>Kiến thức: tất cả các endpoint này là read-only, dùng aggregate SQL với index để đảm bảo hiệu năng.</li>
       </ul>
     </li>
   </ul>
