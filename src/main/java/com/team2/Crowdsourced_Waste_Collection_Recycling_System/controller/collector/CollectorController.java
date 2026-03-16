@@ -134,7 +134,7 @@ public class CollectorController {
 
     @PatchMapping("/status")
     @PreAuthorize("hasRole('COLLECTOR')")
-    @Operation(summary = "Cập nhật trạng thái", description = "Chuyển AVAILABLE/ACTIVE/INACTIVE")
+    @Operation(summary = "Cập nhật trạng thái", description = "Chuyển ACTIVE/INACTIVE")
     public ApiResponse<Void> updateMyStatus(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateCollectorStatusRequest request) {
         Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
         collectorService.updateAvailabilityStatus(collectorId, request != null ? request.getStatus() : null);
