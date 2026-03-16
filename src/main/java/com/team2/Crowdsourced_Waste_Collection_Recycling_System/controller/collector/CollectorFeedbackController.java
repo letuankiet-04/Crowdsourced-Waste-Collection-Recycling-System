@@ -8,13 +8,16 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -28,24 +31,28 @@ import java.util.List;
 public class CollectorFeedbackController {
     private final CollectorFeedbackService collectorFeedbackService;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Gửi feedback", description = "Collector gửi feedback (có thể gắn với collectionRequestId)")
-    public ApiResponse<CollectorFeedbackResponse> create(
+    public ResponseEntity<ApiResponse<CollectorFeedbackResponse>> create(
             @AuthenticationPrincipal Jwt jwt,
-            @Valid @RequestBody CreateCollectorFeedbackRequest request) {
+            @Valid @ModelAttribute CreateCollectorFeedbackRequest request) {
         Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
         CollectorFeedbackResponse response = collectorFeedbackService.createFeedback(collectorId, request);
-        return ApiResponse.<CollectorFeedbackResponse>builder().result(response).build();
+        return ok(response, "Gửi feedback thành công");
     }
 
     @GetMapping
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Danh sách feedback của tôi", description = "Liệt kê feedback đã gửi của collector hiện tại")
-    public ApiResponse<List<CollectorFeedbackResponse>> getMyFeedbacks(
+    public ResponseEntity<ApiResponse<List<CollectorFeedbackResponse>>> getMyFeedbacks(
             @AuthenticationPrincipal Jwt jwt) {
         Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
         List<CollectorFeedbackResponse> result = collectorFeedbackService.getMyFeedbacks(collectorId);
-        return ApiResponse.<List<CollectorFeedbackResponse>>builder().result(result).build();
+        return ok(result, "Lấy danh sách feedback thành công");
+    }
+
+    private <T> ResponseEntity<ApiResponse<T>> ok(T result, String message) {
+        return ResponseEntity.ok(ApiResponse.<T>builder().result(result).message(message).build());
     }
 }
