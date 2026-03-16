@@ -1,0 +1,17 @@
+spring:
+  jackson:
+    time-zone: Asia/Ho_Chi_Minh
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: Asia/Ho_Chi_Minh
+
+app:
+  seed:
+    enabled: false
+    modular: true

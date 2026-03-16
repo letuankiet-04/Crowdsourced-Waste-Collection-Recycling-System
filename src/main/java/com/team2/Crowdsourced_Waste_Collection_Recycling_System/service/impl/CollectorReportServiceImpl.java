@@ -56,7 +56,7 @@ public class CollectorReportServiceImpl implements CollectorReportService {
      */
     @Override
     public List<CollectorReportResponse> getReportsByCollector(Integer collectorId) {
-        List<CollectorReport> reports = collectorReportRepository.findByCollector_IdOrderByCreatedAtDesc(collectorId);
+        List<CollectorReport> reports = collectorReportRepository.findByCollectorIdWithRequest(collectorId);
         List<CollectorReportResponse> responseList = new ArrayList<>();
 
         // Duyệt qua từng báo cáo và chuyển đổi sang DTO

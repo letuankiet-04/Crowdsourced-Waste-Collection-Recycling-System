@@ -24,7 +24,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -161,6 +163,27 @@ public class EnterpriseAssignmentServiceImpl implements EnterpriseAssignmentServ
 
         // Lấy danh sách tất cả collector của doanh nghiệp
         List<Collector> allCollectors = collectorRepository.findByEnterprise_IdOrderByCreatedAtDesc(enterpriseId);
+        List<Integer> collectorIds = allCollectors.stream()
+                .map(Collector::getId)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+
+        Map<Integer, Integer> activeTaskCountByCollectorId = new HashMap<>();
+        if (!collectorIds.isEmpty()) {
+            List<CollectionRequestStatus> activeStatuses = List.of(
+                    CollectionRequestStatus.ASSIGNED,
+                    CollectionRequestStatus.ACCEPTED_COLLECTOR,
+                    CollectionRequestStatus.ON_THE_WAY);
+
+            var counts = collectionRequestRepository.countByCollectorIdsAndStatusIn(collectorIds, activeStatuses);
+            for (var row : counts) {
+                Integer collectorId = row.getCollectorId();
+                long total = row.getTotal() != null ? row.getTotal() : 0L;
+                if (collectorId != null && total > 0) {
+                    activeTaskCountByCollectorId.merge(collectorId, (int) total, Integer::sum);
+                }
+            }
+        }
         List<EligibleCollectorResponse> result = new java.util.ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
 
@@ -188,10 +211,7 @@ public class EnterpriseAssignmentServiceImpl implements EnterpriseAssignmentServ
             }
 
             // 5. Đếm số lượng việc đang làm
-            long assignedCount = collectionRequestRepository.countByCollector_IdAndStatus(collector.getId(), CollectionRequestStatus.ASSIGNED);
-            long acceptedCount = collectionRequestRepository.countByCollector_IdAndStatus(collector.getId(), CollectionRequestStatus.ACCEPTED_COLLECTOR);
-            long onTheWayCount = collectionRequestRepository.countByCollector_IdAndStatus(collector.getId(), CollectionRequestStatus.ON_THE_WAY);
-            int activeTaskCount = (int) (assignedCount + acceptedCount + onTheWayCount);
+            int activeTaskCount = activeTaskCountByCollectorId.getOrDefault(collector.getId(), 0);
 
             // Tạo đối tượng kết quả
             EligibleCollectorResponse response = new EligibleCollectorResponse();

@@ -38,6 +38,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.waste
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CloudinaryService;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.WasteReportService;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.util.WasteCategoryAllowlist;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -54,11 +55,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CitizenReportStatsResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportItemRepository;
 
@@ -309,6 +316,7 @@ public class WasteReportServiceImpl implements WasteReportService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<WasteReportResponse> getMyReports(String citizenEmail) {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
 
@@ -362,6 +370,7 @@ public class WasteReportServiceImpl implements WasteReportService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public WasteReportResponse getMyReportById(Integer reportId, String citizenEmail) {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
         WasteReport report = requireOwnedReport(reportId, citizen);
@@ -404,6 +413,7 @@ public class WasteReportServiceImpl implements WasteReportService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CitizenReportResultResponse getMyReportResult(Integer reportId, String citizenEmail) {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
         WasteReport report = requireOwnedReport(reportId, citizen);
@@ -468,21 +478,22 @@ public class WasteReportServiceImpl implements WasteReportService {
     @Override
     public List<CitizenRewardHistoryResponse> getRewardHistory(String citizenEmail, LocalDateTime startDate, LocalDateTime endDate) {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
+        List<PointTransaction> transactions;
+        // Nếu có khoảng thời gian, lọc trực tiếp ở tầng repository để giảm dữ liệu load lên
+        if (startDate != null && endDate != null) {
+            transactions = pointTransactionRepository.findByCitizenIdAndDateRange(
+                    citizen.getId(),
+                    startDate,
+                    endDate
+            );
+        } else {
+            transactions = pointTransactionRepository.findByCitizenId(citizen.getId());
+        }
 
-        List<PointTransaction> transactions = pointTransactionRepository.findByCitizenId(citizen.getId());
-        
         List<CitizenRewardHistoryResponse> results = new ArrayList<>();
-        
         for (PointTransaction tx : transactions) {
-            // Lọc theo ngày nếu có
-            if (startDate != null && endDate != null) {
-                if (!isInRange(tx.getCreatedAt(), startDate, endDate)) {
-                    continue; // Bỏ qua nếu không nằm trong khoảng thời gian
-                }
-            }
             results.add(citizenFeatureMapper.toCitizenRewardHistoryResponse(tx));
         }
-        
         return results;
     }
 
@@ -507,6 +518,7 @@ public class WasteReportServiceImpl implements WasteReportService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CitizenPointSummaryResponse getMyPointSummary(String citizenEmail, Integer year, Integer quarter, Integer month) {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
 
@@ -642,11 +654,15 @@ public class WasteReportServiceImpl implements WasteReportService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<WasteCategoryResponse> getWasteCategories() {
         List<WasteCategory> categories = wasteCategoryRepository.findAll();
         
         List<WasteCategoryResponse> responses = new ArrayList<>();
         for (WasteCategory c : categories) {
+            if (!WasteCategoryAllowlist.isAllowed(c.getName())) {
+                continue;
+            }
             responses.add(WasteCategoryResponse.builder()
                     .id(c.getId())
                     .name(c.getName())
@@ -658,6 +674,7 @@ public class WasteReportServiceImpl implements WasteReportService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CitizenReportStatsResponse getMyReportStats(String citizenEmail) {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
 
@@ -787,28 +804,59 @@ public class WasteReportServiceImpl implements WasteReportService {
     }
 
     private void saveReportImages(WasteReport report, List<MultipartFile> images, LocalDateTime now) {
-        boolean first = true;
-        for (MultipartFile file : images) {
-            CloudinaryResponse uploaded = cloudinaryService.uploadImage(file, "reports");
-            if (uploaded == null || uploaded.getUrl() == null) {
-                throw new AppException(ErrorCode.IMAGE_UPLOAD_FAILED);
+        if (images == null || images.isEmpty()) {
+            return;
+        }
+
+        int poolSize = Math.min(images.size(), 4);
+        ExecutorService executor = Executors.newFixedThreadPool(poolSize);
+
+        try {
+            List<CompletableFuture<CloudinaryResponse>> futures = new ArrayList<>();
+
+            for (MultipartFile file : images) {
+                CompletableFuture<CloudinaryResponse> future = CompletableFuture.supplyAsync(() -> {
+                    CloudinaryResponse uploaded = cloudinaryService.uploadImage(file, "reports");
+                    if (uploaded == null || uploaded.getUrl() == null) {
+                        throw new AppException(ErrorCode.IMAGE_UPLOAD_FAILED);
+                    }
+                    return uploaded;
+                }, executor);
+                futures.add(future);
             }
 
-            // Ảnh đầu tiên được lưu vào bảng WasteReport làm ảnh đại diện
-            if (first) {
-                report.setImages(uploaded.getUrl());
-                report.setCloudinaryPublicId(uploaded.getPublicId());
-                wasteReportRepository.save(report);
-                first = false;
+            List<ReportImage> reportImages = new ArrayList<>();
+            boolean first = true;
+
+            for (CompletableFuture<CloudinaryResponse> future : futures) {
+                CloudinaryResponse uploaded;
+                try {
+                    uploaded = future.get();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new AppException(ErrorCode.IMAGE_UPLOAD_FAILED);
+                } catch (ExecutionException e) {
+                    throw new AppException(ErrorCode.IMAGE_UPLOAD_FAILED);
+                }
+
+                if (first) {
+                    report.setImages(uploaded.getUrl());
+                    report.setCloudinaryPublicId(uploaded.getPublicId());
+                    first = false;
+                }
+
+                ReportImage img = new ReportImage();
+                img.setReport(report);
+                img.setImageUrl(uploaded.getUrl());
+                img.setImageType("BEFORE");
+                img.setUploadedAt(now);
+                reportImages.add(img);
             }
 
-            // Lưu tất cả ảnh vào bảng ReportImage
-            ReportImage img = new ReportImage();
-            img.setReport(report);
-            img.setImageUrl(uploaded.getUrl());
-            img.setImageType("BEFORE");
-            img.setUploadedAt(now);
-            reportImageRepository.save(img);
+            wasteReportRepository.save(report);
+            reportImageRepository.saveAll(reportImages);
+        } finally {
+            executor.shutdown();
         }
     }
 
@@ -904,7 +952,8 @@ public class WasteReportServiceImpl implements WasteReportService {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
 
-        List<Integer> ids = new ArrayList<>();
+        List<Object> parsed = new ArrayList<>();
+        LinkedHashSet<String> categoryNamesLower = new LinkedHashSet<>();
         for (String raw : rawValues) {
             if (raw == null || raw.isBlank()) {
                 continue;
@@ -920,24 +969,36 @@ public class WasteReportServiceImpl implements WasteReportService {
                 // Thử parse số nguyên (ID)
                 Integer id = tryParseInt(token);
                 if (id != null) {
-                    ids.add(id);
+                    parsed.add(id);
                     continue;
                 }
                 
-                // Nếu không phải số, tìm theo tên
-                Optional<WasteCategory> catOpt = wasteCategoryRepository.findByNameIgnoreCase(token);
-                if (catOpt.isPresent()) {
-                    ids.add(catOpt.get().getId());
-                } else {
-                    throw new AppException(ErrorCode.INVALID_REQUEST);
-                }
+                String lower = token.toLowerCase(Locale.ROOT);
+                parsed.add(lower);
+                categoryNamesLower.add(lower);
             }
         }
 
-        // Loại bỏ trùng lặp
-        List<Integer> deduped = new ArrayList<>();
-        for (Integer id : ids) {
-            if (id != null && !deduped.contains(id)) {
+        Map<String, Integer> lowerNameToId = new HashMap<>();
+        if (!categoryNamesLower.isEmpty()) {
+            List<WasteCategory> categories = wasteCategoryRepository.findByLowerNameIn(new ArrayList<>(categoryNamesLower));
+            for (WasteCategory cat : categories) {
+                if (cat == null || cat.getId() == null || cat.getName() == null) {
+                    continue;
+                }
+                lowerNameToId.putIfAbsent(cat.getName().toLowerCase(Locale.ROOT), cat.getId());
+            }
+        }
+
+        LinkedHashSet<Integer> deduped = new LinkedHashSet<>();
+        for (Object value : parsed) {
+            if (value instanceof Integer id) {
+                deduped.add(id);
+            } else if (value instanceof String lower) {
+                Integer id = lowerNameToId.get(lower);
+                if (id == null) {
+                    throw new AppException(ErrorCode.INVALID_REQUEST);
+                }
                 deduped.add(id);
             }
         }
@@ -945,7 +1006,7 @@ public class WasteReportServiceImpl implements WasteReportService {
         if (deduped.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
-        return deduped;
+        return new ArrayList<>(deduped);
     }
 
     private Integer tryParseInt(String value) {

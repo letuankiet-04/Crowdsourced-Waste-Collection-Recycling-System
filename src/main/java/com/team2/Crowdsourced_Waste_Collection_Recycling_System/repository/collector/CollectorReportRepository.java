@@ -2,6 +2,8 @@ package com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.coll
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectorReport;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -20,6 +22,16 @@ public interface CollectorReportRepository extends JpaRepository<CollectorReport
     List<CollectorReport> findByCollector_Id(Integer collectorId);
 
     List<CollectorReport> findByCollector_IdOrderByCreatedAtDesc(Integer collectorId);
+
+    @Query("""
+            select cr
+            from CollectorReport cr
+            join fetch cr.collectionRequest req
+            join fetch cr.collector c
+            where c.id = :collectorId
+            order by cr.createdAt desc, cr.id desc
+            """)
+    List<CollectorReport> findByCollectorIdWithRequest(@Param("collectorId") Integer collectorId);
 
     List<CollectorReport> findByCollectionRequest_Enterprise_IdOrderByCreatedAtDesc(Integer enterpriseId);
 }

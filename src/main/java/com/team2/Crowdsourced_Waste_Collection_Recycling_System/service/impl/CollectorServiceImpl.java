@@ -8,16 +8,23 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Col
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorTaskStatusCountResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorWasteVolumeStatsResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorWorkHistoryItemResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.EnterpriseWasteReportResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.WasteCategoryResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectionRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectionTracking;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Collector;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.ReportImage;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.WasteReport;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.WasteReportItem;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.WasteReportStatus;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectorStatus;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.waste.WasteReportRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionRequestRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionTrackingRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.waste.ReportImageRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.waste.WasteReportItemRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorService;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.EnterpriseAssignmentService;
 import jakarta.transaction.Transactional;
@@ -33,6 +40,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,6 +58,8 @@ public class CollectorServiceImpl implements CollectorService {
     private final WasteReportRepository wasteReportRepository;
     private final EnterpriseAssignmentService enterpriseAssignmentService;
     private final CollectorReportItemRepository collectorReportItemRepository;
+    private final ReportImageRepository reportImageRepository;
+    private final WasteReportItemRepository wasteReportItemRepository;
 
     /**
      * Lấy danh sách nhiệm vụ (tasks) của Collector.
@@ -93,6 +103,46 @@ public class CollectorServiceImpl implements CollectorService {
         }
 
         return responseList;
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public EnterpriseWasteReportResponse getTaskDetail(Integer collectorId, Integer requestId) {
+        Optional<CollectionRequest> owned = collectionRequestRepository.findByIdAndCollector_Id(requestId, collectorId);
+        if (owned.isEmpty()) {
+            if (collectionRequestRepository.existsById(requestId)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Task này không thuộc về bạn");
+            }
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy task");
+        }
+
+        CollectionRequest request = owned.get();
+        if (request.getReport() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy báo cáo cho task này");
+        }
+
+        WasteReport report = request.getReport();
+        List<String> imageUrls = reportImageRepository.findByReport_Id(report.getId()).stream()
+                .map(ReportImage::getImageUrl)
+                .toList();
+        List<WasteReportItem> items = wasteReportItemRepository.findWithCategoryByReportId(report.getId());
+
+        return EnterpriseWasteReportResponse.builder()
+                .id(report.getId())
+                .reportCode(report.getReportCode())
+                .collectionRequestId(request.getId())
+                .status(report.getStatus() != null ? report.getStatus().name() : null)
+                .submitBy(resolveSubmitBy(report))
+                .wasteType(report.getWasteType())
+                .description(report.getDescription())
+                .address(report.getAddress())
+                .latitude(report.getLatitude())
+                .longitude(report.getLongitude())
+                .images(report.getImages())
+                .imageUrls(imageUrls)
+                .categories(toWasteCategoryResponses(items))
+                .createdAt(report.getCreatedAt())
+                .build();
     }
 
     /**
@@ -538,6 +588,56 @@ public class CollectorServiceImpl implements CollectorService {
         
         // Nếu mọi thứ có vẻ đúng mà vẫn không update được (ít khi xảy ra)
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không thể cập nhật trạng thái Collection Request (Lỗi không xác định)");
+    }
+
+    private String resolveSubmitBy(WasteReport report) {
+        if (report == null || report.getCitizen() == null) {
+            return null;
+        }
+        var citizen = report.getCitizen();
+        if (citizen.getUser() != null) {
+            if (citizen.getUser().getFullName() != null && !citizen.getUser().getFullName().isBlank()) {
+                return citizen.getUser().getFullName();
+            }
+            if (citizen.getUser().getEmail() != null && !citizen.getUser().getEmail().isBlank()) {
+                return citizen.getUser().getEmail();
+            }
+        }
+        if (citizen.getFullName() != null && !citizen.getFullName().isBlank()) {
+            return citizen.getFullName();
+        }
+        if (citizen.getEmail() != null && !citizen.getEmail().isBlank()) {
+            return citizen.getEmail();
+        }
+        return null;
+    }
+
+    private List<WasteCategoryResponse> toWasteCategoryResponses(List<WasteReportItem> items) {
+        Map<Integer, WasteCategoryResponse> byCategoryId = new LinkedHashMap<>();
+        for (WasteReportItem item : items) {
+            if (item.getWasteCategory() == null || item.getWasteCategory().getId() == null) {
+                continue;
+            }
+            Integer categoryId = item.getWasteCategory().getId();
+            WasteCategoryResponse existing = byCategoryId.get(categoryId);
+            if (existing == null) {
+                byCategoryId.put(categoryId, WasteCategoryResponse.builder()
+                        .id(categoryId)
+                        .name(item.getWasteCategory().getName())
+                        .unit(item.getUnitSnapshot() != null ? item.getUnitSnapshot().name()
+                                : (item.getWasteCategory().getUnit() != null ? item.getWasteCategory().getUnit().name() : null))
+                        .pointPerUnit(item.getWasteCategory().getPointPerUnit())
+                        .quantity(item.getQuantity())
+                        .build());
+            } else {
+                if (existing.getQuantity() == null) {
+                    existing.setQuantity(item.getQuantity());
+                } else if (item.getQuantity() != null) {
+                    existing.setQuantity(existing.getQuantity().add(item.getQuantity()));
+                }
+            }
+        }
+        return List.copyOf(byCategoryId.values());
     }
 
     @Override

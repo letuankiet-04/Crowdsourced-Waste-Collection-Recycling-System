@@ -9,6 +9,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.colle
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.enterprise.EnterpriseRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.waste.WasteReportRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.EnterpriseRequestService;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.util.AddressMatchUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -18,7 +19,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
 import java.util.Random;
 
 @Service
@@ -168,49 +168,11 @@ public class EnterpriseRequestServiceImpl implements EnterpriseRequestService {
     }
 
     private boolean isInServiceArea(Enterprise enterprise, WasteReport report) {
-        String address = report.getAddress();
-        if (address == null || address.isBlank()) {
-            return false;
-        }
-
-        // Lấy danh sách phường/xã và quận/huyện phục vụ
-        String wardList = enterprise.getServiceWards();
-        String cityList = enterprise.getServiceCities();
-        String lowerAddress = address.toLowerCase();
-
-        // Kiểm tra phường/xã (nếu không cấu hình thì coi như ok)
-        boolean wardOk = false;
-        if (wardList == null || wardList.isBlank()) {
-            wardOk = true;
-        } else {
-            // Tách chuỗi bằng dấu phẩy và duyệt từng phần tử
-            String[] wards = wardList.split(",");
-            for (String ward : wards) {
-                String cleanWard = ward.trim();
-                if (!cleanWard.isEmpty() && lowerAddress.contains(cleanWard.toLowerCase())) {
-                    wardOk = true;
-                    break;
-                }
-            }
-        }
-
-        // Kiểm tra quận/huyện/thành phố (nếu không cấu hình thì coi như ok)
-        boolean cityOk = false;
-        if (cityList == null || cityList.isBlank()) {
-            cityOk = true;
-        } else {
-            // Tách chuỗi bằng dấu phẩy và duyệt từng phần tử
-            String[] cities = cityList.split(",");
-            for (String city : cities) {
-                String cleanCity = city.trim();
-                if (!cleanCity.isEmpty() && lowerAddress.contains(cleanCity.toLowerCase())) {
-                    cityOk = true;
-                    break;
-                }
-            }
-        }
-
-        return wardOk && cityOk;
+        return AddressMatchUtil.isInServiceArea(
+                report != null ? report.getAddress() : null,
+                enterprise != null ? enterprise.getServiceWards() : null,
+                enterprise != null ? enterprise.getServiceCities() : null
+        );
     }
 
     private Enterprise requireEnterprise(Integer enterpriseId) {

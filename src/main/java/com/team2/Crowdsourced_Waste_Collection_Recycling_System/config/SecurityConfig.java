@@ -1,6 +1,6 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.config;
 
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.InvalidatedTokenRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.security.TokenDenylistService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -24,6 +24,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Configuration
@@ -32,18 +33,19 @@ import java.util.List;
 
 public class SecurityConfig {
     private final String[] PUBLIC_ENDPOINTS = {
-        "/api/auth/login", "/api/auth/register", "/api/auth/introspect", "/api/auth/logout",
+        "/", "/api/auth/login", "/api/auth/register", "/api/auth/introspect", "/api/auth/logout",
+        "/actuator/health", "/actuator/info",
         "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml", "/swagger-resources/**", "/webjars/**"
     };
 
-    @Value("${app.cors.allowed-origins:http://localhost:3000}")
+    @Value("${app.cors.allowed-origins:http://localhost:5173}")
     private String corsAllowedOrigins;
 
     @Value("${jwt.signerKey}")
     private String signerKey;
 
     @Autowired
-    private InvalidatedTokenRepository invalidatedTokenRepository;
+    private TokenDenylistService tokenDenylistService;
 
     
 
@@ -69,9 +71,23 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cors = new CorsConfiguration();
-        cors.setAllowedOrigins(List.of(corsAllowedOrigins.split("\\s*,\\s*")));
+        List<String> rawOrigins = List.of(corsAllowedOrigins.split("\\s*,\\s*"));
+        List<String> allowedOrigins = new ArrayList<>();
+        List<String> allowedOriginPatterns = new ArrayList<>();
+        for (String origin : rawOrigins) {
+            String value = origin == null ? "" : origin.trim();
+            if (value.isEmpty()) continue;
+            if (value.contains("*")) {
+                allowedOriginPatterns.add(value);
+            } else {
+                allowedOrigins.add(value);
+            }
+        }
+        if (!allowedOrigins.isEmpty()) cors.setAllowedOrigins(allowedOrigins);
+        if (!allowedOriginPatterns.isEmpty()) cors.setAllowedOriginPatterns(allowedOriginPatterns);
         cors.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        cors.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        cors.setAllowedHeaders(List.of("*"));
+        cors.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", cors);
         return source;
@@ -101,7 +117,7 @@ public class SecurityConfig {
                 .build();
 
         OAuth2TokenValidator<Jwt> withTimestamp = JwtValidators.createDefault();
-        OAuth2TokenValidator<Jwt> withDenylist = new JtiDenylistValidator(invalidatedTokenRepository);
+        OAuth2TokenValidator<Jwt> withDenylist = new JtiDenylistValidator(tokenDenylistService);
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(withTimestamp, withDenylist));
         return decoder;
     }

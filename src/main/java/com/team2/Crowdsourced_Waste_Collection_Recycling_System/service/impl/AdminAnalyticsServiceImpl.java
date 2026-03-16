@@ -43,15 +43,23 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
     @Override
     public AdminSystemAnalyticsResponse getSystemAnalytics() {
         // 1. Report Stats
-        long pending = collectionRequestRepository.countByStatus(CollectionRequestStatus.PENDING);
-        long accepted = collectionRequestRepository.countByStatus(CollectionRequestStatus.ACCEPTED_ENTERPRISE);
-        long rejected = collectionRequestRepository.countByStatus(CollectionRequestStatus.REJECTED);
-        long assigned = collectionRequestRepository.countByStatus(CollectionRequestStatus.ASSIGNED) +
-                        collectionRequestRepository.countByStatus(CollectionRequestStatus.ACCEPTED_COLLECTOR) +
-                        collectionRequestRepository.countByStatus(CollectionRequestStatus.ON_THE_WAY) +
-                        collectionRequestRepository.countByStatus(CollectionRequestStatus.REASSIGN);
-        long collected = collectionRequestRepository.countByStatus(CollectionRequestStatus.COLLECTED);
-        long completed = collectionRequestRepository.countByStatus(CollectionRequestStatus.COMPLETED);
+        Map<CollectionRequestStatus, Long> statusCounts = new HashMap<>();
+        for (CollectionRequestRepository.StatusCountView view : collectionRequestRepository.countByStatusGroup()) {
+            if (view.getStatus() == null || view.getTotal() == null) {
+                continue;
+            }
+            statusCounts.put(view.getStatus(), view.getTotal());
+        }
+
+        long pending = statusCounts.getOrDefault(CollectionRequestStatus.PENDING, 0L);
+        long accepted = statusCounts.getOrDefault(CollectionRequestStatus.ACCEPTED_ENTERPRISE, 0L);
+        long rejected = statusCounts.getOrDefault(CollectionRequestStatus.REJECTED, 0L);
+        long assigned = statusCounts.getOrDefault(CollectionRequestStatus.ASSIGNED, 0L)
+                + statusCounts.getOrDefault(CollectionRequestStatus.ACCEPTED_COLLECTOR, 0L)
+                + statusCounts.getOrDefault(CollectionRequestStatus.ON_THE_WAY, 0L)
+                + statusCounts.getOrDefault(CollectionRequestStatus.REASSIGN, 0L);
+        long collected = statusCounts.getOrDefault(CollectionRequestStatus.COLLECTED, 0L);
+        long completed = statusCounts.getOrDefault(CollectionRequestStatus.COMPLETED, 0L);
         long totalRequests = collectionRequestRepository.count();
 
         AdminSystemAnalyticsResponse.ReportStats reportStats = AdminSystemAnalyticsResponse.ReportStats.builder()

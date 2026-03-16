@@ -17,9 +17,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -38,14 +41,56 @@ public class EnterpriseCollectorRejectionServiceImpl implements EnterpriseCollec
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Enterprise không tồn tại");
         }
 
-        return collectionRequestRepository.findCollectorRejectedRequests(enterpriseId).stream()
-                .map(this::toResponse)
+        List<CollectionRequest> requests = collectionRequestRepository.findCollectorRejectedRequests(enterpriseId);
+
+        List<Integer> reportIds = requests.stream()
+                .map(CollectionRequest::getReport)
+                .filter(Objects::nonNull)
+                .map(WasteReport::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<Integer, List<String>> imageUrlsByReportId = new HashMap<>();
+        if (!reportIds.isEmpty()) {
+            for (ReportImage image : reportImageRepository.findByReport_IdIn(reportIds)) {
+                if (image == null || image.getReport() == null || image.getReport().getId() == null) {
+                    continue;
+                }
+                imageUrlsByReportId
+                        .computeIfAbsent(image.getReport().getId(), k -> new ArrayList<>())
+                        .add(image.getImageUrl());
+            }
+        }
+
+        Map<Integer, List<WasteReportItem>> itemsByReportId = new HashMap<>();
+        if (!reportIds.isEmpty()) {
+            for (WasteReportItem item : wasteReportItemRepository.findWithCategoryByReportIdIn(reportIds)) {
+                if (item == null || item.getReport() == null || item.getReport().getId() == null) {
+                    continue;
+                }
+                itemsByReportId
+                        .computeIfAbsent(item.getReport().getId(), k -> new ArrayList<>())
+                        .add(item);
+            }
+        }
+
+        return requests.stream()
+                .map(request -> toResponse(request, imageUrlsByReportId, itemsByReportId))
                 .toList();
     }
 
-    private EnterpriseCollectorRejectionResponse toResponse(CollectionRequest request) {
+    private EnterpriseCollectorRejectionResponse toResponse(
+            CollectionRequest request,
+            Map<Integer, List<String>> imageUrlsByReportId,
+            Map<Integer, List<WasteReportItem>> itemsByReportId
+    ) {
         WasteReport report = request.getReport();
-        EnterpriseWasteReportResponse wasteReport = report == null ? null : toWasteReportResponse(report);
+        EnterpriseWasteReportResponse wasteReport = report == null ? null : toWasteReportResponse(
+                report,
+                imageUrlsByReportId.getOrDefault(report.getId(), List.of()),
+                itemsByReportId.getOrDefault(report.getId(), List.of())
+        );
         return EnterpriseCollectorRejectionResponse.builder()
                 .requestId(request.getId())
                 .requestCode(request.getRequestCode())
@@ -56,13 +101,12 @@ public class EnterpriseCollectorRejectionServiceImpl implements EnterpriseCollec
                 .build();
     }
 
-    private EnterpriseWasteReportResponse toWasteReportResponse(WasteReport report) {
-        List<String> imageUrls = reportImageRepository.findByReport_Id(report.getId()).stream()
-                .map(ReportImage::getImageUrl)
-                .toList();
-        List<WasteCategoryResponse> categories = toWasteCategoryResponses(
-                wasteReportItemRepository.findWithCategoryByReportId(report.getId())
-        );
+    private EnterpriseWasteReportResponse toWasteReportResponse(
+            WasteReport report,
+            List<String> imageUrls,
+            List<WasteReportItem> items
+    ) {
+        List<WasteCategoryResponse> categories = toWasteCategoryResponses(items);
 
         return EnterpriseWasteReportResponse.builder()
                 .id(report.getId())

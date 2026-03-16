@@ -5,6 +5,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Col
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorTaskStatusCountResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorWasteVolumeStatsResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorWorkHistoryItemResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.EnterpriseWasteReportResponse;
 
 import java.util.List;
 
@@ -14,6 +15,8 @@ import java.util.Map;
 public interface CollectorService {
 
     List<CollectorTaskResponse> getTasks(Integer collectorId, String status, boolean all);
+
+    EnterpriseWasteReportResponse getTaskDetail(Integer collectorId, Integer requestId);
 
     List<CollectorTaskStatusCountResponse> getTaskStatusCounts(Integer collectorId);
 

@@ -3,7 +3,7 @@ package com.team2.Crowdsourced_Waste_Collection_Recycling_System.util;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.User;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.AppException;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.ErrorCode;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.InvalidatedTokenRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.security.TokenDenylistService;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -37,7 +37,7 @@ import java.util.UUID;
 public class JWTHelper{
     static String ISSUER = "team2.com";
 
-    InvalidatedTokenRepository invalidatedTokenRepository;
+    TokenDenylistService tokenDenylistService;
 
     @NonFinal
     @Value("${jwt.signerKey}")
@@ -48,7 +48,11 @@ public class JWTHelper{
     protected long VALID_DURATION;
 
     public String issueToken(User user, Integer citizenId, Integer collectorId, Integer enterpriseId) {
-        return generateToken(user, citizenId, collectorId, enterpriseId);
+        return generateToken(user, citizenId, collectorId, enterpriseId, null);
+    }
+
+    public String issueToken(User user, Integer citizenId, Integer collectorId, Integer enterpriseId, String scope) {
+        return generateToken(user, citizenId, collectorId, enterpriseId, scope);
     }
 
     public SignedJWT verifyToken(String token) throws JOSEException, ParseException {
@@ -62,13 +66,17 @@ public class JWTHelper{
 
         if (!(verified && expiryTime.after(new Date()))) throw new AppException(ErrorCode.UNAUTHENTICATED);
 
-        if (invalidatedTokenRepository.existsById(signedJWT.getJWTClaimsSet().getJWTID()))
+        if (tokenDenylistService.isTokenRevoked(
+                signedJWT.getJWTClaimsSet().getJWTID(),
+                signedJWT.getJWTClaimsSet().getExpirationTime() != null
+                        ? signedJWT.getJWTClaimsSet().getExpirationTime().toInstant()
+                        : null))
             throw new AppException(ErrorCode.UNAUTHENTICATED);
 
         return signedJWT;
     }
 
-    private String generateToken(User user, Integer citizenId, Integer collectorId, Integer enterpriseId) {
+    private String generateToken(User user, Integer citizenId, Integer collectorId, Integer enterpriseId, String scope) {
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
 
         JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
@@ -78,7 +86,7 @@ public class JWTHelper{
                 .expirationTime(new Date(
                         Instant.now().plus(VALID_DURATION, ChronoUnit.SECONDS).toEpochMilli()))
                 .jwtID(UUID.randomUUID().toString())
-                .claim("scope", buildScope(user));
+                .claim("scope", scope != null ? scope : buildScope(user));
 
         if (user.getRole() != null && user.getRole().getRoleCode() != null) {
             claimsBuilder.claim("role", user.getRole().getRoleCode());

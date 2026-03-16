@@ -1,13 +1,13 @@
 spring:
   application:
     name: Crowdsourced-Waste-Collection-Recycling-System
-
+  jackson:
+    time-zone: Asia/Ho_Chi_Minh
   datasource:
-    url: jdbc:mysql://${MYSQLHOST:centerbeam.proxy.rlwy.net}:${MYSQLPORT:56568}/${MYSQLDATABASE:railway}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-    username: ${MYSQLUSER:root}
-    password: ${MYSQLPASSWORD:gumGGQneXVhliEFceJppmKlqBthbzQQC}
+    url: jdbc:mysql://${MYSQLHOST:${MYSQL_HOST:mainline.proxy.rlwy.net}}:${MYSQLPORT:${MYSQL_PORT:37671}}/${MYSQLDATABASE:${MYSQL_DATABASE:railway}}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&autoReconnect=true
+    username: ${MYSQLUSER:${MYSQL_USER:root}}
+    password: ${MYSQLPASSWORD:${MYSQL_PASSWORD:ndTodFpZUCKFpVehhxHCLbcZXMRHhMYv}}
     driver-class-name: com.mysql.cj.jdbc.Driver
-
   servlet:
     multipart:
       max-file-size: 10MB
@@ -16,11 +16,13 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     open-in-view: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
+        jdbc:
+          time_zone: Asia/Ho_Chi_Minh
         dialect: org.hibernate.dialect.MySQL8Dialect
 
 server:
@@ -56,10 +58,10 @@ springdoc:
 
 app:
   seed:
-    enabled: false
+    enabled: true
     modular: true
   cors:
-    allowed-origins: "*"
+    allowed-origins: "https://crowdsourced-waste-collection-recyc-khaki.vercel.app, https://*.vercel.app, http://localhost:5173"
 
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:dawzawtbz}

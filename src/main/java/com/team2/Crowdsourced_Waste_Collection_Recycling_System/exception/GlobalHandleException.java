@@ -18,9 +18,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -42,37 +40,52 @@ public class GlobalHandleException {
      * Xử lý lỗi ResponseStatusException (lỗi nghiệp vụ ném ra từ Service).
      */
     @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<Map<String, Object>> handleResponseStatusException(ResponseStatusException ex) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("status", ex.getStatusCode().value());
-        body.put("error", ex.getReason());
-        return new ResponseEntity<>(body, ex.getStatusCode());
+    public ResponseEntity<ApiResponse<Void>> handleResponseStatusException(ResponseStatusException ex) {
+        int status = ex.getStatusCode().value();
+        int code = ErrorCode.INVALID_REQUEST.getCode();
+        if (status == HttpStatus.UNAUTHORIZED.value()) {
+            code = ErrorCode.UNAUTHENTICATED.getCode();
+        } else if (status == HttpStatus.FORBIDDEN.value()) {
+            code = ErrorCode.UNAUTHORIZED.getCode();
+        } else if (status >= 500) {
+            code = ErrorCode.UNCATEGORIZED_EXCEPTION.getCode();
+        }
+
+        String message = ex.getReason() == null ? "" : ex.getReason().trim();
+        if (message.isBlank()) {
+            message = ErrorCode.INVALID_REQUEST.getMessage();
+        }
+
+        return ResponseEntity.status(ex.getStatusCode()).body(ApiResponse.<Void>builder()
+                .code(code)
+                .message(message)
+                .build());
     }
 
     /**
      * Xử lý lỗi sai thông tin đăng nhập.
      */
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<Map<String, Object>> handleBadCredentialsException(BadCredentialsException ex) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("status", HttpStatus.UNAUTHORIZED.value());
-        body.put("error", "Email hoặc mật khẩu không chính xác");
-        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
+    public ResponseEntity<ApiResponse<Void>> handleBadCredentialsException(BadCredentialsException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.<Void>builder()
+                .code(ErrorCode.UNAUTHENTICATED.getCode())
+                .message("Email hoặc mật khẩu không chính xác")
+                .build());
     }
 
     @ExceptionHandler({AccessDeniedException.class, AuthorizationDeniedException.class})
-    public ResponseEntity<Map<String, Object>> handleAccessDeniedException(Exception ex) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("status", HttpStatus.FORBIDDEN.value());
-        body.put("error", "Access Denied");
-        return new ResponseEntity<>(body, HttpStatus.FORBIDDEN);
+    public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(Exception ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.<Void>builder()
+                .code(ErrorCode.UNAUTHORIZED.getCode())
+                .message(ErrorCode.UNAUTHORIZED.getMessage())
+                .build());
     }
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleNoResourceFoundException(NoResourceFoundException ex) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("status", HttpStatus.NOT_FOUND.value());
-        body.put("error", "Không tìm thấy endpoint: " + ex.getResourcePath());
-        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
+    public ResponseEntity<ApiResponse<Void>> handleNoResourceFoundException(NoResourceFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.<Void>builder()
+                .code(ErrorCode.INVALID_REQUEST.getCode())
+                .message("Không tìm thấy endpoint: " + ex.getResourcePath())
+                .build());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -109,11 +122,11 @@ public class GlobalHandleException {
      * Xử lý các lỗi hệ thống không mong muốn khác.
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGeneralException(Exception ex) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        body.put("error", "Đã xảy ra lỗi hệ thống: " + ex.getMessage());
-        return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
+    public ResponseEntity<ApiResponse<Void>> handleGeneralException(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.<Void>builder()
+                .code(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode())
+                .message("Đã xảy ra lỗi hệ thống")
+                .build());
     }
 
     private static String joinFieldErrors(List<FieldError> fieldErrors) {

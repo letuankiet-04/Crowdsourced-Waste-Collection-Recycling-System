@@ -2,6 +2,7 @@ package com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.impl;
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.EnterpriseWasteReportResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.WasteCategoryResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectionRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Enterprise;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.ReportImage;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.WasteReport;
@@ -20,12 +21,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.transaction.annotation.Transactional;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.util.AddressMatchUtil;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +40,7 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
     private final WasteReportItemRepository wasteReportItemRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<EnterpriseWasteReportResponse> getReports(Integer enterpriseId, String status) {
         Enterprise enterprise = validateEnterprise(enterpriseId);
 
@@ -50,41 +53,74 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
             }
         }
 
-        List<WasteReport> reports = wasteReportRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        List<WasteReport> reports = statusFilter != null
+                ? wasteReportRepository.findByStatus(statusFilter, sort)
+                : wasteReportRepository.findAll(sort);
 
         WasteReportStatus finalStatusFilter = statusFilter;
-        return reports.stream()
+        List<WasteReport> filteredReports = reports.stream()
                 .filter(report -> finalStatusFilter == null || report.getStatus() == finalStatusFilter)
-                .filter(report -> isInServiceArea(enterprise, report))
-                .map(this::toResponse)
+                .filter(report -> AddressMatchUtil.isInServiceArea(report.getAddress(), enterprise.getServiceWards(), enterprise.getServiceCities()))
                 .toList();
+        return toResponses(filteredReports);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EnterpriseWasteReportResponse> getPendingReports(Integer enterpriseId) {
         Enterprise enterprise = validateEnterprise(enterpriseId);
 
         List<WasteReport> pendingReports = wasteReportRepository.findByStatus(WasteReportStatus.PENDING);
 
-        return pendingReports.stream()
-                .filter(report -> isInServiceArea(enterprise, report))
-                .map(this::toResponse)
+        List<WasteReport> filteredReports = pendingReports.stream()
+                .filter(report -> AddressMatchUtil.isInServiceArea(report.getAddress(), enterprise.getServiceWards(), enterprise.getServiceCities()))
+                .toList();
+        return toResponses(filteredReports);
+    }
+
+    private List<EnterpriseWasteReportResponse> toResponses(List<WasteReport> reports) {
+        if (reports == null || reports.isEmpty()) {
+            return List.of();
+        }
+
+        List<Integer> reportIds = reports.stream()
+                .map(WasteReport::getId)
+                .toList();
+
+        Map<Integer, List<String>> imageUrlsByReportId = reportImageRepository.findByReport_IdIn(reportIds).stream()
+                .collect(Collectors.groupingBy(
+                        ri -> ri.getReport().getId(),
+                        Collectors.mapping(ReportImage::getImageUrl, Collectors.toList())
+                ));
+
+        Map<Integer, List<WasteReportItem>> itemsByReportId = wasteReportItemRepository.findWithCategoryByReportIdIn(reportIds).stream()
+                .collect(Collectors.groupingBy(i -> i.getReport().getId()));
+
+        Map<Integer, Integer> requestIdByReportId = collectionRequestRepository.findByReport_IdIn(reportIds).stream()
+                .collect(Collectors.toMap(
+                        cr -> cr.getReport().getId(),
+                        CollectionRequest::getId,
+                        (a, b) -> a
+                ));
+
+        return reports.stream()
+                .map(report -> toResponse(
+                        report,
+                        imageUrlsByReportId.getOrDefault(report.getId(), List.of()),
+                        itemsByReportId.getOrDefault(report.getId(), List.of()),
+                        requestIdByReportId.get(report.getId())
+                ))
                 .toList();
     }
 
-    private EnterpriseWasteReportResponse toResponse(WasteReport report) {
-        List<String> imageUrls = reportImageRepository.findByReport_Id(report.getId()).stream()
-                .map(ReportImage::getImageUrl)
-                .toList();
-
-        List<WasteCategoryResponse> categories = toWasteCategoryResponses(
-                wasteReportItemRepository.findWithCategoryByReportId(report.getId())
-        );
-
-        Integer requestId = collectionRequestRepository.findByReport_Id(report.getId())
-                .map(r -> r.getId())
-                .orElse(null);
-
+    private EnterpriseWasteReportResponse toResponse(
+            WasteReport report,
+            List<String> imageUrls,
+            List<WasteReportItem> items,
+            Integer requestId
+    ) {
+        List<WasteCategoryResponse> categories = toWasteCategoryResponses(items);
         return EnterpriseWasteReportResponse.builder()
                 .id(report.getId())
                 .reportCode(report.getReportCode())
@@ -154,15 +190,23 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
     }
 
     @Override
+    @Transactional(readOnly = true)
     public EnterpriseWasteReportResponse getReportById(Integer enterpriseId, Integer reportId) {
         Enterprise enterprise = validateEnterprise(enterpriseId);
         WasteReport report = validateReport(reportId);
 
-        if (!isInServiceArea(enterprise, report)) {
+        if (!AddressMatchUtil.isInServiceArea(report.getAddress(), enterprise.getServiceWards(), enterprise.getServiceCities())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Báo cáo không tồn tại");
         }
 
-        return toResponse(report);
+        List<String> imageUrls = reportImageRepository.findByReport_Id(report.getId()).stream()
+                .map(ReportImage::getImageUrl)
+                .toList();
+        List<WasteReportItem> items = wasteReportItemRepository.findWithCategoryByReportId(report.getId());
+        Integer requestId = collectionRequestRepository.findByReport_Id(report.getId())
+                .map(CollectionRequest::getId)
+                .orElse(null);
+        return toResponse(report, imageUrls, items, requestId);
     }
 
     @Override
@@ -209,7 +253,7 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Enterprise không hỗ trợ loại rác này");
         }
         
-        if (!isInServiceArea(enterprise, report)) {
+        if (!AddressMatchUtil.isInServiceArea(report.getAddress(), enterprise.getServiceWards(), enterprise.getServiceCities())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Báo cáo nằm ngoài khu vực hoạt động của Enterprise");
         }
     }
@@ -217,32 +261,5 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
     private boolean isSupportedWasteType(Enterprise enterprise, String wasteType) {
         // TODO: Implement check for supported waste types
         return true;
-    }
-
-    private boolean isInServiceArea(Enterprise enterprise, WasteReport report) {
-        String address = report.getAddress();
-        if (address == null || address.isBlank()) {
-            return false;
-        }
-
-        String wardList = enterprise.getServiceWards();
-        String cityList = enterprise.getServiceCities();
-        String lowerAddress = address.toLowerCase();
-
-        boolean wardOk = wardList == null || wardList.isBlank()
-                || Arrays.stream(wardList.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .map(String::toLowerCase)
-                .anyMatch(lowerAddress::contains);
-
-        boolean cityOk = cityList == null || cityList.isBlank()
-                || Arrays.stream(cityList.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .map(String::toLowerCase)
-                .anyMatch(lowerAddress::contains);
-
-        return wardOk && cityOk;
     }
 }
