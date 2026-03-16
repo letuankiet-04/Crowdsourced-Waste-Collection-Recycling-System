@@ -3,12 +3,18 @@ package com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Index;
 import lombok.*;
 
 import java.util.Date;
 
 @Entity
-@Table(name = "invalidated_tokens")
+@Table(
+        name = "invalidated_tokens",
+        indexes = {
+                @Index(name = "idx_inv_token_expiry", columnList = "expiryTime")
+        }
+)
 /**
  * Bảng lưu token đã bị thu hồi (denylist).
  *

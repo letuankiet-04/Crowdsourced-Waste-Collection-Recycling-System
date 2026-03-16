@@ -65,7 +65,7 @@ public class EnterpriseController extends EnterpriseControllerSupport {
 
     @GetMapping("/{requestId}/eligible-collectors")
     @PreAuthorize("hasRole('ENTERPRISE')")
-    @Operation(summary = "Liệt kê Collector đủ điều kiện", description = "Lọc theo bán kính ≤10km (mặc định), online và trạng thái ACTIVE/AVAILABLE")
+    @Operation(summary = "Liệt kê Collector đủ điều kiện", description = "Lọc theo bán kính ≤10km (mặc định), online và trạng thái ACTIVE")
     public ApiResponse<List<EligibleCollectorResponse>> getEligibleCollectors(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Integer requestId,

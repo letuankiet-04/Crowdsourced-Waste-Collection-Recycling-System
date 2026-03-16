@@ -12,7 +12,12 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.colle
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCollectorProfileRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Collector;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.ProfileService;
+
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.*;
+import org.springframework.cache.annotation.Cacheable;
 import java.util.List;
 import java.util.Map;
 import java.math.BigDecimal;
@@ -23,15 +28,20 @@ import java.math.BigDecimal;
 public class CollectorController {
     private final com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorService collectorService;
     private final CollectorRepository collectorRepository;
+    private final ProfileService profileService;
 
-    public CollectorController(CollectorService collectorService, CollectorRepository collectorRepository) {
+    public CollectorController(CollectorService collectorService,
+                               CollectorRepository collectorRepository,
+                               ProfileService profileService) {
         this.collectorService = collectorService;
         this.collectorRepository = collectorRepository;
+        this.profileService = profileService;
     }
 
     @GetMapping("/dashboard")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Trang tổng quan Collector", description = "Thông tin tổng quan nhanh cho Collector")
+    @Cacheable(value = "collectorDashboard", key = "#jwt.subject")
     public ApiResponse<Map<String, Object>> getDashboard(@AuthenticationPrincipal Jwt jwt) {
         Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
         String status = collectorRepository.findById(collectorId)
@@ -124,10 +134,23 @@ public class CollectorController {
 
     @PatchMapping("/status")
     @PreAuthorize("hasRole('COLLECTOR')")
-    @Operation(summary = "Cập nhật trạng thái", description = "Chuyển AVAILABLE/ACTIVE/INACTIVE")
+    @Operation(summary = "Cập nhật trạng thái", description = "Chuyển ACTIVE/INACTIVE")
     public ApiResponse<Void> updateMyStatus(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateCollectorStatusRequest request) {
         Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
         collectorService.updateAvailabilityStatus(collectorId, request != null ? request.getStatus() : null);
         return ApiResponse.<Void>builder().message("Updated").build();
+    }
+
+    @PutMapping("/profile")
+    @PreAuthorize("hasRole('COLLECTOR')")
+    @Operation(summary = "Cập nhật hồ sơ Collector", description = "Cập nhật tên, email, phương tiện, biển số")
+    public ApiResponse<Collector> updateMyProfile(@AuthenticationPrincipal Jwt jwt,
+                                                  @RequestBody UpdateCollectorProfileRequest request) {
+        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
+        Collector updated = profileService.updateCollectorProfile(collectorId, request);
+        return ApiResponse.<Collector>builder()
+                .result(updated)
+                .message("Cập nhật hồ sơ thành công")
+                .build();
     }
 }

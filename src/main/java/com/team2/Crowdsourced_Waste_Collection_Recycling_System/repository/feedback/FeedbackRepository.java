@@ -15,7 +15,7 @@ import java.util.Optional;
 public interface FeedbackRepository extends JpaRepository<Feedback, Integer> {
 
     @Override
-    @EntityGraph(attributePaths = { "citizen", "citizen.user", "collectionRequest" })
+    @EntityGraph(attributePaths = { "citizen", "citizen.user", "collectionRequest", "collectionRequest.collector", "collectionRequest.enterprise" })
     List<Feedback> findAll();
 
     @Override
@@ -33,6 +33,7 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Integer> {
     List<Feedback> findByCollectionRequestId(Integer collectionRequestId);
 
     
+    @EntityGraph(attributePaths = { "citizen", "citizen.user", "collectionRequest", "collectionRequest.collector", "collectionRequest.enterprise" })
     @Query("SELECT f FROM Feedback f WHERE f.collectionRequest.enterprise.id = :enterpriseId ORDER BY f.createdAt DESC")
     List<Feedback> findByEnterpriseId(@Param("enterpriseId") Integer enterpriseId);
     

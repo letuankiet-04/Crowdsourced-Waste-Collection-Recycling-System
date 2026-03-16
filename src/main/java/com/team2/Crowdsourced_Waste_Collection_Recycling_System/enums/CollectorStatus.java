@@ -25,7 +25,7 @@ public enum CollectorStatus {
             return null;
         }
         return switch (normalized) {
-            case "ONLINE", "AVAILABLE", "ACTIVE" -> ONLINE;
+            case "ONLINE", "ACTIVE" -> ONLINE;
             case "OFFLINE", "INACTIVE" -> OFFLINE;
             case "SUSPEND", "SUSPENDED" -> SUSPEND;
             default -> {

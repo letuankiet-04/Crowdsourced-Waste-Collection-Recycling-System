@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Index;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,7 +20,13 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "feedbacks")
+@Table(
+        name = "feedbacks",
+        indexes = {
+                @Index(name = "idx_fb_citizen_created", columnList = "citizen_id,created_at"),
+                @Index(name = "idx_fb_status_created", columnList = "status,created_at")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
