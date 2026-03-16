@@ -48,7 +48,11 @@ public class JWTHelper{
     protected long VALID_DURATION;
 
     public String issueToken(User user, Integer citizenId, Integer collectorId, Integer enterpriseId) {
-        return generateToken(user, citizenId, collectorId, enterpriseId);
+        return generateToken(user, citizenId, collectorId, enterpriseId, null);
+    }
+
+    public String issueToken(User user, Integer citizenId, Integer collectorId, Integer enterpriseId, String scope) {
+        return generateToken(user, citizenId, collectorId, enterpriseId, scope);
     }
 
     public SignedJWT verifyToken(String token) throws JOSEException, ParseException {
@@ -72,7 +76,7 @@ public class JWTHelper{
         return signedJWT;
     }
 
-    private String generateToken(User user, Integer citizenId, Integer collectorId, Integer enterpriseId) {
+    private String generateToken(User user, Integer citizenId, Integer collectorId, Integer enterpriseId, String scope) {
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
 
         JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder()
@@ -82,7 +86,7 @@ public class JWTHelper{
                 .expirationTime(new Date(
                         Instant.now().plus(VALID_DURATION, ChronoUnit.SECONDS).toEpochMilli()))
                 .jwtID(UUID.randomUUID().toString())
-                .claim("scope", buildScope(user));
+                .claim("scope", scope != null ? scope : buildScope(user));
 
         if (user.getRole() != null && user.getRole().getRoleCode() != null) {
             claimsBuilder.claim("role", user.getRole().getRoleCode());

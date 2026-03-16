@@ -12,6 +12,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.AppExc
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.ErrorCode;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.profile.CitizenRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.RolePermissionRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.RoleRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.UserRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.enterprise.EnterpriseRepository;
@@ -33,6 +34,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.text.ParseException;
 import java.util.Date;
+import java.util.StringJoiner;
 
 @Service
 @RequiredArgsConstructor
@@ -60,6 +62,7 @@ public class AuthServiceImpl implements AuthService {
 
     UserRepository userRepository;
     RoleRepository roleRepository;
+    RolePermissionRepository rolePermissionRepository;
     CitizenRepository citizenRepository;
     CollectorRepository collectorRepository;
     EnterpriseRepository enterpriseRepository;
@@ -129,8 +132,8 @@ public class AuthServiceImpl implements AuthService {
         Citizen savedCitizen = citizenRepository.save(citizen);
 
         Integer citizenId = savedCitizen.getId();
-        var token = jwtHelper.issueToken(savedUser, citizenId, null, null);
-
+        String scope = buildScope(role);
+        var token = jwtHelper.issueToken(savedUser, citizenId, null, null, scope);
         return AuthenticationResponse.builder()
                 .token(token)
                 .authenticated(true)
@@ -160,7 +163,7 @@ public class AuthServiceImpl implements AuthService {
         long start = System.currentTimeMillis();
 
         var user = userRepository
-                .findOneWithAuthByEmail(email)
+                .findOneWithRoleByEmailIgnoreCase(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         
         log.debug("Tìm thấy user trong {} ms", System.currentTimeMillis() - start);
@@ -193,7 +196,6 @@ public class AuthServiceImpl implements AuthService {
                 // Cập nhật trạng thái thành ONLINE khi đăng nhập (nếu không bị suspended)
                 if (collector.getStatus() != com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectorStatus.SUSPEND) {
                     collector.setStatus(com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectorStatus.ONLINE);
-                    collectorRepository.save(collector);
                 }
 
                 collectorId = collector.getId();
@@ -207,7 +209,6 @@ public class AuthServiceImpl implements AuthService {
                     enterprise = enterpriseRepository.findByEmailIgnoreCase(user.getEmail()).orElse(null);
                     if (enterprise != null) {
                         user.setEnterprise(enterprise);
-                        userRepository.save(user);
                     }
                 }
 
@@ -221,7 +222,8 @@ public class AuthServiceImpl implements AuthService {
         log.debug("Xử lý role/id phụ trong {} ms", System.currentTimeMillis() - mark);
         mark = System.currentTimeMillis();
 
-        var token = jwtHelper.issueToken(user, citizenId, collectorId, enterpriseId);
+        String scope = buildScope(user.getRole());
+        var token = jwtHelper.issueToken(user, citizenId, collectorId, enterpriseId, scope);
         
         log.info("Hoàn tất đăng nhập cho email: {} trong tổng cộng {} ms", email, System.currentTimeMillis() - start);
         return AuthenticationResponse.builder()
@@ -285,5 +287,28 @@ public class AuthServiceImpl implements AuthService {
             return null;
         }
         return citizenRepository.findByUserId(user.getId()).map(Citizen::getId).orElse(null);
+    }
+
+    private String buildScope(Role role) {
+        StringJoiner stringJoiner = new StringJoiner(" ");
+        if (role == null || role.getRoleCode() == null) {
+            return stringJoiner.toString();
+        }
+
+        stringJoiner.add("ROLE_" + role.getRoleCode().toUpperCase());
+
+        if (role.getId() == null) {
+            return stringJoiner.toString();
+        }
+
+        var permissionCodes = rolePermissionRepository.findPermissionCodesByRoleId(role.getId());
+        if (permissionCodes == null || permissionCodes.isEmpty()) {
+            return stringJoiner.toString();
+        }
+        permissionCodes.stream()
+                .filter(code -> code != null && !code.isBlank())
+                .forEach(stringJoiner::add);
+
+        return stringJoiner.toString();
     }
 }

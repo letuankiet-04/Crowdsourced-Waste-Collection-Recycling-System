@@ -13,6 +13,9 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     @EntityGraph(attributePaths = { "role", "role.rolePermissions", "role.rolePermissions.permission", "enterprise" })
     Optional<User> findOneWithAuthByEmail(String email);
 
+    @EntityGraph(attributePaths = { "role", "enterprise" })
+    Optional<User> findOneWithRoleByEmailIgnoreCase(String email);
+
     boolean existsByEmail(String email);
 
     // Admin: lấy all users, lọc theo status
