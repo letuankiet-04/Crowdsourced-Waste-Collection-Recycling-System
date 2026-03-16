@@ -1,6 +1,6 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request;
 
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,9 +11,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class EnterpriseFeedbackResolveRequest {
-    @NotNull(message = "Resolution is required")
+    @NotBlank(message = "Resolution is required")
     private String resolution;
     
-    @NotNull(message = "Status is required")
+    @NotBlank(message = "Status is required")
     private String status;
 }

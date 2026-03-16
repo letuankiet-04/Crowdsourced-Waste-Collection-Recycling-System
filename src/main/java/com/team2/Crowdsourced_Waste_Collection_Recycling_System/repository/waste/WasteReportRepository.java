@@ -23,6 +23,9 @@ public interface WasteReportRepository extends JpaRepository<WasteReport, Intege
     @EntityGraph(attributePaths = { "citizen", "citizen.user" })
     List<WasteReport> findByStatus(WasteReportStatus status);
 
+    @EntityGraph(attributePaths = { "citizen", "citizen.user" })
+    List<WasteReport> findByStatus(WasteReportStatus status, Sort sort);
+
     @Override
     @EntityGraph(attributePaths = { "citizen", "citizen.user" })
     List<WasteReport> findAll(Sort sort);

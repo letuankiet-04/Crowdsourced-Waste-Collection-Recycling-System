@@ -362,6 +362,25 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
             """)
     List<StatusCountView> countByStatusGroup();
 
+    interface CollectorStatusCountView {
+        Integer getCollectorId();
+
+        CollectionRequestStatus getStatus();
+
+        Long getTotal();
+    }
+
+    @Query("""
+            select cr.collector.id as collectorId, cr.status as status, count(cr) as total
+            from CollectionRequest cr
+            where cr.collector.id in :collectorIds
+              and cr.status in :statuses
+            group by cr.collector.id, cr.status
+            """)
+    List<CollectorStatusCountView> countByCollectorIdsAndStatusIn(
+            @Param("collectorIds") List<Integer> collectorIds,
+            @Param("statuses") List<CollectionRequestStatus> statuses);
+
     interface CollectorMonthlyCompletedCountView {
         Integer getYear();
 

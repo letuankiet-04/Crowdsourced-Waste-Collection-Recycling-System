@@ -53,7 +53,10 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
             }
         }
 
-        List<WasteReport> reports = wasteReportRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        List<WasteReport> reports = statusFilter != null
+                ? wasteReportRepository.findByStatus(statusFilter, sort)
+                : wasteReportRepository.findAll(sort);
 
         WasteReportStatus finalStatusFilter = statusFilter;
         List<WasteReport> filteredReports = reports.stream()

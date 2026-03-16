@@ -55,7 +55,7 @@ public class AuthController {
     @Operation(summary = "Đăng xuất", description = "Thu hồi token hiện tại nếu hợp lệ")
     public ResponseEntity<Void> logout(
             @RequestHeader(value = "Authorization", required = false) String authorizationHeader,
-            @RequestBody(required = false) LogoutRequest request) {
+            @RequestBody(required = false) LogoutRequest request) throws ParseException, JOSEException {
         String token = null;
 
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
@@ -64,10 +64,7 @@ public class AuthController {
             token = request.getToken().trim();
         }
 
-        try {
-            authService.logout(LogoutRequest.builder().token(token).build());
-        } catch (Exception ignored) {
-        }
+        authService.logout(LogoutRequest.builder().token(token).build());
 
         return ResponseEntity.noContent().build();
     }

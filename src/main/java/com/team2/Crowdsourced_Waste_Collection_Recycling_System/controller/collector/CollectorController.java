@@ -11,8 +11,6 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.Collecto
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.*;
 import java.util.List;
@@ -35,7 +33,7 @@ public class CollectorController {
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Trang tổng quan Collector", description = "Thông tin tổng quan nhanh cho Collector")
     public ApiResponse<Map<String, Object>> getDashboard(@AuthenticationPrincipal Jwt jwt) {
-        Integer collectorId = extractCollectorId(jwt);
+        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
         String status = collectorRepository.findById(collectorId)
                 .map(c -> c.getStatus() != null ? c.getStatus().name() : null)
                 .orElse(null);
@@ -53,7 +51,7 @@ public class CollectorController {
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Hiệu suất thu gom", description = "Thống kê số lượng thu gom theo tháng")
     public ApiResponse<CollectorPerformanceStatsResponse> getPerformanceStats(@AuthenticationPrincipal Jwt jwt, @RequestParam(required = false) Integer year) {
-        Integer collectorId = extractCollectorId(jwt);
+        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
         return ApiResponse.<CollectorPerformanceStatsResponse>builder()
                 .result(collectorService.getStats(collectorId, year))
                 .build();
@@ -63,7 +61,7 @@ public class CollectorController {
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Khối lượng rác thu gom", description = "Thống kê khối lượng rác theo tháng/quý")
     public ApiResponse<CollectorWasteVolumeStatsResponse> getWasteVolumeStats(@AuthenticationPrincipal Jwt jwt, @RequestParam(required = false) Integer year) {
-        Integer collectorId = extractCollectorId(jwt);
+        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
         return ApiResponse.<CollectorWasteVolumeStatsResponse>builder()
                 .result(collectorService.getWasteVolumeStats(collectorId, year))
                 .build();
@@ -73,7 +71,7 @@ public class CollectorController {
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Thống kê theo loại rác", description = "Tổng khối lượng rác theo từng loại")
     public ApiResponse<Map<String, BigDecimal>> getWasteTypeStats(@AuthenticationPrincipal Jwt jwt) {
-        Integer collectorId = extractCollectorId(jwt);
+        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
         return ApiResponse.<Map<String, BigDecimal>>builder()
                 .result(collectorService.getWasteTypeStats(collectorId))
                 .build();
@@ -83,7 +81,7 @@ public class CollectorController {
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Thống kê trạng thái task", description = "Số lượng task theo từng trạng thái")
     public ApiResponse<List<CollectorTaskStatusCountResponse>> getTaskStatusCounts(@AuthenticationPrincipal Jwt jwt) {
-        Integer collectorId = extractCollectorId(jwt);
+        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
         return ApiResponse.<List<CollectorTaskStatusCountResponse>>builder()
                 .result(collectorService.getTaskStatusCounts(collectorId))
                 .build();
@@ -97,7 +95,7 @@ public class CollectorController {
             @RequestParam(required = false) Integer day,
             @RequestParam(required = false) Integer month,
             @RequestParam(required = false) Integer year) {
-        Integer collectorId = extractCollectorId(jwt);
+        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
         return ApiResponse.<CollectorGeneralStatsResponse>builder()
                 .result(collectorService.getGeneralStats(collectorId, day, month, year))
                 .build();
@@ -118,7 +116,7 @@ public class CollectorController {
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Lịch sử thu gom", description = "Danh sách các task đã xử lý")
     public ApiResponse<List<CollectorWorkHistoryItemResponse>> getWorkHistory(@AuthenticationPrincipal Jwt jwt, @RequestParam(required = false) String status) {
-        Integer collectorId = extractCollectorId(jwt);
+        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
         return ApiResponse.<List<CollectorWorkHistoryItemResponse>>builder()
                 .result(collectorService.getWorkHistory(collectorId, status))
                 .build();
@@ -128,22 +126,8 @@ public class CollectorController {
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Cập nhật trạng thái", description = "Chuyển AVAILABLE/ACTIVE/INACTIVE")
     public ApiResponse<Void> updateMyStatus(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateCollectorStatusRequest request) {
-        Integer collectorId = extractCollectorId(jwt);
+        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
         collectorService.updateAvailabilityStatus(collectorId, request != null ? request.getStatus() : null);
         return ApiResponse.<Void>builder().message("Updated").build();
-    }
-
-    private Integer extractCollectorId(Jwt jwt) {
-        if (jwt == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thiếu token");
-        }
-        Object value = jwt.getClaims().get("collectorId");
-        if (value == null) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User hiện tại không phải Collector");
-        }
-        if (value instanceof Number number) {
-            return number.intValue();
-        }
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "collectorId không hợp lệ");
     }
 }

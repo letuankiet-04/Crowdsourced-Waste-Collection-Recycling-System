@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -18,7 +17,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -36,7 +34,7 @@ public class CollectorFeedbackController {
     public ApiResponse<CollectorFeedbackResponse> create(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody CreateCollectorFeedbackRequest request) {
-        Integer collectorId = extractCollectorId(jwt);
+        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
         CollectorFeedbackResponse response = collectorFeedbackService.createFeedback(collectorId, request);
         return ApiResponse.<CollectorFeedbackResponse>builder().result(response).build();
     }
@@ -46,22 +44,8 @@ public class CollectorFeedbackController {
     @Operation(summary = "Danh sách feedback của tôi", description = "Liệt kê feedback đã gửi của collector hiện tại")
     public ApiResponse<List<CollectorFeedbackResponse>> getMyFeedbacks(
             @AuthenticationPrincipal Jwt jwt) {
-        Integer collectorId = extractCollectorId(jwt);
+        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
         List<CollectorFeedbackResponse> result = collectorFeedbackService.getMyFeedbacks(collectorId);
         return ApiResponse.<List<CollectorFeedbackResponse>>builder().result(result).build();
-    }
-
-    private Integer extractCollectorId(Jwt jwt) {
-        if (jwt == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thiếu token");
-        }
-        Object value = jwt.getClaims().get("collectorId");
-        if (value == null) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User hiện tại không phải Collector");
-        }
-        if (value instanceof Number number) {
-            return number.intValue();
-        }
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "collectorId không hợp lệ");
     }
 }
