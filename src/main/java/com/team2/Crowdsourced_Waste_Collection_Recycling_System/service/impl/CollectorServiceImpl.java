@@ -106,6 +106,7 @@ public class CollectorServiceImpl implements CollectorService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public EnterpriseWasteReportResponse getTaskDetail(Integer collectorId, Integer requestId) {
         Optional<CollectionRequest> owned = collectionRequestRepository.findByIdAndCollector_Id(requestId, collectorId);
         if (owned.isEmpty()) {
