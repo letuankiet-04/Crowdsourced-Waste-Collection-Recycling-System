@@ -54,6 +54,17 @@ public class CollectionController {
         return ApiResponse.<java.util.List<CollectorTaskResponse>>builder().result(tasks).build();
     }
 
+    @GetMapping("/tasks/{requestId}")
+    @PreAuthorize("hasRole('COLLECTOR')")
+    @Operation(summary = "Chi tiết task", description = "Xem chi tiết task được Enterprise assign cho Collector hiện tại")
+    public ApiResponse<EnterpriseWasteReportResponse> getTaskDetail(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Integer requestId) {
+        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
+        EnterpriseWasteReportResponse result = collectorService.getTaskDetail(collectorId, requestId);
+        return ApiResponse.<EnterpriseWasteReportResponse>builder().result(result).build();
+    }
+
     @GetMapping("/tasks/status_counts")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Đếm task theo trạng thái", description = "Trả về số lượng task của collector theo từng status")
