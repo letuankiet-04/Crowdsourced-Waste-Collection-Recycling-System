@@ -13,13 +13,23 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Index;
 import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "collection_requests")
+@Table(
+        name = "collection_requests",
+        indexes = {
+                @Index(name = "idx_cr_collector_status", columnList = "collector_id,status"),
+                @Index(name = "idx_cr_enterprise_status_created", columnList = "enterprise_id,status,created_at"),
+                @Index(name = "idx_cr_status_assigned_at", columnList = "status,assigned_at"),
+                @Index(name = "idx_cr_sla_started_flag", columnList = "sla_violated,started_at"),
+                @Index(name = "idx_cr_report_id", columnList = "report_id")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor

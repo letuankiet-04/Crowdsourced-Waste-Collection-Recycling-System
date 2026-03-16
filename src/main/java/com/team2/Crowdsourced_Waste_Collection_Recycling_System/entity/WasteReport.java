@@ -14,6 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Index;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,7 +24,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "waste_reports")
+@Table(
+        name = "waste_reports",
+        indexes = {
+                @Index(name = "idx_wr_citizen_status_created", columnList = "citizen_id,status,created_at"),
+                @Index(name = "idx_wr_status_created", columnList = "status,created_at")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor

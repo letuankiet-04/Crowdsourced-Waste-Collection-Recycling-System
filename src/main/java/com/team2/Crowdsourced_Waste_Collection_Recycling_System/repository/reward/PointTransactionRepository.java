@@ -1,6 +1,7 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.reward;
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.PointTransaction;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,6 +13,7 @@ import java.util.List;
 @Repository
 public interface PointTransactionRepository extends JpaRepository<PointTransaction, Integer> {
     
+    @EntityGraph(attributePaths = { "citizen" })
     List<PointTransaction> findByCitizenId(Integer citizenId);
     
     List<PointTransaction> findByTransactionType(String transactionType);
@@ -32,6 +34,7 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
         @Param("type") String type
     );
     
+    @EntityGraph(attributePaths = { "citizen" })
     @Query("SELECT pt FROM PointTransaction pt WHERE pt.citizen.id = :citizenId AND pt.createdAt BETWEEN :startDate AND :endDate")
     List<PointTransaction> findByCitizenIdAndDateRange(
         @Param("citizenId") Integer citizenId,

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Tổng hợp kiến thức & kiến trúc dự án Crowdsourced Waste Collection</title>
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.6; margin: 24px; max-width: 960px; }
+    h1, h2, h3 { color: #1f2933; }
+    h1 { font-size: 26px; margin-bottom: 8px; }
+    h2 { font-size: 20px; margin-top: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; }
+    h3 { font-size: 16px; margin-top: 18px; }
+    code { background: #f3f4f6; padding: 2px 4px; border-radius: 3px; }
+    pre { background: #111827; color: #e5e7eb; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 13px; }
+    pre code { background: transparent; padding: 0; }
+    ul { margin-left: 20px; }
+    .tag { display: inline-block; padding: 1px 6px; border-radius: 999px; font-size: 11px; background: #eff6ff; color: #1d4ed8; margin-right: 6px; }
+    .section-note { font-size: 13px; color: #6b7280; }
+  </style>
+</head>
+<body>
+  <h1>Kiến thức & kiến trúc chính dùng trong dự án</h1>
+  <p class="section-note">
+    File này tóm tắt các kiến thức, công nghệ, cách tổ chức code, validate và các best practice hiệu năng đang dùng trong hệ thống
+    <strong>Crowdsourced Waste Collection &amp; Recycling System</strong>. Mục tiêu là để dev mới có thể đọc nhanh và nắm bức tranh tổng quan.
+  </p>
+
+  <h2>1. Công nghệ & stack</h2>
+  <ul>
+    <li><span class="tag">Backend</span> Java + Spring Boot</li>
+    <li><span class="tag">ORM</span> Spring Data JPA / Hibernate (code-first, entity &lt;-&gt; bảng DB)</li>
+    <li><span class="tag">DB</span> Quan hệ (MySQL / tương đương; dùng index tối ưu query)</li>
+    <li><span class="tag">Auth</span> JWT + Token denylist (bảng <code>invalidated_tokens</code> + cache in-memory)</li>
+    <li><span class="tag">Storage</span> Cloudinary để lưu ảnh (báo cáo rác, voucher banner/logo)</li>
+    <li><span class="tag">Scheduling</span> Spring <code>@Scheduled</code> cho các job tự động (timeout, SLA)</li>
+  </ul>
+
+  <h2>2. Các module chức năng chính</h2>
+
+  <h3>2.1. Báo cáo rác của công dân (WasteReport)</h3>
+  <ul>
+    <li><strong>Entity</strong>: <code>WasteReport</code> map với bảng <code>waste_reports</code>.</li>
+    <li><strong>Service chính</strong>: <code>WasteReportServiceImpl</code>.</li>
+    <li><strong>Repository</strong>: <code>WasteReportRepository</code> với một số query thống kê.</li>
+  </ul>
+  <p><strong>Luồng create/update report:</strong></p>
+  <ul>
+    <li>Validate input (ảnh, toạ độ, category, số lượng, loại file) trong <code>validateCreateRequest</code>.</li>
+    <li>Chống spam report gần nhau (khoảng 30m, trong 10 phút) bằng query <code>countRecentNearDuplicate</code>.</li>
+    <li>Tạo bản ghi <code>WasteReport</code>, <code>WasteReportItem</code> (chi tiết loại rác).</li>
+    <li>Upload ảnh lên Cloudinary qua <code>CloudinaryService</code>, lưu URL vào <code>WasteReport</code> &amp; <code>ReportImage</code>.</li>
+  </ul>
+
+  <pre><code>// Ví dụ mapping entity cơ bản (WasteReport)
+@Entity
+@Table(
+    name = "waste_reports",
+    indexes = {
+        @Index(name = "idx_wr_citizen_status_created", columnList = "citizen_id,status,created_at"),
+        @Index(name = "idx_wr_status_created", columnList = "status,created_at")
+    }
+)
+public class WasteReport {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "citizen_id", nullable = false)
+    private Citizen citizen;
+    ...
+}</code></pre>
+
+  <h3>2.2. Yêu cầu thu gom (CollectionRequest) & tác vụ của Collector</h3>
+  <ul>
+    <li><strong>Entity</strong>: <code>CollectionRequest</code> map với bảng <code>collection_requests</code>.</li>
+    <li><strong>Service</strong>:
+      <ul>
+        <li><code>CollectorServiceImpl</code>: tác vụ cho nhân viên thu gom (task list, history, update status,...).</li>
+        <li><code>EnterpriseAssignmentService</code>, <code>TaskAutomationServiceImpl</code>: tự động phân công & job SLA.</li>
+      </ul>
+    </li>
+    <li><strong>Repository</strong>: <code>CollectionRequestRepository</code> với nhiều projection view phục vụ dashboard và task list.</li>
+  </ul>
+
+  <p><strong>Kiến thức quan trọng:</strong></p>
+  <ul>
+    <li>Dùng <strong>enum</strong> <code>CollectionRequestStatus</code> và <code>WasteReportStatus</code> để quản lý state máy trạng thái.</li>
+    <li>Dùng <strong>projection interface</strong> (vd <code>CollectorTaskView</code>, <code>CollectorWorkHistoryView</code>) để tránh N+1 và giảm dữ liệu trả về.</li>
+    <li>Nhiều phương thức cập nhật trạng thái dùng <strong>JPQL update</strong> trả về số dòng cập nhật để chống race condition (kiểm tra trạng thái mong đợi).</li>
+  </ul>
+
+  <h3>2.3. Điểm thưởng & lịch sử điểm (PointTransaction)</h3>
+  <ul>
+    <li><strong>Entity</strong>: <code>PointTransaction</code> map bảng <code>point_transactions</code>.</li>
+    <li><strong>Repository</strong>: <code>PointTransactionRepository</code> với query tổng điểm, filter theo ngày, enterprise, loại giao dịch.</li>
+    <li><strong>Service</strong>: <code>WasteReportServiceImpl</code> (lịch sử thưởng người dân), <code>EnterpriseStatisticsServiceImpl</code> (thống kê enterprise).</li>
+  </ul>
+  <p><strong>Best practice đã dùng:</strong></p>
+  <ul>
+    <li>Không filter bằng vòng lặp Java với list lớn: lịch sử điểm dùng query <code>findByCitizenIdAndDateRange</code>.</li>
+    <li>Dùng aggregate SQL (<code>SUM</code>, <code>GROUP BY</code>) cho thống kê thay vì tính toán Java.</li>
+    <li>Thêm index trên <code>citizen_id,transaction_type,created_at</code> để tối ưu query theo user + thời gian.</li>
+  </ul>
+
+  <h3>2.4. Khiếu nại / Feedback (Feedback)</h3>
+  <ul>
+    <li><strong>Entity</strong>: <code>Feedback</code> map bảng <code>feedbacks</code>.</li>
+    <li><strong>Repository</strong>: <code>FeedbackRepository</code> với <code>@EntityGraph</code> để tránh N+1 khi xem danh sách.</li>
+    <li><strong>Service</strong>:
+      <ul>
+        <li><code>WasteReportServiceImpl</code>: công dân gửi complaint.</li>
+        <li><code>EnterpriseFeedbackServiceImpl</code>: doanh nghiệp xem &amp; xử lý feedback.</li>
+        <li><code>AdminComplaintServiceImpl</code>: admin xem tất cả khiếu nại.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h2>3. Validate & rule nghiệp vụ tiêu biểu</h2>
+
+  <h3>3.1. Validate báo cáo rác (createReport / updateReport)</h3>
+  <ul>
+    <li>Ảnh: không được rỗng, phải là MIME type <code>image/*</code>, giới hạn kích thước tối đa (10MB input, nén xuống &lt; 1MB trước khi upload).</li>
+    <li>Danh sách loại rác: không rỗng, số lượng <code>quantities</code> phải khớp số category, quantity &gt;= 0.</li>
+    <li>Toạ độ: bắt buộc, nằm trong range hợp lệ (-90 &le; lat &le; 90, -180 &le; lng &le; 180).</li>
+    <li>Chống spam: nếu công dân vừa gửi report ở gần vị trí đó (±0.00030 độ, ~30m) trong vòng 10 phút thì reject.</li>
+    <li>Update/hủy report: chỉ cho phép khi <code>status == PENDING</code> và chưa có <code>CollectionRequest</code> liên quan.</li>
+  </ul>
+
+  <h3>3.2. Rule SLAs & tự động hoá</h3>
+  <ul>
+    <li>Job <code>checkAssignedTasksTimeout</code>: nếu collector không nhận task trong X giờ:
+      <ul>
+        <li>Tăng số lần vi phạm của collector.</li>
+        <li>Huỷ phân công, trả task về trạng thái enterprise (ACCEPTED_ENTERPRISE).</li>
+        <li>Ghi log vào <code>CollectionTracking</code>.</li>
+      </ul>
+    </li>
+    <li>Job <code>checkSlaViolations</code>: nếu thời gian xử lý vượt SLA:
+      <ul>
+        <li>Đánh dấu <code>slaViolated = true</code> cho task.</li>
+        <li>Tăng violation count collector và có thể chuyển collector sang trạng thái SUSPEND khi quá ngưỡng.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h3>3.3. Rule khiếu nại (complaints/feedback)</h3>
+  <ul>
+    <li>Chỉ cho phép các loại complaint chuẩn hoá: <code>COMPLAINT_COLLECTION</code>, <code>COMPLAINT_REWARD</code>, <code>COMPLAINT_SYSTEM</code>.</li>
+    <li>Khiếu nại về thưởng (<code>COMPLAINT_REWARD</code>) chỉ hợp lệ nếu báo cáo đã ở trạng thái COLLECTED.</li>
+    <li>Enterprise/Admin giải quyết complaint:
+      <ul>
+        <li>Cập nhật <code>status</code> và <code>resolution</code> của feedback.</li>
+        <li>Nếu xác nhận complaint đúng (<code>status = RESOLVED</code>) thì tăng violation cho collector.</li>
+      </ul>
+    </li>
+  </ul>
+  <h2>4. Bảo mật (Security)</h2>
+
+  <h3>4.1. Xác thực & uỷ quyền (AuthZ/AuthN)</h3>
+  <ul>
+    <li><strong>JWT</strong>:
+      <ul>
+        <li>Client đăng nhập (qua <code>AuthServiceImpl</code>) nhận về access token (JWT) + có thể refresh token.</li>
+        <li>JWT chứa claim <code>sub</code> (email), <code>roles</code>, <code>jti</code> (ID duy nhất của token), <code>exp</code> (hết hạn).</li>
+      </ul>
+    </li>
+    <li><strong>Spring Security</strong>:
+      <ul>
+        <li>Cấu hình trong <code>SecurityConfig</code>:
+          <ul>
+            <li>Filter JWT đọc token từ header <code>Authorization: Bearer ...</code>.</li>
+            <li>Phân quyền dựa trên role (ADMIN / ENTERPRISE / COLLECTOR / CITIZEN).</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><strong>Token denylist</strong>:
+      <ul>
+        <li>Bảng <code>invalidated_tokens</code> + service <code>TokenDenylistService</code> dùng để thu hồi token khi logout/ban.</li>
+        <li>Check mỗi request: nếu <code>jti</code> tồn tại trong denylist và chưa hết hạn → token bị từ chối.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h3>4.2. Bảo vệ dữ liệu & input</h3>
+  <ul>
+    <li><strong>Validate mạnh ở tầng service</strong>:
+      <ul>
+        <li>Không tin dữ liệu từ client: luôn check trạng thái, quyền sở hữu, loại dữ liệu.</li>
+        <li>Ví dụ: chỉ owner report mới được update/hủy; enterprise chỉ xem được report trong khu vực/service area của mình.</li>
+      </ul>
+    </li>
+    <li><strong>Tránh lộ dữ liệu nhạy cảm trong log</strong>:
+      <ul>
+        <li><code>CollectionRequest</code> dùng <code>@ToString(exclude = { "report", "enterprise", "collector" })</code> để log không in tràn nội dung liên quan.</li>
+      </ul>
+    </li>
+    <li><strong>Upload file</strong>:
+      <ul>
+        <li>Chỉ cho phép các extension ảnh: <code>jpg, jpeg, png, gif, bmp</code> (check bằng <code>FileUpLoadUtil.assertAllowedImage</code>).</li>
+        <li>Giới hạn kích thước file, kiểm tra MIME type bắt đầu bằng <code>image/</code>.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h3>4.3. Một số lưu ý bảo mật khác</h3>
+  <ul>
+    <li>Không trả về thông tin nội bộ khi lỗi: dùng <code>AppException</code> và <code>ErrorCode</code> để chuẩn hoá message.</li>
+    <li>Kiểm tra chặt chẽ quyền truy cập:
+      <ul>
+        <li>Enterprise chỉ xem/giải quyết feedback thuộc enterprise của mình (check <code>feedback.collectionRequest.enterprise.id</code>).</li>
+        <li>Collector chỉ xem task thuộc về mình (<code>findByIdAndCollector_Id</code> hoặc kiểm tra lại trong <code>handleUpdateError</code>).</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h2>5. API tiêu biểu & luồng nghiệp vụ</h2>
+
+  <h3>5.1. Luồng báo cáo rác của công dân</h3>
+  <ol>
+    <li><strong>Công dân tạo report</strong>
+      <ul>
+        <li>API: <code>POST /api/citizen/reports</code> (request: <code>CreateWasteReportRequest</code>).</li>
+        <li>Service: <code>WasteReportServiceImpl.createReport</code>.</li>
+        <li>Bước:
+          <ol>
+            <li>Lấy citizen từ email trong JWT (<code>requireCitizenByEmail</code>).</li>
+            <li>Validate input (ảnh, category, quantity, toạ độ) bằng <code>validateCreateRequest</code>.</li>
+            <li>Check spam bằng <code>wasteReportRepository.countRecentNearDuplicate</code>.</li>
+            <li>Tạo <code>WasteReport</code> + <code>WasteReportItem</code>.</li>
+            <li>Upload ảnh → Cloudinary → lưu link.</li>
+            <li>Trả về <code>WasteReportResponse</code> với thông tin cơ bản + ảnh + category.</li>
+          </ol>
+        </li>
+      </ul>
+    </li>
+    <li><strong>Enterprise xem & duyệt report</strong>
+      <ul>
+        <li>API: <code>GET /api/enterprise/reports</code> (filter theo status).</li>
+        <li>Service: <code>EnterpriseWasteReportServiceImpl.getReports</code>.</li>
+        <li>Bước:
+          <ol>
+            <li>Xác thực enterprise (id từ JWT hoặc param) qua <code>validateEnterprise</code>.</li>
+            <li>Lấy list report theo trạng thái, sort theo createdAt.</li>
+            <li>Lọc theo khu vực mà enterprise phục vụ (dùng <code>AddressMatchUtil.isInServiceArea</code>).</li>
+            <li>Load thêm ảnh, items, liên kết với <code>CollectionRequest</code> để build <code>EnterpriseWasteReportResponse</code>.</li>
+          </ol>
+        </li>
+      </ul>
+    </li>
+    <li><strong>Enterprise chấp nhận / từ chối report</strong>
+      <ul>
+        <li>API: <code>POST /api/enterprise/reports/{id}/accept</code>, <code>/reject</code>.</li>
+        <li>Service: <code>EnterpriseWasteReportServiceImpl.acceptReport</code> / <code>rejectReport</code>.</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h3>5.2. Luồng nhiệm vụ của Collector</h3>
+  <ol>
+    <li><strong>Lấy danh sách task</strong>
+      <ul>
+        <li>API: <code>GET /api/collector/tasks</code> (có thể filter theo status / all).</li>
+        <li>Service: <code>CollectorServiceImpl.getTasks</code>.</li>
+        <li>Repository: <code>CollectionRequestRepository.findTasksForCollector...</code> trả về projection <code>CollectorTaskView</code>.</li>
+      </ul>
+    </li>
+    <li><strong>Collector nhận task / bắt đầu / hoàn thành / từ chối</strong>
+      <ul>
+        <li>API:
+          <ul>
+            <li><code>POST /api/collector/tasks/{id}/accept</code></li>
+            <li><code>POST /api/collector/tasks/{id}/start</code></li>
+            <li><code>POST /api/collector/tasks/{id}/complete</code></li>
+            <li><code>POST /api/collector/tasks/{id}/reject</code></li>
+          </ul>
+        </li>
+        <li>Service: <code>CollectorServiceImpl.acceptTask</code>, <code>startTask</code>, <code>completeTask</code>, <code>rejectTask</code>.</li>
+        <li>Rule:
+          <ul>
+            <li>Chỉ đổi trạng thái nếu trạng thái hiện tại đúng mong đợi (ASSIGNED → ACCEPTED_COLLECTOR → ON_THE_WAY → COLLECTED).</li>
+            <li>Kiểm tra quyền sở hữu task (task phải thuộc collector đang đăng nhập).</li>
+            <li>Update đồng thời <code>CollectionRequest</code> và <code>WasteReport.status</code>, ghi log vào <code>CollectionTracking</code>.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><strong>Lịch sử làm việc & thống kê</strong>
+      <ul>
+        <li>API: <code>GET /api/collector/work-history</code>, <code>/stats</code>, <code>/waste-volume</code>...</li>
+        <li>Service: <code>CollectorServiceImpl.getWorkHistory</code>, <code>getStats</code>, <code>getWasteVolumeStats</code>, <code>getWasteTypeStats</code>.</li>
+        <li>Tất cả thống kê sử dụng aggregate SQL (COUNT, SUM, GROUP BY) qua <code>CollectionRequestRepository</code>, <code>CollectorReportItemRepository</code>.</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h3>5.3. Luồng điểm thưởng & leaderboard công dân</h3>
+  <ol>
+    <li><strong>Lịch sử điểm của công dân</strong>
+      <ul>
+        <li>API: <code>GET /api/citizen/points/history</code> (có thể filter theo khoảng thời gian).</li>
+        <li>Service: <code>WasteReportServiceImpl.getRewardHistory</code>.</li>
+        <li>Validate:
+          <ul>
+            <li>Lấy citizen từ email, nếu không tồn tại → <code>ErrorCode.USER_NOT_EXISTED</code>.</li>
+            <li>Nếu có <code>startDate/endDate</code>: dùng query filter theo <code>createdAt</code> để không load toàn bộ lịch sử.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><strong>Tổng điểm & thống kê theo tháng/quý/năm</strong>
+      <ul>
+        <li>API: <code>GET /api/citizen/points/summary</code>.</li>
+        <li>Service: <code>WasteReportServiceImpl.getMyPointSummary</code>.</li>
+        <li>Rule:
+          <ul>
+            <li>Validate <code>year</code>, <code>quarter</code>, <code>month</code> trong range hợp lệ, nếu sai trả HTTP 400.</li>
+            <li>Dùng query <code>sumPointsByCitizenIdAndTypeAndRange</code> với điều kiện thời gian đã chuẩn hoá.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><strong>Leaderboard công dân</strong>
+      <ul>
+        <li>API: <code>GET /api/citizen/leaderboard</code> (filter theo ngày/tháng/năm hoặc khu vực).</li>
+        <li>Repo: <code>PointTransactionRepository.findCitizenLeaderboard</code> (GROUP BY, SUM(points)).</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h2>6. Tối ưu hiệu năng & tránh N+1</h2>
+
+  <h3>6.1. Nén & upload ảnh</h3>
+  <ul>
+    <li><strong>Nén ảnh</strong>: <code>FileUpLoadUtil.compressImage</code>
+      <ul>
+        <li>Nếu file &lt;= 1MB: giữ nguyên bytes.</li>
+        <li>Nếu lớn hơn: đọc vào <code>BufferedImage</code>, resize 1 lần về tối đa 1920x1080 rồi thử nén với một vài mức quality (0.85 → 0.7 → 0.55 → 0.4).</li>
+        <li>Nếu vẫn &gt;1MB: fallback resize mạnh hơn về 800x800, nén ~0.6.</li>
+      </ul>
+    </li>
+    <li><strong>Upload ảnh Cloudinary</strong>: <code>WasteReportServiceImpl.saveReportImages</code>
+      <ul>
+        <li>Dùng <code>ExecutorService</code> + <code>CompletableFuture</code> để upload song song (tối đa 4 ảnh cùng lúc).</li>
+        <li>Ảnh đầu tiên vẫn là ảnh đại diện; tất cả ảnh lưu vào bảng <code>ReportImage</code>.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h3>6.2. Tránh N+1 bằng EntityGraph & projection</h3>
+  <ul>
+    <li><strong>WasteReportRepository</strong>: <code>findAll(Sort)</code>, <code>findByStatus(...)</code> dùng <code>@EntityGraph("citizen","citizen.user")</code> để không N+1 khi lấy tên/email người báo cáo.</li>
+    <li><strong>FeedbackRepository</strong>: <code>findAll</code>, <code>findByEnterpriseId</code> fetch sẵn
+      <code>citizen</code>, <code>citizen.user</code>, <code>collectionRequest</code>, <code>collectionRequest.collector</code>, <code>collectionRequest.enterprise</code>.</li>
+    <li><strong>PointTransactionRepository</strong>: <code>findByCitizenId</code>, <code>findByCitizenIdAndDateRange</code> fetch sẵn
+      <code>citizen</code> để mapper dùng thông tin công dân không sinh thêm query.</li>
+    <li><strong>CollectionRequestRepository</strong>: nhiều query trả về projection interface (view) thay vì entity, giúp
+      tránh lazy-loading & N+1 cho task list / history / leaderboard.</li>
+  </ul>
+
+  <h3>6.3. Index ở cấp DB</h3>
+  <ul>
+    <li><code>waste_reports</code>: index theo <code>citizen_id,status,created_at</code>, <code>status,created_at</code>.</li>
+    <li><code>collection_requests</code>: index theo <code>collector_id,status</code>, <code>enterprise_id,status,created_at</code>,
+      <code>status,assigned_at</code>, <code>sla_violated,started_at</code>, <code>report_id</code>.</li>
+    <li><code>point_transactions</code>: index theo <code>citizen_id,created_at</code>, <code>citizen_id,transaction_type,created_at</code>.</li>
+    <li><code>invalidated_tokens</code>: index theo <code>expiryTime</code> hỗ trợ dọn dẹp.</li>
+    <li><code>feedbacks</code>: index theo <code>citizen_id,created_at</code>, <code>status,created_at</code>.</li>
+    <li><code>vouchers</code>: index theo <code>active,id</code>, <code>title</code>.</li>
+  </ul>
+
+  <h2>7. Auth & Token Denylist</h2>
+  <ul>
+    <li><strong>Bảng</strong> <code>invalidated_tokens</code> lưu <code>id (jti)</code> + <code>expiryTime</code> cho token bị thu hồi.</li>
+    <li><strong>Service</strong> <code>TokenDenylistService</code>:
+      <ul>
+        <li>Dùng <code>ConcurrentHashMap</code> làm cache in-memory (max 50k entry) với TTL dương/âm để giảm hit DB.</li>
+        <li>Khi logout hoặc revoke: ghi vào DB + update cache.</li>
+        <li>Khi check: ưu tiên lấy từ cache, miss thì hỏi DB rồi update cache.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h2>8. Hướng phát triển / tối ưu tiếp</h2>
+  <ul>
+    <li>Bổ sung phân trang cho các API hiện đang trả full list (complaints, feedbacks, voucher list, một số task list).</li>
+    <li>Có thể thêm Redis cho:
+      <ul>
+        <li>Cache denylist JWT (thay local cache, chia sẻ giữa nhiều instance).</li>
+        <li>Cache thống kê dashboard (enterprise, collector, citizen leaderboard) với TTL ngắn.</li>
+      </ul>
+    </li>
+    <li>Bổ sung test cho các rule quan trọng: chống spam report, SLA, complaint/resolution.</li>
+  </ul>
+
+  <p class="section-note">
+    Gợi ý: khi có dev mới join, hãy cho họ đọc file này trước, sau đó mở các class:
+    <code>WasteReportServiceImpl</code>, <code>CollectorServiceImpl</code>, <code>EnterpriseStatisticsServiceImpl</code>,
+    <code>TaskAutomationServiceImpl</code> để nắm kỹ hơn từng luồng nghiệp vụ.
+  </p>
+</body>
+</html>
+

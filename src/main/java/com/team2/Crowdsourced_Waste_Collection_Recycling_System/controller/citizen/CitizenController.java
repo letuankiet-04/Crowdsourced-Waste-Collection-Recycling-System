@@ -12,6 +12,9 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Cit
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.WasteCategoryResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.WasteReportResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.WasteReportService;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCitizenProfileRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Citizen;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.ProfileService;
 import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -44,6 +47,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Cit
 @Tag(name = "Citizen", description = "Tác vụ của công dân: báo cáo rác, khiếu nại, thưởng")
 public class CitizenController {
     private final WasteReportService wasteReportService;
+    private final ProfileService profileService;
 
     @GetMapping("/reports/stats")
     @PreAuthorize("hasRole('CITIZEN')")
@@ -159,6 +163,14 @@ public class CitizenController {
     public ResponseEntity<ApiResponse<List<WasteCategoryResponse>>> getWasteCategories() {
         List<WasteCategoryResponse> categories = wasteReportService.getWasteCategories();
         return ok(categories, "Lấy danh sách loại rác thành công");
+    }
+
+    @PutMapping("/profile")
+    @PreAuthorize("hasRole('CITIZEN')")
+    @Operation(summary = "Cập nhật hồ sơ công dân", description = "Cập nhật tên, địa chỉ, số điện thoại, ward, city")
+    public ResponseEntity<ApiResponse<Citizen>> updateMyProfile(@RequestBody UpdateCitizenProfileRequest request) {
+        Citizen updated = profileService.updateCitizenProfile(currentEmail(), request);
+        return ok(updated, "Cập nhật hồ sơ thành công");
     }
 
     private String currentEmail() {
