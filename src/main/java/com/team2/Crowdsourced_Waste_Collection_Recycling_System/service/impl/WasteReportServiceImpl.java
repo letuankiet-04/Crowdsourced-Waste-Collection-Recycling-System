@@ -55,6 +55,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -798,6 +799,7 @@ public class WasteReportServiceImpl implements WasteReportService {
 
     private void saveReportImages(WasteReport report, List<MultipartFile> images, LocalDateTime now) {
         boolean first = true;
+        List<ReportImage> reportImages = new ArrayList<>();
         for (MultipartFile file : images) {
             CloudinaryResponse uploaded = cloudinaryService.uploadImage(file, "reports");
             if (uploaded == null || uploaded.getUrl() == null) {
@@ -808,7 +810,6 @@ public class WasteReportServiceImpl implements WasteReportService {
             if (first) {
                 report.setImages(uploaded.getUrl());
                 report.setCloudinaryPublicId(uploaded.getPublicId());
-                wasteReportRepository.save(report);
                 first = false;
             }
 
@@ -818,8 +819,10 @@ public class WasteReportServiceImpl implements WasteReportService {
             img.setImageUrl(uploaded.getUrl());
             img.setImageType("BEFORE");
             img.setUploadedAt(now);
-            reportImageRepository.save(img);
+            reportImages.add(img);
         }
+        wasteReportRepository.save(report);
+        reportImageRepository.saveAll(reportImages);
     }
 
     private String mapCitizenStatus(WasteReportStatus status) {
@@ -914,7 +917,8 @@ public class WasteReportServiceImpl implements WasteReportService {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
 
-        List<Integer> ids = new ArrayList<>();
+        List<Object> parsed = new ArrayList<>();
+        LinkedHashSet<String> categoryNamesLower = new LinkedHashSet<>();
         for (String raw : rawValues) {
             if (raw == null || raw.isBlank()) {
                 continue;
@@ -930,24 +934,36 @@ public class WasteReportServiceImpl implements WasteReportService {
                 // Thử parse số nguyên (ID)
                 Integer id = tryParseInt(token);
                 if (id != null) {
-                    ids.add(id);
+                    parsed.add(id);
                     continue;
                 }
                 
-                // Nếu không phải số, tìm theo tên
-                Optional<WasteCategory> catOpt = wasteCategoryRepository.findByNameIgnoreCase(token);
-                if (catOpt.isPresent()) {
-                    ids.add(catOpt.get().getId());
-                } else {
-                    throw new AppException(ErrorCode.INVALID_REQUEST);
-                }
+                String lower = token.toLowerCase(Locale.ROOT);
+                parsed.add(lower);
+                categoryNamesLower.add(lower);
             }
         }
 
-        // Loại bỏ trùng lặp
-        List<Integer> deduped = new ArrayList<>();
-        for (Integer id : ids) {
-            if (id != null && !deduped.contains(id)) {
+        Map<String, Integer> lowerNameToId = new HashMap<>();
+        if (!categoryNamesLower.isEmpty()) {
+            List<WasteCategory> categories = wasteCategoryRepository.findByLowerNameIn(new ArrayList<>(categoryNamesLower));
+            for (WasteCategory cat : categories) {
+                if (cat == null || cat.getId() == null || cat.getName() == null) {
+                    continue;
+                }
+                lowerNameToId.putIfAbsent(cat.getName().toLowerCase(Locale.ROOT), cat.getId());
+            }
+        }
+
+        LinkedHashSet<Integer> deduped = new LinkedHashSet<>();
+        for (Object value : parsed) {
+            if (value instanceof Integer id) {
+                deduped.add(id);
+            } else if (value instanceof String lower) {
+                Integer id = lowerNameToId.get(lower);
+                if (id == null) {
+                    throw new AppException(ErrorCode.INVALID_REQUEST);
+                }
                 deduped.add(id);
             }
         }
@@ -955,7 +971,7 @@ public class WasteReportServiceImpl implements WasteReportService {
         if (deduped.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
-        return deduped;
+        return new ArrayList<>(deduped);
     }
 
     private Integer tryParseInt(String value) {

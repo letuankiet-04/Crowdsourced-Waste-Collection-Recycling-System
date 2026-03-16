@@ -87,7 +87,6 @@ public class EnterpriseCollectorController extends EnterpriseControllerSupport {
         collector.setCreatedAt(LocalDateTime.now());
         Collector savedCollector = collectorRepository.save(collector);
         savedCollector.setEmployeeCode(String.format("C%03d", savedCollector.getId()));
-        savedCollector = collectorRepository.save(savedCollector);
 
         return ok(CreateCollectorResponse.builder()
                 .userId(savedUser.getId())
@@ -114,13 +113,13 @@ public class EnterpriseCollectorController extends EnterpriseControllerSupport {
 
         List<Collector> collectors;
         if (status == null || status.isBlank()) {
-            collectors = collectorRepository.findByEnterprise_IdOrderByCreatedAtDesc(enterpriseId);
+            collectors = collectorRepository.findByEnterpriseIdWithUserOrderByCreatedAtDesc(enterpriseId);
         } else {
             CollectorStatus collectorStatus = CollectorStatus.fromString(status);
             if (collectorStatus == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "status không hợp lệ");
             }
-            collectors = collectorRepository.findByEnterprise_IdAndStatusOrderByCreatedAtDesc(enterpriseId, collectorStatus);
+            collectors = collectorRepository.findByEnterpriseIdAndStatusWithUserOrderByCreatedAtDesc(enterpriseId, collectorStatus);
         }
 
         List<CreateCollectorResponse> result = collectors.stream()

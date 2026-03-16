@@ -1,7 +1,8 @@
 spring:
   application:
     name: Crowdsourced-Waste-Collection-Recycling-System
-
+  jackson:
+    time-zone: Asia/Ho_Chi_Minh
   datasource:
     url: jdbc:mysql://${MYSQLHOST:${MYSQL_HOST:mainline.proxy.rlwy.net}}:${MYSQLPORT:${MYSQL_PORT:37671}}/${MYSQLDATABASE:${MYSQL_DATABASE:railway}}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&autoReconnect=true
     username: ${MYSQLUSER:${MYSQL_USER:root}}
@@ -15,11 +16,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     open-in-view: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
         dialect: org.hibernate.dialect.MySQL8Dialect
 
 server:

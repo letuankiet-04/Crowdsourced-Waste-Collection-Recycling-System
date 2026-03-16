@@ -1,9 +1,13 @@
 spring:
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
 
 app:
   seed:
-    enabled: true
+    enabled: false
     modular: true
