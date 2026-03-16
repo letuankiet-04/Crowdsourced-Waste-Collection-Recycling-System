@@ -84,44 +84,23 @@ public class FileUpLoadUtil {
             return file.getBytes();
         }
 
-        // Initial settings
-        int targetWidth = 1920;
-        int targetHeight = 1080;
-        float quality = 0.85f;
-        
+        // Resize một lần về kích thước mục tiêu để tránh phải xử lý lại nhiều lần
+        BufferedImage resizedBase = resizeImage(originalImage, 1920, 1080);
+
+        // Thử nén với một vài mức chất lượng khác nhau (giảm dần) cho đến khi đạt < 1MB
+        float[] qualities = new float[] {0.85f, 0.7f, 0.55f, 0.4f};
         byte[] result = null;
-        int attempts = 0;
-        
-        // Loop to reduce size until under 1MB
-        // Strategy: Reduce quality first, then dimensions if needed
-        while (attempts < 10) {
-            BufferedImage resized = resizeImage(originalImage, targetWidth, targetHeight);
-            result = compressToJpg(resized, quality);
-            
+
+        for (float q : qualities) {
+            result = compressToJpg(resizedBase, q);
             if (result.length <= MAX_COMPRESSED_SIZE) {
                 return result;
             }
-            
-            // Adjust parameters for next attempt
-            if (quality > 0.6f) {
-                quality -= 0.15f; // Reduce quality significantly
-            } else {
-                // If quality is already low, reduce dimensions
-                targetWidth = (int)(targetWidth * 0.75);
-                targetHeight = (int)(targetHeight * 0.75);
-                // Reset quality slightly to avoid artifacts at small resolution
-                quality = 0.8f;
-            }
-            attempts++;
         }
-        
-        // Final fallback: aggressive resize/compression if loop failed
-        if (result == null || result.length > MAX_COMPRESSED_SIZE) {
-             BufferedImage fallback = resizeImage(originalImage, 800, 800);
-             return compressToJpg(fallback, 0.5f);
-        }
-        
-        return result;
+
+        // Fallback cuối cùng: giảm kích thước mạnh hơn và nén lại với chất lượng trung bình
+        BufferedImage fallback = resizeImage(originalImage, 800, 800);
+        return compressToJpg(fallback, 0.6f);
     }
 
     private static BufferedImage resizeImage(BufferedImage original, int maxWidth, int maxHeight) {

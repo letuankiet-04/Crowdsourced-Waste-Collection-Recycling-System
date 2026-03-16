@@ -61,6 +61,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CitizenReportStatsResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportItemRepository;
 
@@ -473,21 +478,22 @@ public class WasteReportServiceImpl implements WasteReportService {
     @Override
     public List<CitizenRewardHistoryResponse> getRewardHistory(String citizenEmail, LocalDateTime startDate, LocalDateTime endDate) {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
+        List<PointTransaction> transactions;
+        // Nếu có khoảng thời gian, lọc trực tiếp ở tầng repository để giảm dữ liệu load lên
+        if (startDate != null && endDate != null) {
+            transactions = pointTransactionRepository.findByCitizenIdAndDateRange(
+                    citizen.getId(),
+                    startDate,
+                    endDate
+            );
+        } else {
+            transactions = pointTransactionRepository.findByCitizenId(citizen.getId());
+        }
 
-        List<PointTransaction> transactions = pointTransactionRepository.findByCitizenId(citizen.getId());
-        
         List<CitizenRewardHistoryResponse> results = new ArrayList<>();
-        
         for (PointTransaction tx : transactions) {
-            // Lọc theo ngày nếu có
-            if (startDate != null && endDate != null) {
-                if (!isInRange(tx.getCreatedAt(), startDate, endDate)) {
-                    continue; // Bỏ qua nếu không nằm trong khoảng thời gian
-                }
-            }
             results.add(citizenFeatureMapper.toCitizenRewardHistoryResponse(tx));
         }
-        
         return results;
     }
 
@@ -798,31 +804,60 @@ public class WasteReportServiceImpl implements WasteReportService {
     }
 
     private void saveReportImages(WasteReport report, List<MultipartFile> images, LocalDateTime now) {
-        boolean first = true;
-        List<ReportImage> reportImages = new ArrayList<>();
-        for (MultipartFile file : images) {
-            CloudinaryResponse uploaded = cloudinaryService.uploadImage(file, "reports");
-            if (uploaded == null || uploaded.getUrl() == null) {
-                throw new AppException(ErrorCode.IMAGE_UPLOAD_FAILED);
-            }
-
-            // Ảnh đầu tiên được lưu vào bảng WasteReport làm ảnh đại diện
-            if (first) {
-                report.setImages(uploaded.getUrl());
-                report.setCloudinaryPublicId(uploaded.getPublicId());
-                first = false;
-            }
-
-            // Lưu tất cả ảnh vào bảng ReportImage
-            ReportImage img = new ReportImage();
-            img.setReport(report);
-            img.setImageUrl(uploaded.getUrl());
-            img.setImageType("BEFORE");
-            img.setUploadedAt(now);
-            reportImages.add(img);
+        if (images == null || images.isEmpty()) {
+            return;
         }
-        wasteReportRepository.save(report);
-        reportImageRepository.saveAll(reportImages);
+
+        int poolSize = Math.min(images.size(), 4);
+        ExecutorService executor = Executors.newFixedThreadPool(poolSize);
+
+        try {
+            List<CompletableFuture<CloudinaryResponse>> futures = new ArrayList<>();
+
+            for (MultipartFile file : images) {
+                CompletableFuture<CloudinaryResponse> future = CompletableFuture.supplyAsync(() -> {
+                    CloudinaryResponse uploaded = cloudinaryService.uploadImage(file, "reports");
+                    if (uploaded == null || uploaded.getUrl() == null) {
+                        throw new AppException(ErrorCode.IMAGE_UPLOAD_FAILED);
+                    }
+                    return uploaded;
+                }, executor);
+                futures.add(future);
+            }
+
+            List<ReportImage> reportImages = new ArrayList<>();
+            boolean first = true;
+
+            for (CompletableFuture<CloudinaryResponse> future : futures) {
+                CloudinaryResponse uploaded;
+                try {
+                    uploaded = future.get();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new AppException(ErrorCode.IMAGE_UPLOAD_FAILED);
+                } catch (ExecutionException e) {
+                    throw new AppException(ErrorCode.IMAGE_UPLOAD_FAILED);
+                }
+
+                if (first) {
+                    report.setImages(uploaded.getUrl());
+                    report.setCloudinaryPublicId(uploaded.getPublicId());
+                    first = false;
+                }
+
+                ReportImage img = new ReportImage();
+                img.setReport(report);
+                img.setImageUrl(uploaded.getUrl());
+                img.setImageType("BEFORE");
+                img.setUploadedAt(now);
+                reportImages.add(img);
+            }
+
+            wasteReportRepository.save(report);
+            reportImageRepository.saveAll(reportImages);
+        } finally {
+            executor.shutdown();
+        }
     }
 
     private String mapCitizenStatus(WasteReportStatus status) {
