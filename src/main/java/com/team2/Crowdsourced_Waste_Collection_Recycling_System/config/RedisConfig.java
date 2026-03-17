@@ -17,7 +17,13 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
 
+import org.springframework.cache.interceptor.CacheErrorHandler;
+import org.springframework.cache.interceptor.SimpleCacheErrorHandler;
+import org.springframework.cache.Cache;
+import lombok.extern.slf4j.Slf4j;
+
 @Configuration
+@Slf4j
 public class RedisConfig implements CachingConfigurer {
 
     @Value("${spring.data.redis.host:localhost}")
@@ -53,6 +59,35 @@ public class RedisConfig implements CachingConfigurer {
         return RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(cacheConfiguration)
                 .build();
+    }
+
+    /**
+     * Error handler để bỏ qua cache nếu Redis bị lỗi (ví dụ: Redis chưa start).
+     * Thay vì trả về lỗi 500, app sẽ gọi thẳng xuống Service/DB.
+     */
+    @Override
+    public CacheErrorHandler errorHandler() {
+        return new SimpleCacheErrorHandler() {
+            @Override
+            public void handleCacheGetError(RuntimeException exception, Cache cache, Object key) {
+                log.warn("Redis error on get: {}. Bypassing cache.", exception.getMessage());
+            }
+
+            @Override
+            public void handleCachePutError(RuntimeException exception, Cache cache, Object key, Object value) {
+                log.warn("Redis error on put: {}. Bypassing cache.", exception.getMessage());
+            }
+
+            @Override
+            public void handleCacheEvictError(RuntimeException exception, Cache cache, Object key) {
+                log.warn("Redis error on evict: {}. Bypassing cache.", exception.getMessage());
+            }
+
+            @Override
+            public void handleCacheClearError(RuntimeException exception, Cache cache) {
+                log.warn("Redis error on clear: {}. Bypassing cache.", exception.getMessage());
+            }
+        };
     }
 
     /**

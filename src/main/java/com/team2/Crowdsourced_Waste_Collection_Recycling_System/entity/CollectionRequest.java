@@ -56,6 +56,7 @@ public class CollectionRequest {
     @JoinColumn(name = "collector_id")
     private Collector collector;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20)
     private CollectionRequestStatus status;
 

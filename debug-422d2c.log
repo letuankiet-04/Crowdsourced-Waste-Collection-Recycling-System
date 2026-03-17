@@ -1,1 +1,7 @@
 {"sessionId":"422d2c","runId":"pre-fix","hypothesisId":"H1","location":"CollectorServiceImpl#getTasks","message":"collector getTasks entry","data":{"collectorId":"1","status":"null","all":true},"timestamp":1773731301196}
+{"sessionId":"422d2c","runId":"pre-fix","hypothesisId":"H1","location":"CollectorServiceImpl#getTasks","message":"collector getTasks entry","data":{"collectorId":"3","status":"null","all":false},"timestamp":1773752947526}
+{"sessionId":"422d2c","runId":"pre-fix","hypothesisId":"H1","location":"CollectorServiceImpl#getTasks","message":"collector getTasks entry","data":{"collectorId":"3","status":"null","all":false},"timestamp":1773752947653}
+{"sessionId":"422d2c","runId":"pre-fix","hypothesisId":"H1","location":"CollectorServiceImpl#getTasks","message":"collector getTasks entry","data":{"collectorId":"3","status":"null","all":false},"timestamp":1773752996004}
+{"sessionId":"422d2c","runId":"pre-fix","hypothesisId":"H1","location":"CollectorServiceImpl#getTasks","message":"collector getTasks entry","data":{"collectorId":"3","status":"null","all":false},"timestamp":1773752996127}
+{"sessionId":"422d2c","runId":"pre-fix","hypothesisId":"H1","location":"CollectorServiceImpl#getTasks","message":"collector getTasks entry","data":{"collectorId":"3","status":"null","all":false},"timestamp":1773753162672}
+{"sessionId":"422d2c","runId":"pre-fix","hypothesisId":"H1","location":"CollectorServiceImpl#getTasks","message":"collector getTasks entry","data":{"collectorId":"3","status":"null","all":false},"timestamp":1773753162740}

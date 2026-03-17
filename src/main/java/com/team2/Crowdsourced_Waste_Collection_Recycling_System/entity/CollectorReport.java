@@ -41,6 +41,7 @@ public class CollectorReport {
     @JoinColumn(name = "collector_id", nullable = false)
     private Collector collector;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private CollectorReportStatus status;
 

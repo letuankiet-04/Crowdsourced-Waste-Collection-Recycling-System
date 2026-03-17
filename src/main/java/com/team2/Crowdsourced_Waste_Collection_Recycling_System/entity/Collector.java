@@ -53,6 +53,7 @@ public class Collector {
     @Column(name = "vehicle_plate", length = 20)
     private String vehiclePlate;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20)
     private CollectorStatus status;
 
