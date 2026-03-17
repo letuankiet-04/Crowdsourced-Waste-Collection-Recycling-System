@@ -5,6 +5,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Col
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.EnterpriseFeedbackResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.WasteCategoryResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Collector;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectorFeedback;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectorReport;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectorReportItem;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Feedback;
@@ -12,6 +13,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.colle
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportItemRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.feedback.CollectorFeedbackRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.feedback.FeedbackRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.AdminComplaintService;
 import lombok.RequiredArgsConstructor;
@@ -21,16 +23,19 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class AdminComplaintServiceImpl implements AdminComplaintService {
 
+    private static final int COLLECTOR_FEEDBACK_ID_MULTIPLIER = -1;
+
     private final FeedbackRepository feedbackRepository;
+    private final CollectorFeedbackRepository collectorFeedbackRepository;
     private final CollectorReportRepository collectorReportRepository;
     private final CollectorReportImageRepository collectorReportImageRepository;
     private final CollectorReportItemRepository collectorReportItemRepository;
@@ -39,20 +44,45 @@ public class AdminComplaintServiceImpl implements AdminComplaintService {
     @Override
     @Transactional(readOnly = true)
     public List<EnterpriseFeedbackResponse> getAllComplaints() {
-        // Lấy tất cả feedback từ DB
-        List<Feedback> allFeedbacks = feedbackRepository.findAll();
+        List<Feedback> allCitizenFeedbacks = feedbackRepository.findAll();
+        List<CollectorFeedback> allCollectorFeedbacks = collectorFeedbackRepository.findAll();
         List<EnterpriseFeedbackResponse> result = new ArrayList<>();
-        
-        for (Feedback f : allFeedbacks) {
-            result.add(toResponseSummary(f));
+
+        for (Feedback feedback : allCitizenFeedbacks) {
+            result.add(toResponseSummary(feedback));
         }
-        
+
+        for (CollectorFeedback feedback : allCollectorFeedbacks) {
+            result.add(toResponseSummary(feedback));
+        }
+
+        result.sort(Comparator.comparing(EnterpriseFeedbackResponse::getCreatedAt,
+                Comparator.nullsLast(Comparator.reverseOrder())));
+
         return result;
     }
 
     @Override
     @Transactional(readOnly = true)
     public EnterpriseFeedbackResponse getComplaintDetail(Integer id) {
+        if (isCollectorFeedbackId(id)) {
+            Integer collectorFeedbackId = toCollectorFeedbackId(id);
+            CollectorFeedback feedback = collectorFeedbackRepository.findById(collectorFeedbackId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Complaint không tồn tại"));
+
+            CollectorReportResponse collectorReportResponse = null;
+            if (feedback.getCollectionRequest() != null) {
+                CollectorReport collectorReport = collectorReportRepository
+                        .findByCollectionRequest_Id(feedback.getCollectionRequest().getId())
+                        .orElse(null);
+                if (collectorReport != null) {
+                    collectorReportResponse = toCollectorReportResponse(collectorReport);
+                }
+            }
+
+            return toResponseDetail(feedback, collectorReportResponse);
+        }
+
         Feedback feedback = feedbackRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Complaint không tồn tại"));
 
@@ -72,6 +102,17 @@ public class AdminComplaintServiceImpl implements AdminComplaintService {
     @Override
     @Transactional
     public void resolveComplaint(Integer id, EnterpriseFeedbackResolveRequest request) {
+        if (isCollectorFeedbackId(id)) {
+            Integer collectorFeedbackId = toCollectorFeedbackId(id);
+            CollectorFeedback feedback = collectorFeedbackRepository.findById(collectorFeedbackId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Complaint không tồn tại"));
+
+            feedback.setStatus(request.getStatus());
+            feedback.setResolution(request.getResolution());
+            collectorFeedbackRepository.save(feedback);
+            return;
+        }
+
         Feedback feedback = feedbackRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Complaint không tồn tại"));
 
@@ -108,7 +149,28 @@ public class AdminComplaintServiceImpl implements AdminComplaintService {
                 .build();
     }
 
+    private EnterpriseFeedbackResponse toResponseSummary(CollectorFeedback feedback) {
+        return EnterpriseFeedbackResponse.builder()
+                .id(toPublicCollectorFeedbackId(feedback.getId()))
+                .feedbackCode(feedback.getFeedbackCode())
+                .subject(feedback.getSubject())
+                .content(feedback.getContent())
+                .resolution(feedback.getResolution())
+                .status(feedback.getStatus())
+                .citizenName(resolveCollectorName(feedback))
+                .citizenEmail(resolveCollectorEmail(feedback))
+                .createdAt(feedback.getCreatedAt())
+                .collectionRequestId(feedback.getCollectionRequest() != null ? feedback.getCollectionRequest().getId() : null)
+                .build();
+    }
+
     private EnterpriseFeedbackResponse toResponseDetail(Feedback feedback, CollectorReportResponse collectorReport) {
+        EnterpriseFeedbackResponse response = toResponseSummary(feedback);
+        response.setCollectorReport(collectorReport);
+        return response;
+    }
+
+    private EnterpriseFeedbackResponse toResponseDetail(CollectorFeedback feedback, CollectorReportResponse collectorReport) {
         EnterpriseFeedbackResponse response = toResponseSummary(feedback);
         response.setCollectorReport(collectorReport);
         return response;
@@ -128,6 +190,34 @@ public class AdminComplaintServiceImpl implements AdminComplaintService {
             return feedback.getCitizen().getUser().getEmail();
         }
         return feedback.getCitizen().getEmail();
+    }
+
+    private String resolveCollectorName(CollectorFeedback feedback) {
+        if (feedback.getCollector() == null) return null;
+        if (feedback.getCollector().getUser() != null && feedback.getCollector().getUser().getFullName() != null) {
+            return feedback.getCollector().getUser().getFullName();
+        }
+        return feedback.getCollector().getFullName();
+    }
+
+    private String resolveCollectorEmail(CollectorFeedback feedback) {
+        if (feedback.getCollector() == null) return null;
+        if (feedback.getCollector().getUser() != null) {
+            return feedback.getCollector().getUser().getEmail();
+        }
+        return feedback.getCollector().getEmail();
+    }
+
+    private boolean isCollectorFeedbackId(Integer id) {
+        return id != null && id < 0;
+    }
+
+    private Integer toCollectorFeedbackId(Integer publicId) {
+        return publicId * COLLECTOR_FEEDBACK_ID_MULTIPLIER;
+    }
+
+    private Integer toPublicCollectorFeedbackId(Integer collectorFeedbackId) {
+        return collectorFeedbackId * COLLECTOR_FEEDBACK_ID_MULTIPLIER;
     }
 
     private CollectorReportResponse toCollectorReportResponse(CollectorReport report) {

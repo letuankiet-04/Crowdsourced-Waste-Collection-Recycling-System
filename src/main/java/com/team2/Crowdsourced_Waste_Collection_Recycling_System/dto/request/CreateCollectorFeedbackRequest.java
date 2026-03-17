@@ -15,9 +15,6 @@ public class CreateCollectorFeedbackRequest {
     private String type;
 
     @NotBlank
-    private String subject;
-
-    @NotBlank
     private String content;
 
     @Min(1)

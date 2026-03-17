@@ -5,6 +5,8 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Col
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectionRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Collector;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectorFeedback;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.AppException;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.ErrorCode;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionRequestRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.feedback.CollectorFeedbackRepository;
@@ -17,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +33,13 @@ public class CollectorFeedbackServiceImpl implements CollectorFeedbackService {
     public CollectorFeedbackResponse createFeedback(Integer collectorId, CreateCollectorFeedbackRequest request) {
         Collector collector = collectorRepository.findById(collectorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Collector không tồn tại"));
+
+        String normalizedType = normalizeComplaintType(request.getType());
+        if (!"COMPLAINT_COLLECTION".equals(normalizedType)
+                && !"COMPLAINT_REWARD".equals(normalizedType)
+                && !"COMPLAINT_SYSTEM".equals(normalizedType)) {
+            throw new AppException(ErrorCode.INVALID_REQUEST);
+        }
 
         CollectionRequest collectionRequest = null;
         if (request.getCollectionRequestId() != null) {
@@ -45,11 +55,11 @@ public class CollectorFeedbackServiceImpl implements CollectorFeedbackService {
         LocalDateTime now = LocalDateTime.now();
 
         CollectorFeedback feedback = new CollectorFeedback();
-        feedback.setFeedbackCode("CF-" + java.util.UUID.randomUUID());
+        feedback.setFeedbackCode("TEMP-" + System.nanoTime());
         feedback.setCollector(collector);
         feedback.setCollectionRequest(collectionRequest);
-        feedback.setFeedbackType(request.getType());
-        feedback.setSubject(request.getSubject());
+        feedback.setFeedbackType(normalizedType);
+        feedback.setSubject(buildSubject(request.getCollectionRequestId(), normalizedType));
         feedback.setContent(request.getContent());
         feedback.setStatus("PENDING");
         feedback.setRating(request.getRating());
@@ -57,6 +67,11 @@ public class CollectorFeedbackServiceImpl implements CollectorFeedbackService {
         feedback.setUpdatedAt(now);
 
         CollectorFeedback saved = collectorFeedbackRepository.save(feedback);
+
+        String finalCode = String.format("CF%03d", saved.getId());
+        saved.setFeedbackCode(finalCode);
+        saved = collectorFeedbackRepository.save(saved);
+
         return toResponse(saved);
     }
 
@@ -82,5 +97,29 @@ public class CollectorFeedbackServiceImpl implements CollectorFeedbackService {
                 .createdAt(fb.getCreatedAt())
                 .updatedAt(fb.getUpdatedAt())
                 .build();
+    }
+
+    private static String normalizeComplaintType(String type) {
+        if (type == null) {
+            return null;
+        }
+
+        String normalized = type.trim().replaceAll("\\s+", "_").toUpperCase(Locale.ROOT);
+
+        if ("POINT".equals(normalized)) return "COMPLAINT_REWARD";
+        if ("COLLECTOR".equals(normalized)) return "COMPLAINT_COLLECTION";
+        if ("SERVICE".equals(normalized)) return "COMPLAINT_COLLECTION";
+        if ("COLLECTION".equals(normalized)) return "COMPLAINT_COLLECTION";
+        if ("REWARD".equals(normalized)) return "COMPLAINT_REWARD";
+        if ("SYSTEM".equals(normalized)) return "COMPLAINT_SYSTEM";
+
+        return normalized;
+    }
+
+    private static String buildSubject(Integer collectionRequestId, String type) {
+        if (collectionRequestId != null) {
+            return "Complaint for Collection Request #" + collectionRequestId + " - " + type;
+        }
+        return "General Complaint - " + type;
     }
 }
