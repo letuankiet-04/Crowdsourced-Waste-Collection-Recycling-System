@@ -244,7 +244,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                     cr.assigned_at AS assignedAt,
                     cr.created_at AS createdAt,
                     cr.updated_at AS updatedAt
-        FROM collectgiion_requests cr
+        FROM collection_requests cr
         LEFT JOIN waste_reports wr ON cr.report_id = wr.id
         WHERE cr.collector_id = :collectorId
           AND cr.status = :status

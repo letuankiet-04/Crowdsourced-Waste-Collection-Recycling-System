@@ -28,6 +28,16 @@ public interface CollectorReportRepository extends JpaRepository<CollectorReport
             from CollectorReport cr
             join fetch cr.collectionRequest req
             join fetch cr.collector c
+            where req.id = :requestId
+            order by cr.createdAt desc, cr.id desc
+            """)
+    List<CollectorReport> findByCollectionRequestIdWithRequestAndCollector(@Param("requestId") Integer requestId);
+
+    @Query("""
+            select cr
+            from CollectorReport cr
+            join fetch cr.collectionRequest req
+            join fetch cr.collector c
             where c.id = :collectorId
             order by cr.createdAt desc, cr.id desc
             """)

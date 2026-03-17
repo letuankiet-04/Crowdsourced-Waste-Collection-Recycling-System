@@ -476,6 +476,7 @@ public class WasteReportServiceImpl implements WasteReportService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<CitizenRewardHistoryResponse> getRewardHistory(String citizenEmail, LocalDateTime startDate, LocalDateTime endDate) {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
         List<PointTransaction> transactions;
@@ -641,6 +642,7 @@ public class WasteReportServiceImpl implements WasteReportService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ComplaintResponse> getComplaints(String citizenEmail) {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
 

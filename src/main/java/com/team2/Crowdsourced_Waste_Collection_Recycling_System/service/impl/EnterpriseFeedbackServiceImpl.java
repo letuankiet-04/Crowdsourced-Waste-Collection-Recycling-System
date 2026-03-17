@@ -54,6 +54,7 @@ public class EnterpriseFeedbackServiceImpl implements EnterpriseFeedbackService 
     }
 
     @Override
+    @Transactional(readOnly = true)
     public EnterpriseFeedbackResponse getFeedbackDetail(Integer enterpriseId, Integer feedbackId) {
         Feedback feedback = feedbackRepository.findById(feedbackId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Feedback không tồn tại"));
@@ -68,11 +69,13 @@ public class EnterpriseFeedbackServiceImpl implements EnterpriseFeedbackService 
         // Lấy thông tin báo cáo thu gom liên quan (nếu có)
         CollectorReportResponse collectorReportResponse = null;
         if (feedback.getCollectionRequest() != null) {
-            CollectorReport collectorReport = collectorReportRepository.findByCollectionRequest_Id(feedback.getCollectionRequest().getId())
+            Integer requestId = feedback.getCollectionRequest().getId();
+            CollectorReport collectorReport = collectorReportRepository
+                    .findByCollectionRequestIdWithRequestAndCollector(requestId)
+                    .stream()
+                    .findFirst()
                     .orElse(null);
-            if (collectorReport != null) {
-                collectorReportResponse = toCollectorReportResponse(collectorReport);
-            }
+            collectorReportResponse = collectorReport != null ? toCollectorReportResponse(collectorReport) : null;
         }
 
         return toResponseDetail(feedback, collectorReportResponse);
@@ -155,7 +158,7 @@ public class EnterpriseFeedbackServiceImpl implements EnterpriseFeedbackService 
         }
 
         // Lấy danh sách chi tiết rác thu gom
-        List<CollectorReportItem> items = collectorReportItemRepository.findByCollectorReport_Id(report.getId());
+        List<CollectorReportItem> items = collectorReportItemRepository.findWithCategoryByCollectorReportId(report.getId());
         List<WasteCategoryResponse> categories = toWasteCategoryResponsesFromCollectorItems(items);
 
         return CollectorReportResponse.builder()
