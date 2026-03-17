@@ -72,7 +72,7 @@ public class CollectorServiceImpl implements CollectorService {
     @Override
     @Cacheable(
             value = "collectorTasks",
-            key = "#collectorId + ':' + (#status != null ? #status : 'ALL') + ':' + #all"
+            key = "#collectorId + ':ALL:true'"
     )
     public List<CollectorTaskResponse> getTasks(Integer collectorId, String status, boolean all) {
         // #region agent log
@@ -94,22 +94,10 @@ public class CollectorServiceImpl implements CollectorService {
         // #endregion
 
         try {
-            // Lấy danh sách task (không phân trang) từ repository
-            List<CollectionRequestRepository.CollectorTaskView> taskEntities;
+            // Luôn lấy TẤT CẢ task của collector, không lọc status/all
+            List<CollectionRequestRepository.CollectorTaskView> taskEntities =
+                    collectionRequestRepository.findTasksForCollector(collectorId);
 
-            // Kiểm tra điều kiện để gọi query tương ứng
-            if (all) {
-                // Lấy tất cả task của collector này
-                taskEntities = collectionRequestRepository.findTasksForCollector(collectorId);
-            } else if (status != null && !status.trim().isEmpty()) {
-                // Lấy task theo trạng thái cụ thể (ví dụ: "ASSIGNED")
-                taskEntities = collectionRequestRepository.findTasksForCollectorByStatus(collectorId, status);
-            } else {
-                // Mặc định: Lấy các task đang hoạt động (active)
-                taskEntities = collectionRequestRepository.findActiveTasksForCollector(collectorId);
-            }
-
-            // Chuyển đổi dữ liệu từ Entity sang DTO để trả về cho Client
             List<CollectorTaskResponse> responseList = new ArrayList<>();
 
             for (CollectionRequestRepository.CollectorTaskView task : taskEntities) {
