@@ -21,6 +21,7 @@ import java.time.LocalDateTime;
 
 @Component
 @ConditionalOnProperty(prefix = "app.seed", name = "enabled", havingValue = "true")
+@Transactional
 public class DataInit implements CommandLineRunner {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;

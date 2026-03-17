@@ -14,6 +14,7 @@ import java.util.List;
 
 @Component
 @ConditionalOnProperty(prefix = "app.seed", name = "enabled", havingValue = "true")
+@Transactional
 public class WasteCategoryInit implements CommandLineRunner {
     private final WasteCategoryRepository wasteCategoryRepository;
 

@@ -17,7 +17,6 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Collector
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.ProfileService;
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.*;
-import org.springframework.cache.annotation.Cacheable;
 import java.util.List;
 import java.util.Map;
 import java.math.BigDecimal;
@@ -41,7 +40,6 @@ public class CollectorController {
     @GetMapping("/dashboard")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Trang tổng quan Collector", description = "Thông tin tổng quan nhanh cho Collector")
-    @Cacheable(value = "collectorDashboard", key = "#jwt.subject")
     public ApiResponse<Map<String, Object>> getDashboard(@AuthenticationPrincipal Jwt jwt) {
         Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
         String status = collectorRepository.findById(collectorId)
