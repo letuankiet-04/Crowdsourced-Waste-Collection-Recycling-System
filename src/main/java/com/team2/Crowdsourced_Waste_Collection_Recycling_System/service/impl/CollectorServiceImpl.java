@@ -101,17 +101,15 @@ public class CollectorServiceImpl implements CollectorService {
             List<CollectorTaskResponse> responseList = new ArrayList<>();
 
             for (CollectionRequestRepository.CollectorTaskView task : taskEntities) {
-                // Tạo đối tượng response thủ công
                 CollectorTaskResponse dto = new CollectorTaskResponse();
                 dto.setId(task.getId());
                 dto.setRequestCode(task.getRequestCode());
-                dto.setStatus(task.getStatus());
+                dto.setStatus(task.getStatus() != null ? task.getStatus().name().toLowerCase() : null);
                 dto.setAddress(task.getAddress());
                 dto.setAssignedAt(task.getAssignedAt());
                 dto.setCreatedAt(task.getCreatedAt());
                 dto.setUpdatedAt(task.getUpdatedAt());
 
-                // Thêm vào danh sách kết quả
                 responseList.add(dto);
             }
 

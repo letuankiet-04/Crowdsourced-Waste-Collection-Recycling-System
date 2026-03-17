@@ -23,7 +23,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
 
         String getRequestCode();
 
-        String getStatus();
+        com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus getStatus();
 
         String getAddress();
 
@@ -213,23 +213,23 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
             @Param("collectorId") Integer collectorId,
             @Param("enterpriseId") Integer enterpriseId);
 
-    @Query(value = """
-                SELECT
-                    cr.id AS id,
-                    cr.request_code AS requestCode,
-                    cr.status AS status,
-                    wr.address AS address,
-                    cr.assigned_at AS assignedAt,
-                    cr.created_at AS createdAt,
-                    cr.updated_at AS updatedAt
-        FROM collection_requests cr
-        LEFT JOIN waste_reports wr ON cr.report_id = wr.id
-        WHERE cr.collector_id = :collectorId
-        ORDER BY
-            CASE WHEN cr.assigned_at IS NULL THEN 1 ELSE 0 END,
-            cr.assigned_at DESC,
-            cr.id DESC
-        """, nativeQuery = true)
+    @Query("""
+            SELECT
+                cr.id AS id,
+                cr.requestCode AS requestCode,
+                cr.status AS status,
+                wr.address AS address,
+                cr.assignedAt AS assignedAt,
+                cr.createdAt AS createdAt,
+                cr.updatedAt AS updatedAt
+            FROM CollectionRequest cr
+            LEFT JOIN cr.report wr
+            WHERE cr.collector.id = :collectorId
+            ORDER BY
+                CASE WHEN cr.assignedAt IS NULL THEN 1 ELSE 0 END,
+                cr.assignedAt DESC,
+                cr.id DESC
+            """)
     List<CollectorTaskView> findTasksForCollector(@Param("collectorId") Integer collectorId);
 
     /**
