@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-03-17T00:00:00.000Z" agent="Codex" version="24.7.8" type="device">
+  <diagram id="usecase" name="Use Case">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- System boundary -->
+        <mxCell id="2" value="Crowdsourced Waste Collection &amp; Recycling System" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="260" y="60" width="1060" height="760" as="geometry"/>
+        </mxCell>
+
+        <!-- Actors -->
+        <mxCell id="10" value="Công dân&#xa;(Citizen)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="60" y="170" width="80" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="11" value="Nhân viên thu gom&#xa;(Collector)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="170" width="90" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="12" value="Doanh nghiệp&#xa;tái chế&#xa;(Enterprise)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="420" width="90" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="13" value="Quản trị viên&#xa;(Admin)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" vertex="1" parent="1">
+          <mxGeometry x="70" y="20" width="90" height="130" as="geometry"/>
+        </mxCell>
+
+        <!-- Common / Auth -->
+        <mxCell id="100" value="Đăng ký" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="95" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="101" value="Đăng nhập" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="510" y="95" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="102" value="Đăng xuất" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="690" y="95" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Citizen -->
+        <mxCell id="110" value="Tạo báo cáo rác&#xa;(kèm ảnh, GPS)" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="200" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="111" value="Cập nhật / Hủy báo cáo" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="200" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="112" value="Xem báo cáo của tôi&#xa;(+ thống kê)" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="200" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="113" value="Xem danh mục&#xa;loại rác" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="300" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="114" value="Xem điểm thưởng&#xa;(+ lịch sử)" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="300" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="115" value="Đổi điểm lấy voucher" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="300" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="116" value="Gửi khiếu nại" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="400" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="117" value="Cập nhật hồ sơ" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="400" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="118" value="Xem bảng xếp hạng" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="400" width="220" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Enterprise -->
+        <mxCell id="130" value="Xem báo cáo PENDING" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="510" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="131" value="Accept / Reject báo cáo" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="510" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="132" value="Tạo yêu cầu thu gom&#xa;(CollectionRequest)" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="610" width="220" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="133" value="Gán / Reassign Collector" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="610" width="220" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="134" value="Xem Collector đủ điều kiện&#xa;(bán kính, online)" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="710" width="220" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="135" value="Xử lý task bị từ chối&#xa;(REASSIGN)" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="710" width="220" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Collector -->
+        <mxCell id="140" value="Xem danh sách task" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="540" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="141" value="Nhận / Từ chối task" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="630" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="142" value="Cập nhật trạng thái&#xa;(ON_THE_WAY)" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="720" width="220" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="143" value="Đánh dấu đã thu gom&#xa;(COLLECTED)" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="720" width="220" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="144" value="Tạo báo cáo thu gom&#xa;(khối lượng, ảnh)" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="630" width="220" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="145" value="Cập nhật trạng thái online" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="120" y="540" width="220" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Admin -->
+        <mxCell id="150" value="Quản lý tài khoản&#xa;(Citizen/Collector/Enterprise)" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="880" y="170" width="260" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="151" value="Quản lý loại rác" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="270" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="152" value="Quản lý báo cáo&#xa;(Waste/Collector)" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="360" width="200" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="153" value="Giải quyết khiếu nại" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="460" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="154" value="Xem analytics hệ thống" style="shape=umlUseCase;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="550" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Connections: Auth -->
+        <mxCell id="200" style="endArrow=none;html=1;" edge="1" parent="1" source="10" target="100">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="201" style="endArrow=none;html=1;" edge="1" parent="1" source="10" target="101">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="202" style="endArrow=none;html=1;" edge="1" parent="1" source="11" target="101">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="203" style="endArrow=none;html=1;" edge="1" parent="1" source="12" target="101">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="204" style="endArrow=none;html=1;" edge="1" parent="1" source="13" target="101">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="205" style="endArrow=none;html=1;" edge="1" parent="1" source="10" target="102">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="206" style="endArrow=none;html=1;" edge="1" parent="1" source="11" target="102">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="207" style="endArrow=none;html=1;" edge="1" parent="1" source="12" target="102">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="208" style="endArrow=none;html=1;" edge="1" parent="1" source="13" target="102">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Connections: Citizen -->
+        <mxCell id="210" style="endArrow=none;html=1;" edge="1" parent="1" source="10" target="110">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="211" style="endArrow=none;html=1;" edge="1" parent="1" source="10" target="111">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="212" style="endArrow=none;html=1;" edge="1" parent="1" source="10" target="112">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="213" style="endArrow=none;html=1;" edge="1" parent="1" source="10" target="113">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="214" style="endArrow=none;html=1;" edge="1" parent="1" source="10" target="114">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="215" style="endArrow=none;html=1;" edge="1" parent="1" source="10" target="115">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="216" style="endArrow=none;html=1;" edge="1" parent="1" source="10" target="116">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="217" style="endArrow=none;html=1;" edge="1" parent="1" source="10" target="117">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="218" style="endArrow=none;html=1;" edge="1" parent="1" source="10" target="118">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Connections: Enterprise -->
+        <mxCell id="230" style="endArrow=none;html=1;" edge="1" parent="1" source="12" target="130">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="231" style="endArrow=none;html=1;" edge="1" parent="1" source="12" target="131">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="232" style="endArrow=none;html=1;" edge="1" parent="1" source="12" target="132">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="233" style="endArrow=none;html=1;" edge="1" parent="1" source="12" target="133">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="234" style="endArrow=none;html=1;" edge="1" parent="1" source="12" target="134">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="235" style="endArrow=none;html=1;" edge="1" parent="1" source="12" target="135">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Connections: Collector -->
+        <mxCell id="240" style="endArrow=none;html=1;" edge="1" parent="1" source="11" target="140">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="241" style="endArrow=none;html=1;" edge="1" parent="1" source="11" target="141">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="242" style="endArrow=none;html=1;" edge="1" parent="1" source="11" target="142">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="243" style="endArrow=none;html=1;" edge="1" parent="1" source="11" target="143">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="244" style="endArrow=none;html=1;" edge="1" parent="1" source="11" target="144">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="245" style="endArrow=none;html=1;" edge="1" parent="1" source="11" target="145">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Connections: Admin -->
+        <mxCell id="250" style="endArrow=none;html=1;" edge="1" parent="1" source="13" target="150">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="251" style="endArrow=none;html=1;" edge="1" parent="1" source="13" target="151">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="252" style="endArrow=none;html=1;" edge="1" parent="1" source="13" target="152">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="253" style="endArrow=none;html=1;" edge="1" parent="1" source="13" target="153">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="254" style="endArrow=none;html=1;" edge="1" parent="1" source="13" target="154">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <diagram id="states" name="State Transitions">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="s0"/>
+        <mxCell id="s1" parent="s0"/>
+
+        <mxCell id="sTitle1" value="CollectionRequestStatus" style="text;html=1;align=left;verticalAlign=top;fontSize=18;fontStyle=1;" vertex="1" parent="s1">
+          <mxGeometry x="60" y="40" width="400" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- CollectionRequest states -->
+        <mxCell id="crPending" value="PENDING" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff7ed;strokeColor=#9a3412;" vertex="1" parent="s1">
+          <mxGeometry x="80" y="110" width="170" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="crAcceptedEnt" value="ACCEPTED_ENTERPRISE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ecfeff;strokeColor=#155e75;" vertex="1" parent="s1">
+          <mxGeometry x="290" y="110" width="210" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="crAssigned" value="ASSIGNED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eff6ff;strokeColor=#1d4ed8;" vertex="1" parent="s1">
+          <mxGeometry x="540" y="110" width="170" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="crAcceptedCol" value="ACCEPTED_COLLECTOR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fdf4;strokeColor=#166534;" vertex="1" parent="s1">
+          <mxGeometry x="740" y="110" width="210" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="crOnTheWay" value="ON_THE_WAY" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f9ff;strokeColor=#075985;" vertex="1" parent="s1">
+          <mxGeometry x="990" y="110" width="190" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="crCollected" value="COLLECTED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fefce8;strokeColor=#a16207;" vertex="1" parent="s1">
+          <mxGeometry x="1220" y="110" width="170" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="crCompleted" value="COMPLETED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f3ff;strokeColor=#6d28d9;" vertex="1" parent="s1">
+          <mxGeometry x="1220" y="210" width="170" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="crReassign" value="REASSIGN" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff1f2;strokeColor=#9f1239;" vertex="1" parent="s1">
+          <mxGeometry x="540" y="210" width="170" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="crRejected" value="REJECTED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3f4f6;strokeColor=#374151;" vertex="1" parent="s1">
+          <mxGeometry x="290" y="210" width="170" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- CollectionRequest transitions -->
+        <mxCell id="e1" value="Enterprise accept" style="endArrow=block;html=1;rounded=0;" edge="1" parent="s1" source="crPending" target="crAcceptedEnt">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="Assign collector" style="endArrow=block;html=1;rounded=0;" edge="1" parent="s1" source="crAcceptedEnt" target="crAssigned">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="Collector accept" style="endArrow=block;html=1;rounded=0;" edge="1" parent="s1" source="crAssigned" target="crAcceptedCol">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" value="Update status" style="endArrow=block;html=1;rounded=0;" edge="1" parent="s1" source="crAcceptedCol" target="crOnTheWay">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" value="Mark collected" style="endArrow=block;html=1;rounded=0;" edge="1" parent="s1" source="crOnTheWay" target="crCollected">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e6" value="Create collector report" style="endArrow=block;html=1;rounded=0;" edge="1" parent="s1" source="crCollected" target="crCompleted">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7" value="Collector reject" style="endArrow=block;html=1;rounded=0;dashed=1;" edge="1" parent="s1" source="crAssigned" target="crReassign">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e8" value="Reassign collector" style="endArrow=block;html=1;rounded=0;" edge="1" parent="s1" source="crReassign" target="crAssigned">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e9" value="Reject/Cancel" style="endArrow=block;html=1;rounded=0;dashed=1;" edge="1" parent="s1" source="crPending" target="crRejected">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sTitle2" value="WasteReportStatus (tham chiếu)" style="text;html=1;align=left;verticalAlign=top;fontSize=18;fontStyle=1;" vertex="1" parent="s1">
+          <mxGeometry x="60" y="340" width="500" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- WasteReport states (simplified) -->
+        <mxCell id="wrPending" value="PENDING" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff7ed;strokeColor=#9a3412;" vertex="1" parent="s1">
+          <mxGeometry x="80" y="410" width="170" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrAcceptedEnt" value="ACCEPTED_ENTERPRISE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ecfeff;strokeColor=#155e75;" vertex="1" parent="s1">
+          <mxGeometry x="290" y="410" width="210" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrAssigned" value="ASSIGNED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eff6ff;strokeColor=#1d4ed8;" vertex="1" parent="s1">
+          <mxGeometry x="540" y="410" width="170" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrOnTheWay" value="ON_THE_WAY" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f9ff;strokeColor=#075985;" vertex="1" parent="s1">
+          <mxGeometry x="740" y="410" width="190" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrCollected" value="COLLECTED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fefce8;strokeColor=#a16207;" vertex="1" parent="s1">
+          <mxGeometry x="970" y="410" width="170" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrRejected" value="REJECTED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3f4f6;strokeColor=#374151;" vertex="1" parent="s1">
+          <mxGeometry x="290" y="510" width="170" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrTimedOut" value="TIMED_OUT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3f4f6;strokeColor=#374151;" vertex="1" parent="s1">
+          <mxGeometry x="540" y="510" width="170" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="wrReassign" value="REASSIGN" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff1f2;strokeColor=#9f1239;" vertex="1" parent="s1">
+          <mxGeometry x="740" y="510" width="170" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- WasteReport transitions -->
+        <mxCell id="we1" value="Enterprise accept" style="endArrow=block;html=1;" edge="1" parent="s1" source="wrPending" target="wrAcceptedEnt">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="we2" value="Assign collector" style="endArrow=block;html=1;" edge="1" parent="s1" source="wrAcceptedEnt" target="wrAssigned">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="we3" value="Collector nhận + di chuyển" style="endArrow=block;html=1;" edge="1" parent="s1" source="wrAssigned" target="wrOnTheWay">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="we4" value="Thu gom xong" style="endArrow=block;html=1;" edge="1" parent="s1" source="wrOnTheWay" target="wrCollected">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="we5" value="Reject" style="endArrow=block;html=1;dashed=1;" edge="1" parent="s1" source="wrPending" target="wrRejected">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="we6" value="Timeout SLA" style="endArrow=block;html=1;dashed=1;" edge="1" parent="s1" source="wrAssigned" target="wrTimedOut">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="we7" value="Collector từ chối" style="endArrow=block;html=1;dashed=1;" edge="1" parent="s1" source="wrAssigned" target="wrReassign">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="we8" value="Phân công lại" style="endArrow=block;html=1;" edge="1" parent="s1" source="wrReassign" target="wrAssigned">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

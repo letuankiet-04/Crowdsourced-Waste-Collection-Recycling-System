@@ -46,6 +46,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.io.FileWriter;
+import java.io.IOException;
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportItemRepository;
 
@@ -73,42 +75,79 @@ public class CollectorServiceImpl implements CollectorService {
             key = "#collectorId + ':' + (#status != null ? #status : 'ALL') + ':' + #all"
     )
     public List<CollectorTaskResponse> getTasks(Integer collectorId, String status, boolean all) {
-        // Sử dụng unpaged để lấy tất cả dữ liệu mà không phân trang
-        Pageable unpaged = Pageable.unpaged();
-        Page<CollectionRequestRepository.CollectorTaskView> tasksPage;
-
-        // Kiểm tra điều kiện để gọi query tương ứng
-        if (all) {
-            // Lấy tất cả task của collector này
-            tasksPage = collectionRequestRepository.findTasksForCollector(collectorId, unpaged);
-        } else if (status != null && !status.trim().isEmpty()) {
-            // Lấy task theo trạng thái cụ thể (ví dụ: "ASSIGNED")
-            tasksPage = collectionRequestRepository.findTasksForCollectorByStatus(collectorId, status, unpaged);
-        } else {
-            // Mặc định: Lấy các task đang hoạt động (active)
-            tasksPage = collectionRequestRepository.findActiveTasksForCollector(collectorId, unpaged);
+        // #region agent log
+        try {
+            FileWriter fw = new FileWriter("debug-422d2c.log", true);
+            String line = "{\"sessionId\":\"422d2c\",\"runId\":\"pre-fix\",\"hypothesisId\":\"H1\",\"location\":\"CollectorServiceImpl#getTasks\",\"message\":\"collector getTasks entry\",\"data\":{\"collectorId\":\""
+                    + String.valueOf(collectorId)
+                    + "\",\"status\":\""
+                    + String.valueOf(status)
+                    + "\",\"all\":"
+                    + all
+                    + "},\"timestamp\":"
+                    + System.currentTimeMillis()
+                    + "}\n";
+            fw.write(line);
+            fw.close();
+        } catch (IOException ignored) {
         }
+        // #endregion
 
-        // Chuyển đổi dữ liệu từ Entity sang DTO để trả về cho Client
-        List<CollectionRequestRepository.CollectorTaskView> taskEntities = tasksPage.getContent();
-        List<CollectorTaskResponse> responseList = new ArrayList<>();
+        try {
+            // Sử dụng unpaged để lấy tất cả dữ liệu mà không phân trang
+            Pageable unpaged = Pageable.unpaged();
+            Page<CollectionRequestRepository.CollectorTaskView> tasksPage;
 
-        for (CollectionRequestRepository.CollectorTaskView task : taskEntities) {
-            // Tạo đối tượng response thủ công
-            CollectorTaskResponse dto = new CollectorTaskResponse();
-            dto.setId(task.getId());
-            dto.setRequestCode(task.getRequestCode());
-            dto.setStatus(task.getStatus());
-            dto.setAddress(task.getAddress());
-            dto.setAssignedAt(task.getAssignedAt());
-            dto.setCreatedAt(task.getCreatedAt());
-            dto.setUpdatedAt(task.getUpdatedAt());
+            // Kiểm tra điều kiện để gọi query tương ứng
+            if (all) {
+                // Lấy tất cả task của collector này
+                tasksPage = collectionRequestRepository.findTasksForCollector(collectorId, unpaged);
+            } else if (status != null && !status.trim().isEmpty()) {
+                // Lấy task theo trạng thái cụ thể (ví dụ: "ASSIGNED")
+                tasksPage = collectionRequestRepository.findTasksForCollectorByStatus(collectorId, status, unpaged);
+            } else {
+                // Mặc định: Lấy các task đang hoạt động (active)
+                tasksPage = collectionRequestRepository.findActiveTasksForCollector(collectorId, unpaged);
+            }
 
-            // Thêm vào danh sách kết quả
-            responseList.add(dto);
+            // Chuyển đổi dữ liệu từ Entity sang DTO để trả về cho Client
+            List<CollectionRequestRepository.CollectorTaskView> taskEntities = tasksPage.getContent();
+            List<CollectorTaskResponse> responseList = new ArrayList<>();
+
+            for (CollectionRequestRepository.CollectorTaskView task : taskEntities) {
+                // Tạo đối tượng response thủ công
+                CollectorTaskResponse dto = new CollectorTaskResponse();
+                dto.setId(task.getId());
+                dto.setRequestCode(task.getRequestCode());
+                dto.setStatus(task.getStatus());
+                dto.setAddress(task.getAddress());
+                dto.setAssignedAt(task.getAssignedAt());
+                dto.setCreatedAt(task.getCreatedAt());
+                dto.setUpdatedAt(task.getUpdatedAt());
+
+                // Thêm vào danh sách kết quả
+                responseList.add(dto);
+            }
+
+            return responseList;
+        } catch (Exception ex) {
+            // #region agent log
+            try {
+                FileWriter fw = new FileWriter("debug-422d2c.log", true);
+                String line = "{\"sessionId\":\"422d2c\",\"runId\":\"pre-fix\",\"hypothesisId\":\"H2\",\"location\":\"CollectorServiceImpl#getTasks\",\"message\":\"collector getTasks error\",\"data\":{\"exceptionType\":\""
+                        + ex.getClass().getName()
+                        + "\",\"exceptionMessage\":\""
+                        + String.valueOf(ex.getMessage())
+                        + "\"},\"timestamp\":"
+                        + System.currentTimeMillis()
+                        + "}\n";
+                fw.write(line);
+                fw.close();
+            } catch (IOException ignored) {
+            }
+            // #endregion
+            throw ex;
         }
-
-        return responseList;
     }
 
     @Override
