@@ -131,6 +131,7 @@ public class VoucherServiceImpl implements VoucherService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<VoucherRedemptionResponse> getMyVouchers(String citizenEmail) {
         Optional<Citizen> citizenOpt = citizenRepository.findByUser_Email(citizenEmail);
         if (citizenOpt.isEmpty()) {
