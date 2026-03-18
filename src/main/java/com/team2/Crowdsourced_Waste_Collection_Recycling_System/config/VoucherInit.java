@@ -2,6 +2,7 @@ package com.team2.Crowdsourced_Waste_Collection_Recycling_System.config;
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Voucher;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.reward.VoucherRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -9,11 +10,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
 @ConditionalOnProperty(prefix = "app.seed", name = "enabled", havingValue = "true")
 @Transactional
+@Slf4j
 public class VoucherInit implements CommandLineRunner {
 
     private final VoucherRepository voucherRepository;
@@ -24,10 +27,13 @@ public class VoucherInit implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        long before = voucherRepository.count();
         LocalDateTime now = LocalDateTime.now();
         for (VoucherSeed seed : seeds()) {
             upsertVoucher(seed, now);
         }
+        long after = voucherRepository.count();
+        log.info("VoucherInit completed. beforeCount={}, afterCount={}, seedSize={}", before, after, seeds().size());
     }
 
     private void upsertVoucher(VoucherSeed seed, LocalDateTime now) {
@@ -46,7 +52,14 @@ public class VoucherInit implements CommandLineRunner {
         voucher.setValidUntil(parseDate(seed.validUntil()));
         voucher.setActive(Boolean.TRUE);
         voucher.setRemainingStock(seed.remainingStock());
-        voucher.setTerms(seed.terms() != null ? List.copyOf(seed.terms()) : List.of());
+        if (voucher.getTerms() == null) {
+            voucher.setTerms(new ArrayList<>());
+        } else {
+            voucher.getTerms().clear();
+        }
+        if (seed.terms() != null && !seed.terms().isEmpty()) {
+            voucher.getTerms().addAll(seed.terms());
+        }
         voucher.setUpdatedAt(now);
 
         Voucher saved = voucherRepository.save(voucher);

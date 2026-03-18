@@ -19,7 +19,7 @@ jwt:
 
 app:
   seed:
-    enabled: false
+    enabled: ${APP_SEED_ENABLED:false}
     modular: true
   cors:
     # Danh sách origin frontend, cách nhau bởi dấu phẩy. Ví dụ: https://your-app.vercel.app, http://localhost:5173

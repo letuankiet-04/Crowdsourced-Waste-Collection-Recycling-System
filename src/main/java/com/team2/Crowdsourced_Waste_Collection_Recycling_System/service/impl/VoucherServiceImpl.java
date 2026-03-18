@@ -36,6 +36,7 @@ public class VoucherServiceImpl implements VoucherService {
     private final PointTransactionRepository pointTransactionRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<VoucherResponse> getAvailableVouchers() {
         // Lấy danh sách voucher đang hoạt động
         List<Voucher> vouchers = voucherRepository.findAllByActiveTrueOrderByIdDesc();
@@ -176,7 +177,7 @@ public class VoucherServiceImpl implements VoucherService {
                 .title(voucher.getTitle())
                 .validUntil(voucher.getValidUntil())
                 .pointsRequired(voucher.getPointsRequired())
-                .terms(voucher.getTerms())
+                .terms(voucher.getTerms() == null ? new ArrayList<>() : new ArrayList<>(voucher.getTerms()))
                 .build();
     }
 
