@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.ChangePasswordRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCollectorStatusRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorService;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
@@ -14,6 +15,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCollectorProfileRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Collector;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.PasswordService;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.ProfileService;
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.*;
@@ -28,13 +30,16 @@ public class CollectorController {
     private final com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorService collectorService;
     private final CollectorRepository collectorRepository;
     private final ProfileService profileService;
+    private final PasswordService passwordService;
 
     public CollectorController(CollectorService collectorService,
                                CollectorRepository collectorRepository,
-                               ProfileService profileService) {
+                               ProfileService profileService,
+                               PasswordService passwordService) {
         this.collectorService = collectorService;
         this.collectorRepository = collectorRepository;
         this.profileService = profileService;
+        this.passwordService = passwordService;
     }
 
     @GetMapping("/dashboard")
@@ -150,5 +155,13 @@ public class CollectorController {
                 .result(updated)
                 .message("Cập nhật hồ sơ thành công")
                 .build();
+    }
+
+    @PutMapping("/password")
+    @PreAuthorize("hasRole('COLLECTOR')")
+    @Operation(summary = "Đổi mật khẩu", description = "Đổi mật khẩu tài khoản collector hiện tại")
+    public ApiResponse<Void> changePassword(@AuthenticationPrincipal Jwt jwt, @RequestBody ChangePasswordRequest request) {
+        passwordService.changePassword(jwt != null ? jwt.getSubject() : null, request);
+        return ApiResponse.<Void>builder().message("Đổi mật khẩu thành công").build();
     }
 }
