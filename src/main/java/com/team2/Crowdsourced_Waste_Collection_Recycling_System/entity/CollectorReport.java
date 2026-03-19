@@ -1,15 +1,7 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity;
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectorReportStatus;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -41,6 +33,7 @@ public class CollectorReport {
     @JoinColumn(name = "collector_id", nullable = false)
     private Collector collector;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private CollectorReportStatus status;
 

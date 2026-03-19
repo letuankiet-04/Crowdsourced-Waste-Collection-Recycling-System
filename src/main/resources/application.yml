@@ -4,7 +4,7 @@ spring:
   jackson:
     time-zone: Asia/Ho_Chi_Minh
   datasource:
-    url: jdbc:mysql://${MYSQLHOST:${MYSQL_HOST:mainline.proxy.rlwy.net}}:${MYSQLPORT:${MYSQL_PORT:37671}}/${MYSQLDATABASE:${MYSQL_DATABASE:railway}}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&autoReconnect=true
+    url: jdbc:mysql://${MYSQLHOST:${MYSQL_HOST:mainline.proxy.rlwy.net}}:${MYSQLPORT:${MYSQL_PORT:37671}}/${MYSQLDATABASE:${MYSQL_DATABASE:railway}}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&connectTimeout=10000&socketTimeout=60000
     username: ${MYSQLUSER:${MYSQL_USER:root}}
     password: ${MYSQLPASSWORD:${MYSQL_PASSWORD:ndTodFpZUCKFpVehhxHCLbcZXMRHhMYv}}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -23,7 +23,7 @@ spring:
         format_sql: false
         jdbc:
           time_zone: Asia/Ho_Chi_Minh
-        dialect: org.hibernate.dialect.MySQL8Dialect
+        dialect: org.hibernate.dialect.MySQLDialect
 
 server:
   port: ${PORT:8080}
@@ -58,7 +58,7 @@ springdoc:
 
 app:
   seed:
-    enabled: true
+    enabled: ${APP_SEED_ENABLED:false}
     modular: true
   cors:
     allowed-origins: "https://crowdsourced-waste-collection-recyc-khaki.vercel.app, https://*.vercel.app, http://localhost:5173"

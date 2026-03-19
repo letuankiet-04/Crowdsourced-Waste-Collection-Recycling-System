@@ -23,7 +23,7 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
 
         String getRequestCode();
 
-        String getStatus();
+        com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus getStatus();
 
         String getAddress();
 
@@ -213,24 +213,24 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
             @Param("collectorId") Integer collectorId,
             @Param("enterpriseId") Integer enterpriseId);
 
-    @Query(value = """
-                SELECT
-                    cr.id AS id,
-                    cr.request_code AS requestCode,
-                    cr.status AS status,
-                    wr.address AS address,
-                    cr.assigned_at AS assignedAt,
-                    cr.created_at AS createdAt,
-                    cr.updated_at AS updatedAt
-                FROM collection_requests cr
-                LEFT JOIN waste_reports wr ON cr.report_id = wr.id
-                WHERE cr.collector_id = :collectorId
-                ORDER BY
-                    CASE WHEN cr.assigned_at IS NULL THEN 1 ELSE 0 END,
-                    cr.assigned_at DESC,
-                    cr.id DESC
-            """, nativeQuery = true)
-    Page<CollectorTaskView> findTasksForCollector(@Param("collectorId") Integer collectorId, Pageable pageable);
+    @Query("""
+            SELECT
+                cr.id AS id,
+                cr.requestCode AS requestCode,
+                cr.status AS status,
+                wr.address AS address,
+                cr.assignedAt AS assignedAt,
+                cr.createdAt AS createdAt,
+                cr.updatedAt AS updatedAt
+            FROM CollectionRequest cr
+            LEFT JOIN cr.report wr
+            WHERE cr.collector.id = :collectorId
+            ORDER BY
+                CASE WHEN cr.assignedAt IS NULL THEN 1 ELSE 0 END,
+                cr.assignedAt DESC,
+                cr.id DESC
+            """)
+    List<CollectorTaskView> findTasksForCollector(@Param("collectorId") Integer collectorId);
 
     /**
      * Lấy danh sách task của collector theo trạng thái.
@@ -244,19 +244,18 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                     cr.assigned_at AS assignedAt,
                     cr.created_at AS createdAt,
                     cr.updated_at AS updatedAt
-                FROM collection_requests cr
-                LEFT JOIN waste_reports wr ON cr.report_id = wr.id
-                WHERE cr.collector_id = :collectorId
-                  AND cr.status = :status
-                ORDER BY
-                    CASE WHEN cr.assigned_at IS NULL THEN 1 ELSE 0 END,
-                    cr.assigned_at DESC,
-                    cr.id DESC
-            """, nativeQuery = true)
-    Page<CollectorTaskView> findTasksForCollectorByStatus(
+        FROM collection_requests cr
+        LEFT JOIN waste_reports wr ON cr.report_id = wr.id
+        WHERE cr.collector_id = :collectorId
+          AND cr.status = :status
+        ORDER BY
+            CASE WHEN cr.assigned_at IS NULL THEN 1 ELSE 0 END,
+            cr.assigned_at DESC,
+            cr.id DESC
+        """, nativeQuery = true)
+    List<CollectorTaskView> findTasksForCollectorByStatus(
             @Param("collectorId") Integer collectorId,
-            @Param("status") String status,
-            Pageable pageable);
+            @Param("status") String status);
 
     /**
      * Danh sách task mặc định cho Collector: hiển thị ASSIGNED, ACCEPTED_COLLECTOR
@@ -271,16 +270,16 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                     cr.assigned_at AS assignedAt,
                     cr.created_at AS createdAt,
                     cr.updated_at AS updatedAt
-                FROM collection_requests cr
-                LEFT JOIN waste_reports wr ON cr.report_id = wr.id
-                WHERE cr.collector_id = :collectorId
-                  AND UPPER(cr.status) IN ('ASSIGNED', 'ACCEPTED_COLLECTOR', 'ON_THE_WAY', 'COLLECTED')
-                ORDER BY
-                    CASE WHEN cr.assigned_at IS NULL THEN 1 ELSE 0 END,
-                    cr.assigned_at DESC,
-                    cr.id DESC
-            """, nativeQuery = true)
-    Page<CollectorTaskView> findActiveTasksForCollector(@Param("collectorId") Integer collectorId, Pageable pageable);
+        FROM collection_requests cr
+        LEFT JOIN waste_reports wr ON cr.report_id = wr.id
+        WHERE cr.collector_id = :collectorId
+          AND UPPER(cr.status) IN ('ASSIGNED', 'ACCEPTED_COLLECTOR', 'ON_THE_WAY', 'COLLECTED')
+        ORDER BY
+            CASE WHEN cr.assigned_at IS NULL THEN 1 ELSE 0 END,
+            cr.assigned_at DESC,
+            cr.id DESC
+        """, nativeQuery = true)
+    List<CollectorTaskView> findActiveTasksForCollector(@Param("collectorId") Integer collectorId);
 
     @Query(value = """
                 SELECT

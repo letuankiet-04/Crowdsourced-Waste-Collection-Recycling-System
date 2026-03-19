@@ -1,6 +1,7 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity;
 
 // mapped from table collectors
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectorStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -32,10 +33,12 @@ public class Collector {
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", unique = true, nullable = false)
+    @JsonIgnore
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "enterprise_id", nullable = false)
+    @JsonIgnore
     private Enterprise enterprise;
 
     @Column(name = "email", length = 255)
@@ -53,6 +56,7 @@ public class Collector {
     @Column(name = "vehicle_plate", length = 20)
     private String vehiclePlate;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 20)
     private CollectorStatus status;
 

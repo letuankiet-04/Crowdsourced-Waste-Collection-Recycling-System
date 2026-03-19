@@ -87,18 +87,18 @@ public class EnterpriseVoucherServiceImpl implements EnterpriseVoucherService {
 
         boolean updated = false;
         if (request.getBanner() != null && !request.getBanner().isEmpty()) {
-            CloudinaryResponse uploaded = cloudinaryService.uploadImage(request.getBanner(), "vouchers");
+            CloudinaryResponse uploaded = uploadVoucherImageOrThrow(request.getBanner(), "banner");
             if (uploaded == null || uploaded.getUrl() == null || uploaded.getUrl().isBlank()) {
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Upload banner thất bại");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Upload banner thất bại");
             }
             saved.setBannerUrl(uploaded.getUrl());
             saved.setBannerPublicId(uploaded.getPublicId());
             updated = true;
         }
         if (request.getLogo() != null && !request.getLogo().isEmpty()) {
-            CloudinaryResponse uploaded = cloudinaryService.uploadImage(request.getLogo(), "vouchers");
+            CloudinaryResponse uploaded = uploadVoucherImageOrThrow(request.getLogo(), "logo");
             if (uploaded == null || uploaded.getUrl() == null || uploaded.getUrl().isBlank()) {
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Upload logo thất bại");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Upload logo thất bại");
             }
             saved.setLogoUrl(uploaded.getUrl());
             saved.setLogoPublicId(uploaded.getPublicId());
@@ -188,7 +188,7 @@ public class EnterpriseVoucherServiceImpl implements EnterpriseVoucherService {
                 .validUntil(voucher.getValidUntil())
                 .active(voucher.getActive())
                 .remainingStock(voucher.getRemainingStock())
-                .terms(voucher.getTerms())
+                .terms(voucher.getTerms() == null ? new ArrayList<>() : new ArrayList<>(voucher.getTerms()))
                 .createdAt(voucher.getCreatedAt())
                 .updatedAt(voucher.getUpdatedAt())
                 .build();
@@ -254,5 +254,21 @@ public class EnterpriseVoucherServiceImpl implements EnterpriseVoucherService {
                 .map(String::trim)
                 .distinct()
                 .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private CloudinaryResponse uploadVoucherImageOrThrow(org.springframework.web.multipart.MultipartFile file, String label) {
+        try {
+            return cloudinaryService.uploadImage(file, "vouchers");
+        } catch (IllegalArgumentException e) {
+            String message = e.getMessage() == null ? "" : e.getMessage().trim();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    message.isBlank() ? "Upload " + label + " thất bại" : message);
+        } catch (IllegalStateException e) {
+            String message = e.getMessage() == null ? "" : e.getMessage().trim();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    message.isBlank() ? "Upload " + label + " thất bại" : message);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Upload " + label + " thất bại");
+        }
     }
 }

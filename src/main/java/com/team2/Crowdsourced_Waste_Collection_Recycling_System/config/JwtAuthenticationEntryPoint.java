@@ -6,6 +6,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -24,10 +26,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * Spring Security sẽ gọi lớp này để trả về response JSON theo format ApiResponse của dự án.
  */
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationEntryPoint.class);
+
     @Override
     public void commence(
             HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
             throws IOException, ServletException {
+        String authHeader = request.getHeader("Authorization");
+        boolean hasBearer = authHeader != null && authHeader.startsWith("Bearer ");
+        if (log.isDebugEnabled()) {
+            log.debug("Unauthenticated request: uri={}, hasAuthorizationBearer={}", request.getRequestURI(), hasBearer);
+        }
         ErrorCode errorCode = ErrorCode.UNAUTHENTICATED;
 
         // Trả về đúng HTTP status và content-type JSON để frontend dễ xử lý

@@ -11,9 +11,11 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Com
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CitizenRewardHistoryResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.WasteCategoryResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.WasteReportResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.ChangePasswordRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.WasteReportService;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCitizenProfileRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Citizen;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.PasswordService;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.ProfileService;
 import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,6 +50,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Cit
 public class CitizenController {
     private final WasteReportService wasteReportService;
     private final ProfileService profileService;
+    private final PasswordService passwordService;
 
     @GetMapping("/reports/stats")
     @PreAuthorize("hasRole('CITIZEN')")
@@ -138,6 +141,14 @@ public class CitizenController {
             @RequestParam(required = false) Integer month) {
         CitizenPointSummaryResponse summary = wasteReportService.getMyPointSummary(currentEmail(), year, quarter, month);
         return ok(summary, "Lấy thống kê điểm thành công");
+    }
+
+    @PutMapping("/password")
+    @PreAuthorize("hasRole('CITIZEN')")
+    @Operation(summary = "Đổi mật khẩu", description = "Đổi mật khẩu tài khoản công dân hiện tại")
+    public ResponseEntity<ApiResponse<Void>> changePassword(@RequestBody ChangePasswordRequest request) {
+        passwordService.changePassword(currentEmail(), request);
+        return ok("Đổi mật khẩu thành công");
     }
 
     @PostMapping(value = "/complaints", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

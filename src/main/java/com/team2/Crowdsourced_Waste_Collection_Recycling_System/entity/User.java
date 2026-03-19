@@ -1,6 +1,7 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity;
 
 // mapped from table users
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -25,6 +26,7 @@ public class User {
     private String email;
 
     @Column(name = "password_hash", nullable = false, length = 255)
+    @JsonIgnore
     private String passwordHash;
 
     @Column(name = "full_name", nullable = false, length = 255)

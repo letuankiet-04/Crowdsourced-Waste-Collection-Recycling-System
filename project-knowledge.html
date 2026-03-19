@@ -29,8 +29,7 @@
     <li><span class="tag">Backend</span> Java + Spring Boot</li>
     <li><span class="tag">ORM</span> Spring Data JPA / Hibernate (code-first, entity &lt;-&gt; bảng DB)</li>
     <li><span class="tag">DB</span> Quan hệ (MySQL / tương đương; dùng index tối ưu query)</li>
-    <li><span class="tag">Cache</span> Redis (Spring Data Redis + Lettuce, dùng làm cache cho dashboard/thống kê Collector và lưu token tạm thời)</li>
-    <li><span class="tag">Auth</span> JWT + Token denylist (bảng <code>invalidated_tokens</code> + cache in-memory, có thể nâng cấp dùng Redis)</li>
+    <li><span class="tag">Auth</span> JWT + Token denylist (bảng <code>invalidated_tokens</code> + cache in-memory)</li>
     <li><span class="tag">Storage</span> Cloudinary để lưu ảnh (báo cáo rác, voucher banner/logo)</li>
     <li><span class="tag">Scheduling</span> Spring <code>@Scheduled</code> cho các job tự động (timeout, SLA)</li>
   </ul>
@@ -728,115 +727,6 @@ public class WasteReport {
     </li>
   </ul>
 
-  <h3>7.1. Redis – Cách dùng trong dự án</h3>
-  <ul>
-    <li><strong>Cấu hình</strong>:
-      <ul>
-        <li>Dùng starter <code>spring-boot-starter-data-redis</code> (Spring Boot 3.4.1) + client Lettuce.</li>
-        <li>Class <code>RedisConfig</code> tạo <code>LettuceConnectionFactory</code> với <code>RedisStandaloneConfiguration</code> (host, port, password).</li>
-        <li>Cấu hình <code>RedisCacheManager</code> làm <code>CacheManager</code> mặc định cho Spring Cache, TTL mặc định ~5 phút.</li>
-        <li>Key cache là String, value serialize bằng <code>GenericJackson2JsonRedisSerializer</code>.</li>
-      </ul>
-    </li>
-    <li><strong>Cache dashboard & thống kê Collector</strong> (tối ưu performance, giảm truy vấn MySQL):
-      <ul>
-        <li>Các hàm đọc nhiều dữ liệu/tổng hợp trong <code>CollectorServiceImpl</code> được gắn <code>@Cacheable</code>:
-          <ul>
-            <li><code>getTasks</code> → cache theo <code>collectorId</code>, <code>status</code>, cờ <code>all</code> (danh sách nhiệm vụ).</li>
-            <li><code>getTaskDetail</code> → cache chi tiết 1 task theo <code>collectorId</code> + <code>requestId</code>.</li>
-            <li><code>getTaskStatusCounts</code> → cache map số lượng task theo trạng thái cho 1 collector.</li>
-            <li><code>getWorkHistory</code> → cache lịch sử làm việc theo <code>collectorId</code> + <code>status</code>.</li>
-            <li><code>getStats</code>, <code>getWasteVolumeStats</code>, <code>getWasteTypeStats</code> → cache dữ liệu thống kê theo năm/collector.</li>
-            <li><code>getGeneralStats</code> → cache tổng khối lượng + số task theo bộ lọc day/month/year.</li>
-            <li><code>getLeaderboard</code> → cache bảng xếp hạng collector theo month/year.</li>
-          </ul>
-        </li>
-        <li>Nhờ đó:
-          <ul>
-            <li>Lần gọi API đầu tiên sẽ query DB và đẩy kết quả vào Redis.</li>
-            <li>Các lần gọi sau với cùng tham số sẽ đọc trực tiếp từ Redis (RAM) → nhanh hơn, giảm tải MySQL.</li>
-          </ul>
-        </li>
-      </ul>
-    </li>
-    <li><strong>Invalid cache khi dữ liệu Collector thay đổi</strong>:
-      <ul>
-        <li>Các hàm thay đổi trạng thái nhiệm vụ hoặc trạng thái làm việc Collector trong <code>CollectorServiceImpl</code> được gắn <code>@CacheEvict(allEntries = true)</code>:
-          <ul>
-            <li><code>updateStatus</code>, <code>acceptTask</code>, <code>startTask</code>, <code>rejectTask</code>, <code>completeTask</code>, <code>updateAvailabilityStatus</code>.</li>
-          </ul>
-        </li>
-        <li>Cách triển khai đơn giản cho sinh viên:
-          <ul>
-            <li>Mỗi khi có ghi/đổi trạng thái, xóa toàn bộ cache của các vùng: <code>collectorTasks</code>, <code>collectorTaskDetail</code>, <code>collectorTaskStatusCounts</code>, <code>collectorWorkHistory</code>, <code>collectorPerformanceStats</code>, <code>collectorWasteVolumeStats</code>, <code>collectorWasteTypeStats</code>, <code>collectorGeneralStats</code>, <code>collectorLeaderboard</code>.</li>
-            <li>Không đổi logic nghiệp vụ, chỉ thêm annotation cache ở tầng service.</li>
-          </ul>
-        </li>
-      </ul>
-    </li>
-    <li><strong>Lưu token trong Redis</strong> (mở rộng từ denylist trong DB):
-      <ul>
-        <li>Entity <code>RedisToken</code> dùng <code>@RedisHash("redis_token")</code>, gồm:
-          <ul>
-            <li><code>id</code> (string) – thường là userId/tokenId.</li>
-            <li><code>accessToken</code>, <code>refreshToken</code>.</li>
-            <li><code>ttl</code> với <code>@TimeToLive</code> để Redis tự xóa sau khi hết hạn.</li>
-          </ul>
-        </li>
-        <li>Repository <code>RedisTokenRepository</code> (extends <code>CrudRepository&lt;RedisToken, String&gt;</code>) + service <code>RedisTokenService</code> cho phép:
-          <ul>
-            <li><code>save</code>: lưu token tạm vào Redis.</li>
-            <li><code>findById</code>: lấy token theo id.</li>
-            <li><code>deleteById</code>: xóa khi logout/thu hồi.</li>
-          </ul>
-        </li>
-        <li>Ý nghĩa: có thể dùng Redis như kho token/session tập trung, dễ scale nhiều instance và hỗ trợ force logout, blacklist token.</li>
-      </ul>
-    </li>
-    <li><strong>Lưu ý về hiệu năng & RAM khi dùng Redis</strong>:
-      <ul>
-        <li>Redis lưu dữ liệu trên RAM → cache càng nhiều, tốn RAM hơn nhưng đổi lại đọc rất nhanh.</li>
-        <li>TTL ~5 phút trong <code>RedisConfig</code> giúp dữ liệu cache tự hết hạn, tránh phình RAM lâu dài.</li>
-        <li>Các API dashboard/thống kê được cache là dữ liệu JSON vừa phải, phù hợp cho môi trường sinh viên/lab.</li>
-      </ul>
-    </li>
-    <li><strong>Cách chạy Redis bằng Docker & tự kiểm tra dữ liệu</strong> (dành cho sinh viên mới):
-      <ul>
-        <li><strong>Bật Redis</strong>:
-          <ul>
-            <li>Ở thư mục gốc dự án (chứa <code>docker-compose.yml</code>): chạy <code>docker-compose up -d</code>.</li>
-            <li>Lệnh này khởi động container <code>redis-local</code> dùng image <code>redis:7-alpine</code> và giới hạn bộ nhớ với <code>--maxmemory 256mb</code>, <code>--maxmemory-policy allkeys-lru</code>.</li>
-            <li>Dùng <code>docker ps</code> để kiểm tra container <code>redis-local</code> đang chạy.</li>
-          </ul>
-        </li>
-        <li><strong>Xem log Redis</strong>:
-          <ul>
-            <li><code>docker logs redis-local</code> → xem log khởi động.</li>
-            <li><code>docker logs -f redis-local</code> → theo dõi log realtime (Ctrl+C để thoát).</li>
-          </ul>
-        </li>
-        <li><strong>Mở Redis CLI bên trong container</strong>:
-          <ul>
-            <li><code>docker exec -it redis-local redis-cli</code> → vào shell Redis với prompt <code>127.0.0.1:6379&gt;</code>.</li>
-            <li><code>KEYS *</code> → liệt kê nhanh tất cả key (chỉ nên dùng trong môi trường lab, dữ liệu ít).</li>
-            <li><code>SCAN 0</code> → cách an toàn hơn để duyệt key theo từng trang.</li>
-            <li><code>GET "collectorPerformanceStats:1:2025"</code> (ví dụ) → xem dữ liệu cache JSON cho key cụ thể.</li>
-            <li><code>TTL "collectorPerformanceStats:1:2025"</code> → xem còn bao nhiêu giây trước khi key hết hạn.</li>
-            <li>Gõ <code>exit</code> để thoát <code>redis-cli</code>.</li>
-          </ul>
-        </li>
-        <li><strong>Kịch bản test đơn giản để “thấy Redis hoạt động”</strong>:
-          <ul>
-            <li>B1: Khởi động Redis: <code>docker-compose up -d</code>.</li>
-            <li>B2: Gọi 1 API có cache, ví dụ <code>GET /api/collector/stats/performance</code> khi đang đăng nhập bằng collector.</li>
-            <li>B3: Mở <code>redis-cli</code> và chạy <code>KEYS *</code> → quan sát các key dạng <code>collectorPerformanceStats:&lt;collectorId&gt;:&lt;year&gt;</code>, <code>collectorTasks:...</code>.</li>
-            <li>B4: Gọi lại cùng API thêm vài lần → kết quả vẫn đúng nhưng số query đến MySQL giảm (có thể bật <code>spring.jpa.show-sql=true</code> để quan sát).</li>
-          </ul>
-        </li>
-      </ul>
-    </li>
-  </ul>
-
   <h2>7.x. Ghi chú ôn tập theo nhóm Endpoint</h2>
   <p class="section-note">
     Phần này không liệt kê lại toàn bộ URL (đã có ở 5.x) mà tập trung vào <strong>kiến thức, nghiệp vụ và validate chính</strong>
@@ -1007,12 +897,6 @@ public class WasteReport {
   <h2>8. Hướng phát triển / tối ưu tiếp</h2>
   <ul>
     <li>Bổ sung phân trang cho các API hiện đang trả full list (complaints, feedbacks, voucher list, một số task list).</li>
-    <li>Có thể thêm Redis cho:
-      <ul>
-        <li>Cache denylist JWT (thay local cache, chia sẻ giữa nhiều instance).</li>
-        <li>Cache thống kê dashboard (enterprise, collector, citizen leaderboard) với TTL ngắn.</li>
-      </ul>
-    </li>
     <li>Bổ sung test cho các rule quan trọng: chống spam report, SLA, complaint/resolution.</li>
   </ul>
 

@@ -19,7 +19,7 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Integer> {
     List<Feedback> findAll();
 
     @Override
-    @EntityGraph(attributePaths = { "citizen", "citizen.user", "collectionRequest", "collectionRequest.collector" })
+    @EntityGraph(attributePaths = { "citizen", "citizen.user", "collectionRequest", "collectionRequest.collector", "collectionRequest.enterprise" })
     Optional<Feedback> findById(Integer id);
     
     Optional<Feedback> findByFeedbackCode(String feedbackCode);

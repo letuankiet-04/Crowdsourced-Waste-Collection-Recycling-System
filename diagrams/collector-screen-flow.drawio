@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-03-17T00:00:00.000Z" agent="Codex" version="24.7.8" type="device">
+  <diagram id="collector-flow" name="Collector Screen Flow">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Styles: screens + decisions -->
+        <mxCell id="t1" value="Collector App – Screen Flow" style="text;html=1;align=left;verticalAlign=top;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="600" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Auth -->
+        <mxCell id="sStart" value="Start" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e5e7eb;strokeColor=#374151;" vertex="1" parent="1">
+          <mxGeometry x="70" y="90" width="80" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="sLogin" value="Login" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="190" y="80" width="180" height="60" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="dAuthOk" value="Auth OK?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff7ed;strokeColor=#9a3412;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="410" y="85" width="110" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="sLoginError" value="Show error&#xa;+ retry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff1f2;strokeColor=#9f1239;" vertex="1" parent="1">
+          <mxGeometry x="560" y="60" width="170" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Dashboard / navigation hub -->
+        <mxCell id="sDash" value="Dashboard (Home)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f9ff;strokeColor=#075985;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="190" y="190" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="sOnlineToggle" value="Toggle status&#xa;ONLINE/OFFLINE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fdf4;strokeColor=#166534;" vertex="1" parent="1">
+          <mxGeometry x="450" y="190" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Primary tabs -->
+        <mxCell id="sTasks" value="Tasks (List)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="120" y="310" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="sTaskDetail" value="Task Detail" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="360" y="310" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="dAccept" value="Accept task?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff7ed;strokeColor=#9a3412;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="320" width="120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="sRejectReason" value="Reject&#xa;(+ reason)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff1f2;strokeColor=#9f1239;" vertex="1" parent="1">
+          <mxGeometry x="760" y="295" width="180" height="80" as="geometry"/>
+        </mxCell>
+
+        <!-- Active task execution -->
+        <mxCell id="sAccepted" value="Task Accepted&#xa;(ACCEPTED_COLLECTOR)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0fdf4;strokeColor=#166534;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="760" y="405" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="sOnTheWay" value="On The Way&#xa;(update status ON_THE_WAY)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f9ff;strokeColor=#075985;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="760" y="505" width="220" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="sCollected" value="Mark Collected&#xa;(COLLECTED)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fefce8;strokeColor=#a16207;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="760" y="615" width="220" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="sCreateReport" value="Create Collection Report&#xa;(weight, notes, photo)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="615" width="260" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="sComplete" value="Success / Completed" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e0e7ff;strokeColor=#3730a3;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="730" width="160" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Secondary screens -->
+        <mxCell id="sHistory" value="Work History" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="120" y="450" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="sStats" value="Stats / Leaderboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="120" y="540" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="sFeedback" value="Feedbacks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="120" y="630" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="sProfile" value="Profile" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="120" y="720" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="sLogout" value="Logout" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;" vertex="1" parent="1">
+          <mxGeometry x="360" y="720" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="e1" style="endArrow=block;html=1;strokeWidth=2;" edge="1" parent="1" source="sStart" target="sLogin">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" style="endArrow=block;html=1;strokeWidth=2;" edge="1" parent="1" source="sLogin" target="dAuthOk">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="No" style="endArrow=block;html=1;strokeWidth=2;" edge="1" parent="1" source="dAuthOk" target="sLoginError">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" value="Retry" style="endArrow=block;html=1;strokeWidth=2;dashed=1;" edge="1" parent="1" source="sLoginError" target="sLogin">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" value="Yes" style="endArrow=block;html=1;strokeWidth=2;" edge="1" parent="1" source="dAuthOk" target="sDash">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Dashboard to tabs -->
+        <mxCell id="e6" style="endArrow=block;html=1;" edge="1" parent="1" source="sDash" target="sOnlineToggle">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7" style="endArrow=block;html=1;" edge="1" parent="1" source="sDash" target="sTasks">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e8" style="endArrow=block;html=1;dashed=1;" edge="1" parent="1" source="sDash" target="sHistory">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e9" style="endArrow=block;html=1;dashed=1;" edge="1" parent="1" source="sDash" target="sStats">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e10" style="endArrow=block;html=1;dashed=1;" edge="1" parent="1" source="sDash" target="sFeedback">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e11" style="endArrow=block;html=1;dashed=1;" edge="1" parent="1" source="sDash" target="sProfile">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e12" style="endArrow=block;html=1;dashed=1;" edge="1" parent="1" source="sDash" target="sLogout">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Tasks to detail -->
+        <mxCell id="e13" value="Select task" style="endArrow=block;html=1;strokeWidth=2;" edge="1" parent="1" source="sTasks" target="sTaskDetail">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e14" style="endArrow=block;html=1;strokeWidth=2;" edge="1" parent="1" source="sTaskDetail" target="dAccept">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e15" value="No (Reject)" style="endArrow=block;html=1;strokeWidth=2;" edge="1" parent="1" source="dAccept" target="sRejectReason">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e16" value="Back to list" style="endArrow=block;html=1;strokeWidth=2;dashed=1;" edge="1" parent="1" source="sRejectReason" target="sTasks">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e17" value="Yes (Accept)" style="endArrow=block;html=1;strokeWidth=2;" edge="1" parent="1" source="dAccept" target="sAccepted">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Execution -->
+        <mxCell id="e18" value="Update status" style="endArrow=block;html=1;strokeWidth=2;" edge="1" parent="1" source="sAccepted" target="sOnTheWay">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e19" value="Arrive + collect" style="endArrow=block;html=1;strokeWidth=2;" edge="1" parent="1" source="sOnTheWay" target="sCollected">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e20" value="Create report" style="endArrow=block;html=1;strokeWidth=2;" edge="1" parent="1" source="sCollected" target="sCreateReport">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e21" value="Submit" style="endArrow=block;html=1;strokeWidth=2;" edge="1" parent="1" source="sCreateReport" target="sComplete">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e22" value="Return home" style="endArrow=block;html=1;dashed=1;" edge="1" parent="1" source="sComplete" target="sDash">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Logout loop -->
+        <mxCell id="e23" value="Confirm" style="endArrow=block;html=1;" edge="1" parent="1" source="sLogout" target="sLogin">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
