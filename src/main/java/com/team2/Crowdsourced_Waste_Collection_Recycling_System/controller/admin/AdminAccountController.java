@@ -124,6 +124,22 @@ public class AdminAccountController {
                 .build();
     }
 
+    /**
+     * Soft-delete tài khoản (status → "deleted").
+     * Dữ liệu lịch sử được giữ nguyên. Admin không thể tự xóa chính mình.
+     */
+    @DeleteMapping("/{userId}")
+    @Operation(summary = "Xóa tài khoản (soft-delete)", description = "Đánh dấu status='deleted'. Dữ liệu được giữ nguyên. Admin không thể tự xóa mình.")
+    public ApiResponse<AdminUserResponse> deleteUser(
+            @PathVariable Integer userId,
+            @AuthenticationPrincipal Jwt jwt) {
+        String adminEmail = extractAdminEmail(jwt);
+        return ApiResponse.<AdminUserResponse>builder()
+                .result(adminAccountService.deleteUser(userId, adminEmail))
+                .message("Tài khoản đã được đánh dấu xóa thành công")
+                .build();
+    }
+
     // ─────────────────────────────────────────────
     // Private helpers
     // ─────────────────────────────────────────────

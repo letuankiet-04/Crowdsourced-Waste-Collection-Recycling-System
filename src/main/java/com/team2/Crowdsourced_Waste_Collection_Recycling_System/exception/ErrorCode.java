@@ -39,6 +39,8 @@ public enum ErrorCode {
     INSUFFICIENT_POINTS(1028, "Insufficient points", HttpStatus.BAD_REQUEST),
     WASTE_CATEGORY_NOT_FOUND(1029, "Waste category not found", HttpStatus.NOT_FOUND),
     WASTE_CATEGORY_NAME_EXISTED(1030, "Waste category name already exists", HttpStatus.BAD_REQUEST),
+    CANNOT_DELETE_SELF(1031, "Admin cannot delete their own account", HttpStatus.FORBIDDEN),
+    USER_ALREADY_DELETED(1032, "User account is already deleted", HttpStatus.BAD_REQUEST),
     ;
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {

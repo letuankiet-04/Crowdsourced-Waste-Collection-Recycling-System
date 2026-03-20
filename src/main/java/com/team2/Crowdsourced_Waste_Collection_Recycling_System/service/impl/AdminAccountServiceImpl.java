@@ -164,6 +164,9 @@ public class AdminAccountServiceImpl implements AdminAccountService {
 
         return users.stream()
                 .filter(user -> adminEmail == null || user.getEmail() == null || !user.getEmail().equalsIgnoreCase(adminEmail))
+                // Ẩn user đã bị soft-delete khỏi danh sách mặc định.
+                // Chỉ hiển thị khi admin lọc cụ thể ?status=deleted
+                .filter(user -> hasStatus || !"deleted".equalsIgnoreCase(user.getStatus()))
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
@@ -176,6 +179,10 @@ public class AdminAccountServiceImpl implements AdminAccountService {
     @Transactional(readOnly = true)
     public AdminUserResponse getUserDetail(Integer userId) {
         User user = findUserById(userId);
+        // Ẩn user đã bị soft-delete khỏi chi tiết
+        if ("deleted".equalsIgnoreCase(user.getStatus())) {
+            throw new AppException(ErrorCode.USER_NOT_EXISTED);
+        }
         return toResponse(user);
     }
 
@@ -195,6 +202,10 @@ public class AdminAccountServiceImpl implements AdminAccountService {
 
         User user = findUserById(userId);
 
+        // Không thể thao tác trên tài khoản đã bị xóa
+        if ("deleted".equalsIgnoreCase(user.getStatus())) {
+            throw new AppException(ErrorCode.USER_ALREADY_DELETED);
+        }
         if ("suspended".equalsIgnoreCase(user.getStatus())) {
             throw new AppException(ErrorCode.USER_ALREADY_SUSPENDED);
         }
@@ -215,6 +226,10 @@ public class AdminAccountServiceImpl implements AdminAccountService {
     public AdminUserResponse activateUser(Integer userId, String adminEmail) {
         User user = findUserById(userId);
 
+        // Không thể activate tài khoản đã bị xóa (dùng deleteUser để restore nếu cần)
+        if ("deleted".equalsIgnoreCase(user.getStatus())) {
+            throw new AppException(ErrorCode.USER_ALREADY_DELETED);
+        }
         if ("active".equalsIgnoreCase(user.getStatus())) {
             throw new AppException(ErrorCode.USER_ALREADY_ACTIVE);
         }
@@ -223,6 +238,34 @@ public class AdminAccountServiceImpl implements AdminAccountService {
         User saved = userRepository.save(user);
 
         log.info("Admin {} đã mở khóa tài khoản user id={}", adminEmail, userId);
+        return toResponse(saved);
+    }
+
+    // ─────────────────────────────────────────────
+    // Soft-delete tài khoản
+    // ─────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public AdminUserResponse deleteUser(Integer userId, String adminEmail) {
+        // Guard: Admin không thể tự xóa chính mình
+        User adminUser = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        if (userId.equals(adminUser.getId())) {
+            throw new AppException(ErrorCode.CANNOT_DELETE_SELF);
+        }
+
+        User user = findUserById(userId);
+
+        // Guard: tránh soft-delete 2 lần
+        if ("deleted".equalsIgnoreCase(user.getStatus())) {
+            throw new AppException(ErrorCode.USER_ALREADY_DELETED);
+        }
+
+        user.setStatus("deleted");
+        User saved = userRepository.save(user);
+
+        log.info("Admin {} đã soft-delete tài khoản user id={}", adminEmail, userId);
         return toResponse(saved);
     }
 

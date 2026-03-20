@@ -57,4 +57,14 @@ public interface AdminAccountService {
      * @param adminEmail email của admin đang thực hiện
      */
     AdminUserResponse activateUser(Integer userId, String adminEmail);
+
+    /**
+     * Soft-delete tài khoản: đánh dấu status = "deleted".
+     * Dữ liệu lịch sử được giữ nguyên, không có FK violation.
+     * Admin không thể tự xóa chính mình.
+     *
+     * @param userId     ID tài khoản cần xóa
+     * @param adminEmail email của admin đang thực hiện
+     */
+    AdminUserResponse deleteUser(Integer userId, String adminEmail);
 }
