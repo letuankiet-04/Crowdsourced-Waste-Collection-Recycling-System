@@ -646,11 +646,28 @@ public class WasteReportServiceImpl implements WasteReportService {
     public List<ComplaintResponse> getComplaints(String citizenEmail) {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
 
-        List<Feedback> feedbacks = feedbackRepository.findByCitizenIdOrderByCreatedAtDesc(citizen.getId());
-        
         List<ComplaintResponse> responses = new ArrayList<>();
-        for (Feedback f : feedbacks) {
-            responses.add(citizenFeatureMapper.toComplaintResponse(f));
+        List<Object[]> rows = feedbackRepository.findComplaintRowsByCitizenId(citizen.getId());
+        for (Object[] row : rows) {
+            Integer id = (Integer) row[0];
+            Integer reportId = (Integer) row[1];
+            String type = (String) row[2];
+            String content = (String) row[3];
+            String status = (String) row[4];
+            String resolution = (String) row[5];
+            Integer rating = (Integer) row[6];
+            LocalDateTime createdAt = (LocalDateTime) row[7];
+
+            responses.add(ComplaintResponse.builder()
+                    .id(id)
+                    .reportId(reportId)
+                    .type(type)
+                    .content(content)
+                    .status(status)
+                    .resolution(resolution)
+                    .rating(rating)
+                    .createdAt(createdAt)
+                    .build());
         }
         return responses;
     }

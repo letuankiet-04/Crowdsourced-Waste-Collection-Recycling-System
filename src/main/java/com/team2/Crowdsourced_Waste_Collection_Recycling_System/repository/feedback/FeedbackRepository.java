@@ -39,6 +39,16 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Integer> {
     
     @Query("SELECT f FROM Feedback f WHERE f.citizen.id = :citizenId ORDER BY f.createdAt DESC")
     List<Feedback> findByCitizenIdOrderByCreatedAtDesc(@Param("citizenId") Integer citizenId);
+
+    @Query("""
+            SELECT f.id, r.id, f.feedbackType, f.content, f.status, f.resolution, f.rating, f.createdAt
+            FROM Feedback f
+            LEFT JOIN f.collectionRequest cr
+            LEFT JOIN cr.report r
+            WHERE f.citizen.id = :citizenId
+            ORDER BY f.createdAt DESC
+            """)
+    List<Object[]> findComplaintRowsByCitizenId(@Param("citizenId") Integer citizenId);
     
     @Query("SELECT f FROM Feedback f WHERE f.createdAt BETWEEN :startDate AND :endDate")
     List<Feedback> findByDateRange(
