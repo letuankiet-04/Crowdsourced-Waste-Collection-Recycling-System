@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PointTransactionRepository extends JpaRepository<PointTransaction, Integer> {
@@ -79,6 +80,10 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
     );
     
     PointTransaction findTopByCitizenIdOrderByCreatedAtDesc(Integer citizenId);
+
+    @EntityGraph(attributePaths = { "citizen", "citizen.user", "collectionRequest", "collectionRequest.enterprise", "collectionRequest.report", "createdBy" })
+    @Query("SELECT pt FROM PointTransaction pt WHERE pt.id = :id")
+    Optional<PointTransaction> findOneWithDetailsById(@Param("id") Integer id);
     
     @Query("SELECT COUNT(pt) FROM PointTransaction pt WHERE pt.citizen.id = :citizenId AND pt.createdAt BETWEEN :startDate AND :endDate")
     Long countTransactionsByCitizenIdAndDateRange(

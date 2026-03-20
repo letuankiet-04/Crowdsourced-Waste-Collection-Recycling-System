@@ -24,10 +24,24 @@ public interface CitizenFeatureMapper {
     @Mapping(target = "rank", ignore = true) // Rank is calculated externally
     CitizenLeaderboardResponse toCitizenLeaderboardResponse(Citizen citizen);
 
-    @Mapping(target = "reportId", expression = "java(feedback.getCollectionRequest() != null && feedback.getCollectionRequest().getReport() != null ? feedback.getCollectionRequest().getReport().getId() : null)")
+    @Mapping(target = "reportId", expression = "java(resolveReportId(feedback))")
     @Mapping(target = "type", source = "feedbackType")
     @Mapping(target = "content", source = "content")
     ComplaintResponse toComplaintResponse(Feedback feedback);
+
+    default Integer resolveReportId(Feedback feedback) {
+        if (feedback == null) {
+            return null;
+        }
+        try {
+            if (feedback.getCollectionRequest() == null || feedback.getCollectionRequest().getReport() == null) {
+                return null;
+            }
+            return feedback.getCollectionRequest().getReport().getId();
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "citizen", ignore = true)
