@@ -649,14 +649,14 @@ public class WasteReportServiceImpl implements WasteReportService {
         List<ComplaintResponse> responses = new ArrayList<>();
         List<Object[]> rows = feedbackRepository.findComplaintRowsByCitizenId(citizen.getId());
         for (Object[] row : rows) {
-            Integer id = (Integer) row[0];
-            Integer reportId = (Integer) row[1];
-            String type = (String) row[2];
-            String content = (String) row[3];
-            String status = (String) row[4];
-            String resolution = (String) row[5];
-            Integer rating = (Integer) row[6];
-            LocalDateTime createdAt = (LocalDateTime) row[7];
+            Integer id = toInteger(row[0]);
+            Integer reportId = toInteger(row[1]);
+            String type = row[2] != null ? row[2].toString() : null;
+            String content = row[3] != null ? row[3].toString() : null;
+            String status = row[4] != null ? row[4].toString() : null;
+            String resolution = row[5] != null ? row[5].toString() : null;
+            Integer rating = toInteger(row[6]);
+            LocalDateTime createdAt = toLocalDateTime(row[7]);
 
             responses.add(ComplaintResponse.builder()
                     .id(id)
@@ -670,6 +670,40 @@ public class WasteReportServiceImpl implements WasteReportService {
                     .build());
         }
         return responses;
+    }
+
+    private static Integer toInteger(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        String s = value.toString();
+        if (s.isBlank()) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(s);
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
+
+    private static LocalDateTime toLocalDateTime(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof LocalDateTime localDateTime) {
+            return localDateTime;
+        }
+        if (value instanceof java.sql.Timestamp timestamp) {
+            return timestamp.toLocalDateTime();
+        }
+        if (value instanceof java.util.Date date) {
+            return LocalDateTime.ofInstant(date.toInstant(), java.time.ZoneId.systemDefault());
+        }
+        return null;
     }
 
     @Override

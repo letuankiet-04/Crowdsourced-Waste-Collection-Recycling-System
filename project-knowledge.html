@@ -402,15 +402,34 @@ public class WasteReport {
     </li>
     <li><code>PATCH /api/collector/status</code>
       <ul>
+        <li><strong>Mục đích</strong>: collector tự cập nhật trạng thái khả dụng để hệ thống Enterprise có thể phân công task.</li>
         <li><strong>Controller</strong>: <code>CollectorController.updateMyStatus</code> (body: <code>UpdateCollectorStatusRequest</code>).</li>
         <li><strong>Service</strong>: <code>CollectorServiceImpl.updateAvailabilityStatus</code></li>
-        <li><strong>Rule validate</strong>:
+        <li><strong>Request DTO</strong>: <code>UpdateCollectorStatusRequest { status: String }</code></li>
+        <li><strong>Validate &amp; mapping</strong>:
           <ul>
-            <li>Truyền <code>status</code> dạng string (AVAILABLE/ACTIVE/INACTIVE/SUSPEND).</li>
-            <li>Nếu null/rỗng → 400 "Trạng thái không được để trống".</li>
-            <li>Nếu không map được sang enum <code>CollectorStatus</code> → 400 "Trạng thái không hợp lệ".</li>
-            <li>Không cho phép tự chuyển sang <code>SUSPEND</code> → 403.</li>
-            <li>Nếu không tìm thấy collector theo <code>collectorId</code> → 404.</li>
+            <li><code>status</code> không được null/blank → trả 400.</li>
+            <li>Parse status bằng <code>CollectorStatus.fromString</code> (case-insensitive, trim):
+              <ul>
+                <li><code>ONLINE</code> hoặc <code>ACTIVE</code> → <code>CollectorStatus.ONLINE</code></li>
+                <li><code>OFFLINE</code> hoặc <code>INACTIVE</code> → <code>CollectorStatus.OFFLINE</code></li>
+                <li><code>SUSPEND</code> hoặc <code>SUSPENDED</code> → <code>CollectorStatus.SUSPEND</code></li>
+              </ul>
+            </li>
+            <li>Nếu parse ra <code>SUSPEND</code> thì API này cấm tự chuyển → 403.</li>
+            <li><code>collectorId</code> lấy từ JWT claim; không tìm thấy collector theo <code>collectorId</code> → 404.</li>
+          </ul>
+        </li>
+        <li><strong>Liên kết bảng</strong>:
+          <ul>
+            <li>Cập nhật cột <code>collectors.status</code> thông qua entity <code>Collector.status</code> (enum <code>CollectorStatus</code>).</li>
+            <li>Quan hệ gián tiếp: <code>collectors.user_id</code> (<code>Collector.user</code>) và <code>collectors.enterprise_id</code> (<code>Collector.enterprise</code>) được dùng để xác định đúng collector thuộc hệ thống.</li>
+          </ul>
+        </li>
+        <li><strong>Ràng buộc nghiệp vụ (ảnh hưởng phân công)</strong>:
+          <ul>
+            <li>Enterprise chỉ xem collector là eligible nếu <code>collector.status == ONLINE</code> và <code>last_location_update</code> cập nhật trong vòng <code>&lt;= 15</code> phút.</li>
+            <li>Job SLA/timeout có thể tự set <code>collector.status = SUSPEND</code> khi violation vượt ngưỡng, vì vậy API này không cho phép tự set <code>SUSPEND</code>.</li>
           </ul>
         </li>
       </ul>
@@ -826,8 +845,9 @@ public class WasteReport {
     </li>
     <li><strong>Trạng thái làm việc &amp; hồ sơ</strong> (<code>/api/collector/status</code>, <code>/profile</code>):
       <ul>
-        <li>Nghiệp vụ: collector tự chuyển trạng thái (ONLINE/OFFLINE/AVAILABLE/ACTIVE/INACTIVE) và cập nhật thông tin cá nhân.</li>
-        <li>Validate: không cho phép tự chuyển sang <code>SUSPEND</code>; status string phải map được sang enum; kiểm tra tồn tại collector trước khi update.</li>
+        <li>Nghiệp vụ: collector cập nhật trạng thái khả dụng (<code>ONLINE/OFFLINE</code>) và lưu vào bảng <code>collectors.status</code>.</li>
+        <li>Validate: không cho phép tự chuyển sang <code>SUSPEND</code>; parse status theo alias (<code>ACTIVE</code>/<code>INACTIVE</code>); kiểm tra tồn tại collector theo <code>collectorId</code> từ JWT.</li>
+        <li>Ràng buộc: Enterprise chỉ gán task cho collector <code>ONLINE</code> (và <code>last_location_update</code> &lt;= 15 phút); trạng thái <code>SUSPEND</code> do hệ thống job SLA/timeout quyết định.</li>
       </ul>
     </li>
     <li><strong>Feedback</strong> (<code>/api/collector/feedbacks</code>):
