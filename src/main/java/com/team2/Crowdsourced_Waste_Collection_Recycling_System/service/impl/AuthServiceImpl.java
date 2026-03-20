@@ -181,6 +181,10 @@ public class AuthServiceImpl implements AuthService {
             throw new AppException(ErrorCode.USER_SUSPENDED);
         }
 
+        if ("deleted".equalsIgnoreCase(user.getStatus())) {
+            throw new AppException(ErrorCode.USER_NOT_EXISTED);
+        }
+
         Integer citizenId = resolveCitizenId(user);
         Integer collectorId = null;
         Integer enterpriseId = null;

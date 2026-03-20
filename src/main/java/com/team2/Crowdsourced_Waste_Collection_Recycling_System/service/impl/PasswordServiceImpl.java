@@ -49,6 +49,11 @@ public class PasswordServiceImpl implements PasswordService {
         var user = userRepository.findOneWithRoleByEmailIgnoreCase(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
 
+        // Chặn user đã bị soft-delete (JWT có thể vẫn còn hiệu lực)
+        if ("deleted".equalsIgnoreCase(user.getStatus())) {
+            throw new AppException(ErrorCode.USER_NOT_EXISTED);
+        }
+
         if (user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Tài khoản chưa có mật khẩu");
         }
