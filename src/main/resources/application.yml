@@ -4,9 +4,9 @@ spring:
   jackson:
     time-zone: Asia/Ho_Chi_Minh
   datasource:
-    url: jdbc:mysql://${MYSQLHOST:${MYSQL_HOST:mainline.proxy.rlwy.net}}:${MYSQLPORT:${MYSQL_PORT:37671}}/${MYSQLDATABASE:${MYSQL_DATABASE:railway}}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&connectTimeout=10000&socketTimeout=60000
-    username: ${MYSQLUSER:${MYSQL_USER:root}}
-    password: ${MYSQLPASSWORD:${MYSQL_PASSWORD:ndTodFpZUCKFpVehhxHCLbcZXMRHhMYv}}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://${MYSQLHOST:${MYSQL_HOST:mainline.proxy.rlwy.net}}:${MYSQLPORT:${MYSQL_PORT:37671}}/${MYSQLDATABASE:${MYSQL_DATABASE:railway}}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&connectTimeout=10000&socketTimeout=60000}
+    username: ${SPRING_DATASOURCE_USERNAME:${MYSQLUSER:${MYSQL_USER:root}}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${MYSQLPASSWORD:${MYSQL_PASSWORD:ndTodFpZUCKFpVehhxHCLbcZXMRHhMYv}}}
     driver-class-name: com.mysql.cj.jdbc.Driver
   servlet:
     multipart:
@@ -18,6 +18,7 @@ spring:
       ddl-auto: update
     show-sql: false
     open-in-view: false
+    database-platform: ${SPRING_JPA_DATABASE_PLATFORM:org.hibernate.dialect.MySQLDialect}
     properties:
       hibernate:
         format_sql: false
