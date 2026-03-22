@@ -23,7 +23,6 @@ spring:
         format_sql: false
         jdbc:
           time_zone: Asia/Ho_Chi_Minh
-        dialect: org.hibernate.dialect.MySQLDialect
 
 server:
   port: ${PORT:8080}
@@ -37,8 +36,8 @@ workrule:
   reassign-radius-km: 10.0
 
 jwt:
-  signerKey: 72d6236b1a543277ad6973b2693a14ab13c437f8749b185a301f5034bbe3de36
-  valid-duration: 3600
+  signerKey: ${JWT_SIGNER_KEY:72d6236b1a543277ad6973b2693a14ab13c437f8749b185a301f5034bbe3de36}
+  valid-duration: ${JWT_VALID_DURATION:3600}
 
 open:
   api:
@@ -61,9 +60,37 @@ app:
     enabled: ${APP_SEED_ENABLED:false}
     modular: true
   cors:
-    allowed-origins: "https://crowdsourced-waste-collection-recyc-khaki.vercel.app, https://*.vercel.app, http://localhost:5173"
+    allowed-origins: "${APP_CORS_ALLOWED_ORIGINS:https://crowdsourced-waste-collection-recyc-khaki.vercel.app, https://*.vercel.app, http://localhost:5173}"
 
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:dawzawtbz}
   api-key: ${CLOUDINARY_API_KEY:647161479214626}
   api-secret: ${CLOUDINARY_API_SECRET:vFNgCCXljSShEbrbn7EAls1Lfh0}
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: dev
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: Asia/Ho_Chi_Minh

@@ -574,12 +574,16 @@ public class WasteReportServiceImpl implements WasteReportService {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
 
         CollectionRequest collectionRequest = null;
-        if (request.getReportId() != null) {
-            Optional<WasteReport> reportOpt = wasteReportRepository.findById(request.getReportId());
-            if (reportOpt.isEmpty()) {
-                throw new AppException(ErrorCode.WASTE_REPORT_NOT_FOUND);
-            }
-            WasteReport report = reportOpt.get();
+        WasteReport report = null;
+        if (request.getReportCode() != null && !request.getReportCode().isBlank()) {
+            report = wasteReportRepository.findByReportCode(request.getReportCode())
+                    .orElseThrow(() -> new AppException(ErrorCode.WASTE_REPORT_NOT_FOUND));
+        } else if (request.getReportId() != null) {
+            report = wasteReportRepository.findById(request.getReportId())
+                    .orElseThrow(() -> new AppException(ErrorCode.WASTE_REPORT_NOT_FOUND));
+        }
+
+        if (report != null) {
 
             if (!report.getCitizen().getId().equals(citizen.getId())) {
                 throw new AppException(ErrorCode.UNAUTHORIZED);
@@ -651,16 +655,18 @@ public class WasteReportServiceImpl implements WasteReportService {
         for (Object[] row : rows) {
             Integer id = toInteger(row[0]);
             Integer reportId = toInteger(row[1]);
-            String type = row[2] != null ? row[2].toString() : null;
-            String content = row[3] != null ? row[3].toString() : null;
-            String status = row[4] != null ? row[4].toString() : null;
-            String resolution = row[5] != null ? row[5].toString() : null;
-            Integer rating = toInteger(row[6]);
-            LocalDateTime createdAt = toLocalDateTime(row[7]);
+            String reportCode = row[2] != null ? row[2].toString() : null;
+            String type = row[3] != null ? row[3].toString() : null;
+            String content = row[4] != null ? row[4].toString() : null;
+            String status = row[5] != null ? row[5].toString() : null;
+            String resolution = row[6] != null ? row[6].toString() : null;
+            Integer rating = toInteger(row[7]);
+            LocalDateTime createdAt = toLocalDateTime(row[8]);
 
             responses.add(ComplaintResponse.builder()
                     .id(id)
                     .reportId(reportId)
+                    .reportCode(reportCode)
                     .type(type)
                     .content(content)
                     .status(status)

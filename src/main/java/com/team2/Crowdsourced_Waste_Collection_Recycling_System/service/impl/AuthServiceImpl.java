@@ -105,6 +105,10 @@ public class AuthServiceImpl implements AuthService {
 
         String fullName = request.getFullName().trim();
         String phone = request.getPhone() != null ? request.getPhone().trim() : null;
+        String location = request.getLocation() != null ? request.getLocation().trim() : null;
+        if (location != null && location.isBlank()) {
+            location = null;
+        }
 
         User u = new User();
         u.setEmail(email);
@@ -126,6 +130,7 @@ public class AuthServiceImpl implements AuthService {
         citizen.setEmail(savedUser.getEmail());
         citizen.setFullName(savedUser.getFullName());
         citizen.setPhone(savedUser.getPhone());
+        citizen.setAddress(location);
         citizen.setTotalPoints(0);
         citizen.setTotalReports(0);
         citizen.setValidReports(0);

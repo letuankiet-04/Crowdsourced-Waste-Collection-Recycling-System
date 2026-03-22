@@ -14,14 +14,15 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ComplaintResponse {
-    Integer id;
+public class EnterpriseCollectorReportRewardResponse {
+    Integer transactionId;
+    Integer collectorReportId;
+    Integer collectionRequestId;
     Integer reportId;
-    String reportCode;
-    String type;
-    String content;
-    String status;
-    String resolution;
-    Integer rating;
+    Integer citizenId;
+    Integer points;
+    Double verificationRate;
+    Integer balanceAfter;
     LocalDateTime createdAt;
 }
+

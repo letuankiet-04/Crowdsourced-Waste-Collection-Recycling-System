@@ -8,6 +8,8 @@ public class RegisterRequest {
     private String password;
     private String fullName;
     private String phone;
+    @JsonAlias("address")
+    private String location;
 
     public RegisterRequest() {
     }
@@ -44,5 +46,12 @@ public class RegisterRequest {
         this.phone = phone;
     }
 
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
 
 }

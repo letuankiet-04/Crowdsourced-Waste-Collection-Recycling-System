@@ -24,6 +24,55 @@
     <strong>Crowdsourced Waste Collection &amp; Recycling System</strong>. Mục tiêu là để dev mới có thể đọc nhanh và nắm bức tranh tổng quan.
   </p>
 
+  <h2>0. Tutorial: cách trace 1 API trong dự án</h2>
+  <p class="section-note">
+    Mục tiêu: từ 1 endpoint bất kỳ, bạn có thể lần ra controller → service → repository → entity/bảng DB → validate → security → rule nghiệp vụ.
+  </p>
+  <ol>
+    <li><strong>Tìm endpoint ở controller</strong>
+      <ul>
+        <li>Search theo path (<code>/api/...</code>) hoặc theo method name trong <code>src/main/java/.../controller/**</code>.</li>
+        <li>Đọc annotation <code>@RequestMapping</code> cấp class và <code>@GetMapping/@PostMapping/@PutMapping/@PatchMapping/@DeleteMapping</code> cấp method để ra đúng URL.</li>
+      </ul>
+    </li>
+    <li><strong>Xác định quyền truy cập</strong>
+      <ul>
+        <li>Kiểm tra <code>@PreAuthorize</code> (nếu có) và role cần thiết (ADMIN/ENTERPRISE/COLLECTOR/CITIZEN).</li>
+        <li>Kiểm tra cơ chế đọc JWT: thường lấy từ header <code>Authorization: Bearer ...</code> và map sang <code>Authentication</code>/<code>SecurityContext</code>.</li>
+      </ul>
+    </li>
+    <li><strong>Xác định request DTO và Bean Validation</strong>
+      <ul>
+        <li>Nếu controller dùng <code>@Valid</code> và nhận <code>@RequestBody</code> hoặc <code>@ModelAttribute</code>, mở DTO trong <code>dto/request/**</code> để xem annotation validate.</li>
+        <li>Nếu không có <code>@Valid</code>, thường validate được làm thủ công ở service (check null/blank/range/format).</li>
+      </ul>
+    </li>
+    <li><strong>Theo service để hiểu nghiệp vụ</strong>
+      <ul>
+        <li>Service thường là nơi có rule quan trọng: ownership, trạng thái (state machine), chống spam, SLA, tính điểm, phân công collector.</li>
+        <li>Tìm các đoạn check kiểu: <code>requireXxx</code>, <code>validateXxx</code>, so sánh status enum, và các exception <code>AppException/ErrorCode</code>.</li>
+      </ul>
+    </li>
+    <li><strong>Xác định bảng DB qua entity</strong>
+      <ul>
+        <li>Mở entity được service dùng (vd <code>WasteReport</code>, <code>CollectionRequest</code>, <code>PointTransaction</code>).</li>
+        <li>Đọc <code>@Table(name = "...")</code> để biết tên bảng; đọc <code>@JoinColumn</code> để hiểu FK và quan hệ join chính.</li>
+      </ul>
+    </li>
+    <li><strong>Kiểm tra tối ưu hiệu năng</strong>
+      <ul>
+        <li>Nếu API trả list/dashboard: ưu tiên projection interface hoặc query aggregate SQL để tránh N+1 và giảm payload.</li>
+        <li>Kiểm tra có dùng <code>@EntityGraph</code>, projection, hoặc query <code>COUNT/SUM/GROUP BY</code> ở repository.</li>
+      </ul>
+    </li>
+    <li><strong>Kiểm tra mapping response và xử lý lỗi</strong>
+      <ul>
+        <li>Xem DTO response/mapper (MapStruct) để hiểu dữ liệu trả ra.</li>
+        <li>Xem cách chuẩn hoá lỗi bằng <code>AppException</code> + <code>ErrorCode</code> để biết các failure mode.</li>
+      </ul>
+    </li>
+  </ol>
+
   <h2>1. Công nghệ & stack</h2>
   <ul>
     <li><span class="tag">Backend</span> Java + Spring Boot</li>
@@ -32,6 +81,7 @@
     <li><span class="tag">Auth</span> JWT + Token denylist (bảng <code>invalidated_tokens</code> + cache in-memory)</li>
     <li><span class="tag">Storage</span> Cloudinary để lưu ảnh (báo cáo rác, voucher banner/logo)</li>
     <li><span class="tag">Scheduling</span> Spring <code>@Scheduled</code> cho các job tự động (timeout, SLA)</li>
+    <li><span class="tag">Build</span> Maven Wrapper (<code>mvnw.cmd</code>) + cấu hình UTF-8 trong pom để tránh lỗi compile tiếng Việt trên Windows</li>
   </ul>
 
   <h2>2. Các module chức năng chính</h2>
@@ -95,11 +145,17 @@ public class WasteReport {
     <li><strong>Repository</strong>: <code>PointTransactionRepository</code> với query tổng điểm, filter theo ngày, enterprise, loại giao dịch.</li>
     <li><strong>Service</strong>: <code>WasteReportServiceImpl</code> (lịch sử thưởng người dân), <code>EnterpriseStatisticsServiceImpl</code> (thống kê enterprise).</li>
   </ul>
+  <p><strong>Loại giao dịch (transactionType) đang dùng:</strong></p>
+  <ul>
+    <li><code>EARN</code>: thưởng điểm sau khi enterprise xác thực báo cáo thu gom (có chặn cộng trùng theo <code>collectionRequestId</code>).</li>
+    <li><code>ADJUST_ENTERPRISE</code>: enterprise điều chỉnh điểm thủ công (cộng/trừ), có ràng buộc “chỉ sửa/xoá giao dịch mới nhất của citizen”.</li>
+  </ul>
   <p><strong>Best practice đã dùng:</strong></p>
   <ul>
     <li>Không filter bằng vòng lặp Java với list lớn: lịch sử điểm dùng query <code>findByCitizenIdAndDateRange</code>.</li>
     <li>Dùng aggregate SQL (<code>SUM</code>, <code>GROUP BY</code>) cho thống kê thay vì tính toán Java.</li>
     <li>Thêm index trên <code>citizen_id,transaction_type,created_at</code> để tối ưu query theo user + thời gian.</li>
+    <li>Nếu response cần dùng quan hệ lazy (vd <code>createdBy</code>), dùng <code>@EntityGraph</code> ở repository để tránh <code>LazyInitializationException</code>.</li>
   </ul>
 
   <h3>2.4. Khiếu nại / Feedback (Feedback)</h3>
@@ -146,7 +202,9 @@ public class WasteReport {
   <h3>3.3. Rule khiếu nại (complaints/feedback)</h3>
   <ul>
     <li>Chỉ cho phép các loại complaint chuẩn hoá: <code>COMPLAINT_COLLECTION</code>, <code>COMPLAINT_REWARD</code>, <code>COMPLAINT_SYSTEM</code>.</li>
+    <li>Complaint có thể tham chiếu report bằng <code>reportCode</code> (ưu tiên) hoặc <code>reportId</code> (tương thích cũ).</li>
     <li>Khiếu nại về thưởng (<code>COMPLAINT_REWARD</code>) chỉ hợp lệ nếu báo cáo đã ở trạng thái COLLECTED.</li>
+    <li>Response complaint có thể trả cả <code>reportId</code> và <code>reportCode</code> để UI hiển thị/trace dễ hơn.</li>
     <li>Enterprise/Admin giải quyết complaint:
       <ul>
         <li>Cập nhật <code>status</code> và <code>resolution</code> của feedback.</li>
@@ -236,7 +294,7 @@ public class WasteReport {
     </li>
     <li><strong>Enterprise xem & duyệt report</strong>
       <ul>
-        <li>API: <code>GET /api/enterprise/reports</code> (filter theo status).</li>
+        <li>API: <code>GET /api/enterprise/waste-reports</code> (filter theo status).</li>
         <li>Service: <code>EnterpriseWasteReportServiceImpl.getReports</code>.</li>
         <li>Bước:
           <ol>
@@ -250,8 +308,8 @@ public class WasteReport {
     </li>
     <li><strong>Enterprise chấp nhận / từ chối report</strong>
       <ul>
-        <li>API: <code>POST /api/enterprise/reports/{id}/accept</code>, <code>/reject</code>.</li>
-        <li>Service: <code>EnterpriseWasteReportServiceImpl.acceptReport</code> / <code>rejectReport</code>.</li>
+        <li>API: <code>POST /api/enterprise/requests/accept/{reportCode}</code>, <code>POST /api/enterprise/requests/reject/{reportCode}</code>.</li>
+        <li>Service: <code>EnterpriseRequestService.acceptWasteReport</code> / <code>EnterpriseRequestService.rejectWasteReport</code>.</li>
       </ul>
     </li>
   </ol>
@@ -260,7 +318,7 @@ public class WasteReport {
   <ol>
     <li><strong>Lấy danh sách task</strong>
       <ul>
-        <li>API: <code>GET /api/collector/tasks</code> (có thể filter theo status / all).</li>
+        <li>API: <code>GET /api/collector/collections/tasks</code> (có thể filter theo status / all).</li>
         <li>Service: <code>CollectorServiceImpl.getTasks</code>.</li>
         <li>Repository: <code>CollectionRequestRepository.findTasksForCollector...</code> trả về projection <code>CollectorTaskView</code>.</li>
       </ul>
@@ -269,10 +327,11 @@ public class WasteReport {
       <ul>
         <li>API:
           <ul>
-            <li><code>POST /api/collector/tasks/{id}/accept</code></li>
-            <li><code>POST /api/collector/tasks/{id}/start</code></li>
-            <li><code>POST /api/collector/tasks/{id}/complete</code></li>
-            <li><code>POST /api/collector/tasks/{id}/reject</code></li>
+            <li><code>POST /api/collector/collections/{requestId}/accept</code></li>
+            <li><code>POST /api/collector/collections/{requestId}/start</code></li>
+            <li><code>POST /api/collector/collections/{requestId}/collected</code></li>
+            <li><code>POST /api/collector/collections/{requestId}/reject</code></li>
+            <li><code>POST /api/collector/collections/{requestId}/complete</code> (multipart: tạo collector report)</li>
           </ul>
         </li>
         <li>Service: <code>CollectorServiceImpl.acceptTask</code>, <code>startTask</code>, <code>completeTask</code>, <code>rejectTask</code>.</li>
@@ -287,7 +346,7 @@ public class WasteReport {
     </li>
     <li><strong>Lịch sử làm việc & thống kê</strong>
       <ul>
-        <li>API: <code>GET /api/collector/work-history</code>, <code>/stats</code>, <code>/waste-volume</code>...</li>
+        <li>API: <code>GET /api/collector/collections/work_history</code>, <code>/stats</code>, <code>/waste-volume</code>...</li>
         <li>Service: <code>CollectorServiceImpl.getWorkHistory</code>, <code>getStats</code>, <code>getWasteVolumeStats</code>, <code>getWasteTypeStats</code>.</li>
         <li>Tất cả thống kê sử dụng aggregate SQL (COUNT, SUM, GROUP BY) qua <code>CollectionRequestRepository</code>, <code>CollectorReportItemRepository</code>.</li>
       </ul>
@@ -453,7 +512,7 @@ public class WasteReport {
   <ol>
     <li><strong>Lịch sử điểm của công dân</strong>
       <ul>
-        <li>API: <code>GET /api/citizen/points/history</code> (có thể filter theo khoảng thời gian).</li>
+        <li>API: <code>GET /api/citizen/rewards/history</code> (có thể filter theo khoảng thời gian).</li>
         <li>Service: <code>WasteReportServiceImpl.getRewardHistory</code>.</li>
         <li>Validate:
           <ul>
@@ -489,209 +548,1088 @@ public class WasteReport {
     <code>HTTP method</code>, <code>URL</code>, <code>Controller method</code>, <code>Service chính</code> và
     các điểm <strong>validate / rule nghiệp vụ</strong> quan trọng (ở mức tóm tắt, chi tiết logic xem trong service tương ứng).
   </p>
+  <p class="section-note">
+    Mỗi API được mô tả theo 4 ý: <strong>Mục đích</strong>, <strong>Bảng/Entity</strong>, <strong>Validate</strong>, và
+    <strong>Kiến thức/pattern</strong> (các tag được dùng lặp lại để dev mới nhìn là hiểu ngay).
+  </p>
 
   <h3>5.x.1. Auth</h3>
-  <ul>
-    <li><code>POST /api/auth/introspect</code> → <code>AuthController.introspect</code> → <code>AuthService.introspect</code>
-      <ul>
-        <li>Kiểm tra token có hợp lệ, chưa hết hạn, chưa bị revoke trong denylist (bảng <code>invalidated_tokens</code> + cache).</li>
-      </ul>
-    </li>
-    <li><code>POST /api/auth/register</code> → <code>AuthController.register</code> → <code>AuthService.register</code>
-      <ul>
-        <li>Validate email không trùng, mật khẩu đủ mạnh, role hợp lệ; tạo user + thực thể domain (citizen/collector/enterprise) tương ứng.</li>
-      </ul>
-    </li>
-    <li><code>POST /api/auth/login</code> → <code>AuthController.login</code> → <code>AuthService.login</code>
-      <ul>
-        <li>Check credential, trạng thái tài khoản (active/suspended), trả về JWT với <code>roles</code>, <code>jti</code>, <code>exp</code>.</li>
-      </ul>
-    </li>
-    <li><code>POST /api/auth/logout</code> → <code>AuthController.logout</code> → <code>AuthService.logout</code>
-      <ul>
-        <li>Lấy token từ header <code>Authorization</code> hoặc body, parse JWT, ghi <code>jti</code> vào denylist đến khi hết hạn.</li>
-      </ul>
-    </li>
-  </ul>
+  <details>
+    <summary><code>POST /api/auth/introspect</code> — kiểm tra token còn hiệu lực</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AuthController.introspect</code> → <code>AuthService.introspect</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>InvalidatedToken</code> → <code>invalidated_tokens</code> (denylist, nếu có áp dụng cho flow)</li>
+      <li><strong>Validate</strong>: không dùng <code>@Valid</code>; service kiểm tra token null/blank, verify chữ ký/exp và denylist (nếu bật)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">JWT</span> <span class="tag">Token denylist</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/auth/register</code> — tạo tài khoản và profile theo role</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AuthController.register</code> → <code>AuthService.register</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>User</code> → <code>users</code>, <code>Role</code> → <code>roles</code>, tuỳ role: <code>Citizen</code> → <code>citizens</code> / <code>Collector</code> → <code>collectors</code> / <code>Enterprise</code> → <code>enterprise</code></li>
+      <li><strong>Validate</strong>: DTO không có Bean Validation; service validate email/password/role, check trùng email và tạo đúng domain entity</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">AuthN</span> <span class="tag">Role</span> <span class="tag">JPA</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/auth/login</code> — đăng nhập, trả JWT</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AuthController.login</code> → <code>AuthService.login</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>User</code> → <code>users</code> (xác thực), join profile theo role: <code>citizens</code>/<code>collectors</code>/<code>enterprise</code></li>
+      <li><strong>Validate</strong>: không dùng <code>@Valid</code>; service validate credential, trạng thái user (active/suspended), build claim <code>roles</code>/<code>jti</code>/<code>exp</code></li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">JWT</span> <span class="tag">AuthN</span> <span class="tag">Spring Security</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/auth/logout</code> — thu hồi token (revoke)</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AuthController.logout</code> → <code>AuthService.logout</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>InvalidatedToken</code> → <code>invalidated_tokens</code></li>
+      <li><strong>Validate</strong>: không dùng <code>@Valid</code>; parse JWT, lấy <code>jti</code> + <code>exp</code>, lưu denylist tới khi hết hạn</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">JWT</span> <span class="tag">Token denylist</span> <span class="tag">Security</span></li>
+    </ul>
+  </details>
 
   <h3>5.x.2. Citizen</h3>
-  <ul>
-    <li><code>GET /api/citizen/reports/stats</code> → <code>CitizenController.getMyReportStats</code> → <code>WasteReportService.getMyReportStats</code></li>
-    <li><code>POST /api/citizen/reports</code> (multipart) → <code>createReport</code> → <code>WasteReportService.createReport</code>
-      <ul>
-        <li>Validate ảnh, toạ độ, danh sách loại rác, chống spam như mô tả ở mục 3.1.</li>
-      </ul>
-    </li>
-    <li><code>PUT /api/citizen/reports/{id}</code> (multipart) → <code>updateReport</code> → <code>WasteReportService.updateReport</code>
-      <ul>
-        <li>Chỉ cho phép owner sửa khi report đang <code>PENDING</code> và chưa có <code>CollectionRequest</code>.</li>
-      </ul>
-    </li>
-    <li><code>DELETE /api/citizen/reports/{id}</code> → <code>deleteReport</code> → <code>WasteReportService.deleteReport</code></li>
-    <li><code>GET /api/citizen/reports</code> → <code>getMyReports</code> → <code>WasteReportService.getMyReports</code></li>
-    <li><code>GET /api/citizen/reports/{id}</code> → <code>getMyReportById</code> → <code>WasteReportService.getMyReportById</code></li>
-    <li><code>GET /api/citizen/reports/{id}/result</code> → <code>getMyReportResult</code> → <code>WasteReportService.getMyReportResult</code></li>
-    <li><code>GET /api/citizen/rewards/history</code> → <code>getRewardHistory</code> → <code>WasteReportService.getRewardHistory</code>
-      <ul>
-        <li>Validate khoảng thời gian; nếu có <code>startDate/endDate</code> dùng filter DB, không load toàn bộ history.</li>
-      </ul>
-    </li>
-    <li><code>GET /api/citizen/leaderboard</code> → <code>getLeaderboard</code> → <code>WasteReportService.getLeaderboard</code></li>
-    <li><code>GET /api/citizen/points/summary</code> → <code>getMyPointSummary</code> → <code>WasteReportService.getMyPointSummary</code></li>
-    <li><code>POST /api/citizen/complaints</code> (multipart) → <code>createComplaint</code> → <code>WasteReportService.createComplaint</code></li>
-    <li><code>GET /api/citizen/complaints</code> → <code>getComplaints</code> → <code>WasteReportService.getComplaints</code></li>
-    <li><code>GET /api/citizen/waste-categories</code> → <code>getWasteCategories</code> → <code>WasteCategoryService.getAllCategories</code> (thông qua <code>WasteReportService</code>)</li>
-    <li><code>PUT /api/citizen/profile</code> → <code>updateMyProfile</code> → <code>ProfileService.updateCitizenProfile</code></li>
-  </ul>
+  <details>
+    <summary><code>GET /api/citizen/reports/stats</code> — thống kê report của công dân</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CitizenController.getMyReportStats</code> → <code>WasteReportService.getMyReportStats</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>WasteReport</code> → <code>waste_reports</code></li>
+      <li><strong>Validate</strong>: lấy citizen từ JWT; filter theo citizenId, thống kê bằng query/repo</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">JWT</span> <span class="tag">Aggregate SQL</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/citizen/reports</code> (multipart) — tạo report rác</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CitizenController.createReport</code> → <code>WasteReportService.createReport</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>WasteReport</code> → <code>waste_reports</code>, <code>WasteReportItem</code> → <code>waste_report_items</code>, <code>WasteCategory</code> → <code>waste_categories</code>, <code>ReportImage</code> → <code>report_images</code></li>
+      <li><strong>Validate</strong>: dùng <code>@Valid @ModelAttribute</code> với <code>CreateWasteReportRequest</code> (ảnh/categoryIds/lat/lng); rule service: chống spam (near-duplicate), ownership, chỉ tạo khi citizen hợp lệ</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Bean Validation</span> <span class="tag">Cloudinary</span> <span class="tag">Nén ảnh</span> <span class="tag">Anti-spam</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>PUT /api/citizen/reports/{id}</code> (multipart) — cập nhật report</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CitizenController.updateReport</code> → <code>WasteReportService.updateReport</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_reports</code>, <code>waste_report_items</code>, <code>report_images</code></li>
+      <li><strong>Validate</strong>: <code>@Valid @ModelAttribute</code> với <code>UpdateWasteReportRequest</code> (range lat/lng); rule service: chỉ owner sửa khi <code>status == PENDING</code> và chưa có <code>CollectionRequest</code></li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">State machine</span> <span class="tag">Ownership</span> <span class="tag">Cloudinary</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>DELETE /api/citizen/reports/{id}</code> — xoá report</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CitizenController.deleteReport</code> → <code>WasteReportService.deleteReport</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_reports</code> (và dữ liệu phụ thuộc như items/images tuỳ mapping)</li>
+      <li><strong>Validate</strong>: rule service: chỉ owner xoá khi <code>PENDING</code> và chưa có request liên quan</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">State machine</span> <span class="tag">Ownership</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/citizen/reports</code> — danh sách report của công dân</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CitizenController.getMyReports</code> → <code>WasteReportService.getMyReports</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_reports</code> + join <code>waste_report_items</code>/<code>waste_categories</code>/<code>report_images</code></li>
+      <li><strong>Validate</strong>: lấy citizen từ JWT, filter theo citizenId</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">JWT</span> <span class="tag">JPA</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/citizen/reports/{id}</code> — chi tiết report</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CitizenController.getMyReportById</code> → <code>WasteReportService.getMyReportById</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_reports</code> + items/images</li>
+      <li><strong>Validate</strong>: ownership (report phải thuộc citizen đang đăng nhập)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Ownership</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/citizen/reports/{id}/result</code> — kết quả thu gom & thưởng</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CitizenController.getMyReportResult</code> → <code>WasteReportService.getMyReportResult</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>CollectionRequest</code> → <code>collection_requests</code>, <code>CollectorReport</code> → <code>collector_reports</code>, <code>PointTransaction</code> → <code>point_transactions</code></li>
+      <li><strong>Validate</strong>: report phải thuộc citizen; xử lý trường hợp report chưa có request/report thu gom</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Join</span> <span class="tag">Rule nghiệp vụ</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/citizen/rewards/history</code> — lịch sử điểm thưởng</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CitizenController.getRewardHistory</code> → <code>WasteReportService.getRewardHistory</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>PointTransaction</code> → <code>point_transactions</code></li>
+      <li><strong>Validate</strong>: validate khoảng thời gian; nếu có <code>startDate/endDate</code> thì filter ở DB để tránh load toàn bộ lịch sử</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Filter theo thời gian</span> <span class="tag">Aggregate SQL</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/citizen/leaderboard</code> — xếp hạng công dân</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CitizenController.getLeaderboard</code> → <code>WasteReportService.getLeaderboard</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>point_transactions</code> (SUM điểm) + <code>citizens</code>/<code>users</code> (thông tin hiển thị)</li>
+      <li><strong>Validate</strong>: filter theo tháng/năm (nếu có); xử lý null → 0 khi aggregate</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">GROUP BY</span> <span class="tag">Leaderboard</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/citizen/points/summary</code> — tổng hợp điểm theo kỳ</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CitizenController.getMyPointSummary</code> → <code>WasteReportService.getMyPointSummary</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>point_transactions</code></li>
+      <li><strong>Validate</strong>: validate range <code>year/month/quarter</code>, nếu sai trả 400</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Date range</span> <span class="tag">Aggregate SQL</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>PUT /api/citizen/password</code> — đổi mật khẩu công dân</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CitizenController.changePassword</code> → <code>PasswordService.changePassword</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>User</code> → <code>users</code> (cập nhật <code>password_hash</code>)</li>
+      <li><strong>Validate</strong>: không <code>@Valid</code>; validate mật khẩu cũ/độ mạnh mật khẩu mới ở service</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Security</span> <span class="tag">Password hashing</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/citizen/complaints</code> (multipart) — gửi khiếu nại</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CitizenController.createComplaint</code> → <code>WasteReportService.createComplaint</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>Feedback</code> → <code>feedbacks</code> (có thể link <code>collection_requests</code>), <code>Citizen</code> → <code>citizens</code></li>
+      <li><strong>Validate</strong>: <code>@Valid @ModelAttribute</code> với <code>CreateComplaintRequest</code> (<code>@NotBlank</code>, <code>@Min/@Max</code> rating); tham chiếu report bằng <code>reportCode</code> (ưu tiên) hoặc <code>reportId</code>; rule service: chuẩn hoá type, validate complaint theo trạng thái report</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Bean Validation</span> <span class="tag">Rule nghiệp vụ</span> <span class="tag">Multipart</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/citizen/complaints</code> — xem danh sách khiếu nại</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CitizenController.getComplaints</code> → <code>WasteReportService.getComplaints</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>feedbacks</code> (lọc theo citizen)</li>
+      <li><strong>Validate</strong>: ownership (chỉ xem complaint của mình)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">JWT</span> <span class="tag">Ownership</span>; response có thể trả thêm <code>reportCode</code> để UI hiển thị/trace theo mã</li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/citizen/waste-categories</code> — danh mục loại rác</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CitizenController.getWasteCategories</code> → <code>WasteCategoryService.getAllCategories</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>WasteCategory</code> → <code>waste_categories</code></li>
+      <li><strong>Validate</strong>: không</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Read-only</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>PUT /api/citizen/profile</code> — cập nhật hồ sơ công dân</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CitizenController.updateMyProfile</code> → <code>ProfileService.updateCitizenProfile</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>Citizen</code> → <code>citizens</code> (và có thể <code>User</code> → <code>users</code> nếu update email/phone)</li>
+      <li><strong>Validate</strong>: validate format/độ dài/unique (nếu có constraint) ở service</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Ownership</span> <span class="tag">Service validation</span></li>
+    </ul>
+  </details>
 
   <h3>5.x.3. Citizen Voucher</h3>
-  <ul>
-    <li><code>GET /api/citizen/vouchers</code> → <code>CitizenVoucherController.getAvailableVouchers</code> → <code>VoucherService.getAvailableVouchers</code></li>
-    <li><code>POST /api/citizen/vouchers/{voucherId}/redeem</code> → <code>redeem</code> → <code>VoucherService.redeem</code>
-      <ul>
-        <li>Validate citizen đủ điểm, voucher active, số lượng còn, hạn dùng, …</li>
-      </ul>
-    </li>
-    <li><code>GET /api/citizen/vouchers/my</code> → <code>getMyVouchers</code> → <code>VoucherService.getMyVouchers</code></li>
-  </ul>
+  <details>
+    <summary><code>GET /api/citizen/vouchers</code> — list voucher có thể đổi</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CitizenVoucherController.getAvailableVouchers</code> → <code>VoucherService.getAvailableVouchers</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>Voucher</code> → <code>vouchers</code></li>
+      <li><strong>Validate</strong>: lọc <code>active</code>, hạn dùng, số lượng… ở service</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Read-only</span> <span class="tag">Filter</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/citizen/vouchers/{voucherId}/redeem</code> — đổi điểm lấy voucher</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CitizenVoucherController.redeem</code> → <code>VoucherService.redeem</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>vouchers</code>, <code>VoucherRedemption</code> → <code>voucher_redemptions</code>, <code>PointTransaction</code> → <code>point_transactions</code>, <code>Citizen</code> → <code>citizens</code></li>
+      <li><strong>Validate</strong>: citizen đủ điểm, voucher active/còn số lượng/chưa hết hạn, chống redeem trùng (tuỳ rule)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Transaction</span> <span class="tag">Points</span> <span class="tag">Concurrency</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/citizen/vouchers/my</code> — voucher đã đổi</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CitizenVoucherController.getMyVouchers</code> → <code>VoucherService.getMyVouchers</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>voucher_redemptions</code> + join <code>vouchers</code></li>
+      <li><strong>Validate</strong>: ownership (lọc theo citizen)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">JWT</span> <span class="tag">Join</span></li>
+    </ul>
+  </details>
 
   <h3>5.x.4. Collector – Task & Report</h3>
   <p class="section-note">Đã mô tả luồng chi tiết ở 5.2; dưới đây là bảng endpoint đầy đủ.</p>
-  <ul>
-    <li><code>GET /api/collector/collections/tasks</code> → <code>CollectionController.getTasks</code> → <code>CollectorService.getTasks</code></li>
-    <li><code>GET /api/collector/collections/tasks/{requestId}</code> → <code>getTaskDetail</code> → <code>CollectorService.getTaskDetail</code></li>
-    <li><code>GET /api/collector/collections/tasks/status_counts</code> → <code>getTaskStatusCounts</code> → <code>CollectorService.getTaskStatusCounts</code></li>
-    <li><code>GET /api/collector/collections/work_history</code> → <code>getWorkHistory</code> → <code>CollectorService.getWorkHistory</code></li>
-    <li><code>GET /api/collector/collections/stats</code> → <code>getStats</code> → <code>CollectorService.getStats</code></li>
-    <li><code>GET /api/collector/collections/waste-volume</code> → <code>getWasteVolumeStats</code> → <code>CollectorService.getWasteVolumeStats</code></li>
-    <li><code>GET /api/collector/collections/history</code> → <code>getHistory</code> → <code>CollectorService.getTasks</code> + <code>CollectorReportService.getReportsByCollector</code></li>
-    <li><code>POST /api/collector/collections/{requestId}/accept</code> → <code>acceptTask</code> → <code>CollectorService.acceptTask</code></li>
-    <li><code>POST /api/collector/collections/{requestId}/start</code> → <code>startTask</code> → <code>CollectorService.startTask</code></li>
-    <li><code>POST /api/collector/collections/{requestId}/reject</code> → <code>rejectTask</code> → <code>CollectorService.rejectTask</code></li>
-    <li><code>POST /api/collector/collections/{requestId}/collected</code> → <code>markCollected</code> → <code>CollectorService.completeTask</code></li>
-    <li><code>PATCH /api/collector/collections/{requestId}/status</code> → <code>updateStatus</code> → <code>CollectorService.updateStatus</code></li>
-    <li><code>GET /api/collector/collections/{requestId}/create_report</code> → <code>getCreateReport</code> → <code>CollectorReportService.getCreateReport</code></li>
-    <li><code>POST /api/collector/collections/{requestId}/complete</code> (multipart) → <code>createCollectorReport</code> → <code>CollectorReportCreationService.createCollectorReport</code></li>
-    <li><code>GET /api/collector/collections/{requestId}/report</code> → <code>getReportByCollectionRequest</code> → <code>CollectorReportService.getReportByCollectionRequest</code></li>
-    <li><code>GET /api/collector/collections/list_reports</code> → <code>getMyReports</code> → <code>CollectorReportService.getReportsByCollector</code></li>
-    <li><code>GET /api/collector/collections/reports/{reportId}</code> → <code>getReportById</code> → <code>CollectorReportService.getReportById</code></li>
-  </ul>
+  <details>
+    <summary><code>GET /api/collector/collections/tasks</code> — danh sách task hiện tại</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectionController.getTasks</code> → <code>CollectorService.getTasks</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>CollectionRequest</code> → <code>collection_requests</code> (join report/citizen/enterprise để hiển thị)</li>
+      <li><strong>Validate</strong>: bắt buộc role COLLECTOR; filter theo collectorId lấy từ JWT</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">JWT</span> <span class="tag">Projection</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/collector/collections/tasks/{requestId}</code> — chi tiết 1 task</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectionController.getTaskDetail</code> → <code>CollectorService.getTaskDetail</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code> + join <code>waste_reports</code>/<code>waste_report_items</code>/<code>waste_categories</code></li>
+      <li><strong>Validate</strong>: ownership (request phải thuộc collector)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Ownership</span> <span class="tag">Join</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/collector/collections/tasks/status_counts</code> — đếm task theo trạng thái</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectionController.getTaskStatusCounts</code> → <code>CollectorService.getTaskStatusCounts</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code></li>
+      <li><strong>Validate</strong>: role COLLECTOR; đảm bảo trả đủ state enum (kể cả count=0) để UI render ổn định</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Aggregate SQL</span> <span class="tag">Enum</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/collector/collections/work_history</code> — lịch sử làm việc</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectionController.getWorkHistory</code> → <code>CollectorService.getWorkHistory</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code> (lọc theo collector) + join hiển thị</li>
+      <li><strong>Validate</strong>: filter theo status (optional); nếu null/blank thì trả tất cả</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Projection</span> <span class="tag">Filter</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/collector/collections/stats</code> — thống kê tổng quan</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectionController.getStats</code> → <code>CollectorService.getStats</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code>, <code>collector_report_items</code> (tổng khối lượng theo kỳ)</li>
+      <li><strong>Validate</strong>: filter theo ngày/tháng/năm (nếu có), normalize time range</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Aggregate SQL</span> <span class="tag">Date range</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/collector/collections/waste-volume</code> — thống kê khối lượng thu gom</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectionController.getWasteVolumeStats</code> → <code>CollectorService.getWasteVolumeStats</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collector_report_items</code> (SUM weight), <code>collection_requests</code></li>
+      <li><strong>Validate</strong>: validate year trong range; null → default năm hiện tại</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">GROUP BY</span> <span class="tag">Null handling</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/collector/collections/history</code> — lịch sử task + report</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectionController.getHistory</code> → <code>CollectorService.getTasks</code> + <code>CollectorReportService.getReportsByCollector</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code>, <code>collector_reports</code></li>
+      <li><strong>Validate</strong>: filter theo collectorId</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Join</span> <span class="tag">Pagination</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/collector/collections/{requestId}/accept</code> — nhận task</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectionController.acceptTask</code> → <code>CollectorService.acceptTask</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code> (status transition), có thể update tracking</li>
+      <li><strong>Validate</strong>: status phải đúng (ASSIGNED → ACCEPTED_COLLECTOR); ownership; chống race condition</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">State machine</span> <span class="tag">JPQL update</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/collector/collections/{requestId}/start</code> — bắt đầu di chuyển</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectionController.startTask</code> → <code>CollectorService.startTask</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code></li>
+      <li><strong>Validate</strong>: status hợp lệ (ACCEPTED_COLLECTOR → ON_THE_WAY), ownership</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">State machine</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/collector/collections/{requestId}/reject</code> — từ chối task</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectionController.rejectTask</code> → <code>CollectorService.rejectTask</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code> (đổi trạng thái/ghi lý do), có thể ảnh hưởng flow reassignment</li>
+      <li><strong>Validate</strong>: không bắt buộc <code>@Valid</code>; validate reason và status transition hợp lệ</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">State machine</span> <span class="tag">Rule nghiệp vụ</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/collector/collections/{requestId}/collected</code> — đánh dấu đã thu gom</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectionController.markCollected</code> → <code>CollectorService.completeTask</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code> (COLLECTED), đồng bộ với <code>waste_reports</code> (status)</li>
+      <li><strong>Validate</strong>: transition hợp lệ, ownership</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">State machine</span> <span class="tag">Consistency</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>PATCH /api/collector/collections/{requestId}/status</code> — cập nhật trạng thái task</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectionController.updateStatus</code> → <code>CollectorService.updateStatus</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code></li>
+      <li><strong>Validate</strong>: chỉ cho phép một số trạng thái; parse string → enum; không cho nhảy state không hợp lệ</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Enum parse</span> <span class="tag">State machine</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/collector/collections/{requestId}/create_report</code> — lấy dữ liệu nền để tạo report thu gom</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectionController.getCreateReport</code> → <code>CollectorReportService.getCreateReport</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code> + <code>waste_reports</code>/<code>waste_report_items</code>/<code>waste_categories</code></li>
+      <li><strong>Validate</strong>: request thuộc collector; request/status đủ điều kiện để tạo report</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Join</span> <span class="tag">Rule nghiệp vụ</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/collector/collections/{requestId}/complete</code> (multipart) — tạo collector report (hoàn tất)</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectionController.createCollectorReport</code> → <code>CollectorReportCreationService.createCollectorReport</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>CollectorReport</code> → <code>collector_reports</code>, <code>CollectorReportItem</code> → <code>collector_report_items</code>, <code>CollectorReportImage</code> → <code>collector_report_images</code>, update <code>collection_requests</code></li>
+      <li><strong>Validate</strong>: <code>@Valid @ModelAttribute</code> với <code>CreateCollectorReportRequest</code> (ảnh/categoryIds/lat/lng…); rule service: status đúng, ownership, lưu ảnh Cloudinary</li>
+      <li><strong>Rule nghiệp vụ</strong>: khi collector tạo report thì <strong>chưa cộng điểm</strong> (totalPoint của report và item được lưu = 0). Điểm sẽ được enterprise xác thực và cộng sau.</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Bean Validation</span> <span class="tag">Cloudinary</span> <span class="tag">Transaction</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/collector/collections/{requestId}/report</code> — xem report theo request</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectionController.getReportByCollectionRequest</code> → <code>CollectorReportService.getReportByCollectionRequest</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collector_reports</code> + items/images</li>
+      <li><strong>Validate</strong>: ownership/permission (collector chỉ xem report của mình)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Join</span> <span class="tag">Ownership</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/collector/collections/list_reports</code> — danh sách report thu gom của collector</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectionController.getMyReports</code> → <code>CollectorReportService.getReportsByCollector</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collector_reports</code></li>
+      <li><strong>Validate</strong>: filter theo collectorId (JWT)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">JWT</span> <span class="tag">Pagination</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/collector/collections/reports/{reportId}</code> — chi tiết collector report</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectionController.getReportById</code> → <code>CollectorReportService.getReportById</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collector_reports</code> + <code>collector_report_items</code> + <code>collector_report_images</code></li>
+      <li><strong>Validate</strong>: collector chỉ xem report của mình (ownership)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Ownership</span> <span class="tag">EntityGraph</span></li>
+    </ul>
+  </details>
 
   <h3>5.x.5. Collector – Dashboard & Profile</h3>
-  <ul>
-    <li><code>GET /api/collector/dashboard</code> → <code>CollectorController.getDashboard</code></li>
-    <li><code>GET /api/collector/stats/performance</code> → <code>getPerformanceStats</code> → <code>CollectorService.getStats</code></li>
-    <li><code>GET /api/collector/stats/waste-volume</code> → <code>getWasteVolumeStats</code> → <code>CollectorService.getWasteVolumeStats</code></li>
-    <li><code>GET /api/collector/stats/waste-type</code> → <code>getWasteTypeStats</code> → <code>CollectorService.getWasteTypeStats</code></li>
-    <li><code>GET /api/collector/stats/tasks</code> → <code>getTaskStatusCounts</code> → <code>CollectorService.getTaskStatusCounts</code></li>
-    <li><code>GET /api/collector/stats/general</code> → <code>getGeneralStats</code> → <code>CollectorService.getGeneralStats</code></li>
-    <li><code>GET /api/collector/leaderboard</code> → <code>getLeaderboard</code> → <code>CollectorService.getLeaderboard</code></li>
-    <li><code>GET /api/collector/history</code> → <code>getWorkHistory</code> → <code>CollectorService.getWorkHistory</code></li>
-    <li><code>PATCH /api/collector/status</code> → <code>updateMyStatus</code> → <code>CollectorService.updateAvailabilityStatus</code></li>
-    <li><code>PUT /api/collector/profile</code> → <code>updateMyProfile</code> → <code>ProfileService.updateCollectorProfile</code></li>
-  </ul>
+  <details>
+    <summary><code>GET /api/collector/dashboard</code> — thông tin trạng thái collector</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectorController.getDashboard</code> → <code>CollectorRepository</code>/<code>CollectorService</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>Collector</code> → <code>collectors</code></li>
+      <li><strong>Validate</strong>: role COLLECTOR; lấy collectorId từ JWT; xử lý không tìm thấy collector theo id</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">JWT</span> <span class="tag">Role</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/collector/stats/performance</code> — hiệu suất theo tháng</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectorController.getPerformanceStats</code> → <code>CollectorService.getStats</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code></li>
+      <li><strong>Validate</strong>: year optional; default năm hiện tại; map null → 0</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">COUNT</span> <span class="tag">GROUP BY</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/collector/stats/waste-volume</code> — khối lượng thu gom theo kỳ</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectorController.getWasteVolumeStats</code> → <code>CollectorService.getWasteVolumeStats</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collector_report_items</code>, <code>collection_requests</code></li>
+      <li><strong>Validate</strong>: validate year range</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Aggregate SQL</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/collector/stats/waste-type</code> — khối lượng theo loại rác</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectorController.getWasteTypeStats</code> → <code>CollectorService.getWasteTypeStats</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collector_report_items</code> + join <code>waste_categories</code> (để ra code/type)</li>
+      <li><strong>Validate</strong>: không</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">SUM</span> <span class="tag">Map Object[]</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/collector/stats/tasks</code> — đếm task theo trạng thái</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectorController.getTaskStatusCounts</code> → <code>CollectorService.getTaskStatusCounts</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code></li>
+      <li><strong>Validate</strong>: trả đủ tất cả trạng thái enum (UI render)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Enum</span> <span class="tag">Aggregate SQL</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/collector/stats/general</code> — thống kê theo ngày/tháng/năm</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectorController.getGeneralStats</code> → <code>CollectorService.getGeneralStats</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code>/<code>collector_report_items</code> (tuỳ query)</li>
+      <li><strong>Validate</strong>: normalize bộ lọc day/month/year</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Date filter</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/collector/leaderboard</code> — leaderboard collector</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectorController.getLeaderboard</code> → <code>CollectorService.getLeaderboard</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code> + tổng hợp theo collector</li>
+      <li><strong>Validate</strong>: filter month/year optional</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Leaderboard</span> <span class="tag">GROUP BY</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/collector/history</code> — lịch sử làm việc (profile view)</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectorController.getWorkHistory</code> → <code>CollectorService.getWorkHistory</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code></li>
+      <li><strong>Validate</strong>: filter status optional; null → trả tất cả</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Projection</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>PATCH /api/collector/status</code> — cập nhật trạng thái khả dụng</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectorController.updateMyStatus</code> → <code>CollectorService.updateAvailabilityStatus</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>Collector</code> → <code>collectors</code> (cập nhật <code>status</code>)</li>
+      <li><strong>Validate</strong>: parse status string → enum; không cho tự set <code>SUSPEND</code>; check collector tồn tại</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Enum parse</span> <span class="tag">Rule nghiệp vụ</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>PUT /api/collector/profile</code> — cập nhật hồ sơ collector</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectorController.updateMyProfile</code> → <code>ProfileService.updateCollectorProfile</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collectors</code> (và có thể <code>users</code>)</li>
+      <li><strong>Validate</strong>: validate field cơ bản, unique constraint (nếu có) ở service</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Service validation</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>PUT /api/collector/password</code> — đổi mật khẩu collector</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectorController.changePassword</code> → <code>PasswordService.changePassword</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>users</code></li>
+      <li><strong>Validate</strong>: validate mật khẩu cũ/mới ở service</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Security</span></li>
+    </ul>
+  </details>
 
   <h3>5.x.6. Collector – Feedback</h3>
-  <ul>
-    <li><code>POST /api/collector/feedbacks</code> → <code>CollectorFeedbackController.create</code> → <code>CollectorFeedbackService.createFeedback</code></li>
-    <li><code>GET /api/collector/feedbacks</code> → <code>getMyFeedbacks</code> → <code>CollectorFeedbackService.getMyFeedbacks</code></li>
-  </ul>
+  <details>
+    <summary><code>POST /api/collector/feedbacks</code> (multipart) — collector gửi phản hồi/khiếu nại</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectorFeedbackController.create</code> → <code>CollectorFeedbackService.createFeedback</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>CollectorFeedback</code> → <code>collector_feedbacks</code> (có thể link <code>collection_requests</code>)</li>
+      <li><strong>Validate</strong>: <code>@Valid @ModelAttribute</code> với <code>CreateCollectorFeedbackRequest</code> (<code>@NotBlank</code>, rating <code>@Min/@Max</code>)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Bean Validation</span> <span class="tag">Multipart</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/collector/feedbacks</code> — danh sách feedback của collector</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>CollectorFeedbackController.getMyFeedbacks</code> → <code>CollectorFeedbackService.getMyFeedbacks</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collector_feedbacks</code></li>
+      <li><strong>Validate</strong>: ownership (filter theo collectorId)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">JWT</span></li>
+    </ul>
+  </details>
 
   <h3>5.x.7. Enterprise – Requests & Assignment</h3>
-  <ul>
-    <li><code>POST /api/enterprise/requests/reports/{reportCode}/assign-collector</code> → <code>assignCollectorByReportCode</code> → <code>EnterpriseAssignmentService.assignCollectorByReportCode</code></li>
-    <li><code>POST /api/enterprise/requests/{requestId}/assign-collector</code> → <code>assignCollectorByRequestId</code> → <code>EnterpriseAssignmentService.assignCollector</code></li>
-    <li><code>GET /api/enterprise/requests/{requestId}/eligible-collectors</code> → <code>getEligibleCollectors</code> → <code>EnterpriseAssignmentService.findEligibleCollectors</code></li>
-    <li><code>GET /api/enterprise/requests/{requestId}/report-detail</code> → <code>getRequestReportDetail</code> → <code>EnterpriseReportDetailService.getRequestReportDetail</code></li>
-    <li><code>POST /api/enterprise/requests/accept/{reportCode}</code> → <code>acceptWasteReport</code> → <code>EnterpriseRequestService.acceptWasteReport</code></li>
-    <li><code>POST /api/enterprise/requests/reject/{reportCode}</code> → <code>rejectWasteReport</code> → <code>EnterpriseRequestService.rejectWasteReport</code></li>
-    <li><code>GET /api/enterprise/requests/collector-rejections</code> → <code>getCollectorRejections</code> → <code>EnterpriseCollectorRejectionService.getCollectorRejections</code></li>
-  </ul>
+  <details>
+    <summary><code>POST /api/enterprise/requests/reports/{reportCode}/assign-collector</code> — phân công collector theo report</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseController.assignCollectorByReportCode</code> → <code>EnterpriseAssignmentService.assignCollectorByReportCode</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>WasteReport</code> → <code>waste_reports</code>, <code>CollectionRequest</code> → <code>collection_requests</code>, <code>Collector</code> → <code>collectors</code></li>
+      <li><strong>Validate</strong>: enterprise ownership (report thuộc enterprise); collector eligible (status ONLINE, điều kiện khu vực/last update…)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Authorization</span> <span class="tag">Assignment</span> <span class="tag">Rule nghiệp vụ</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/enterprise/requests/{requestId}/assign-collector</code> — phân công lại theo request</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseController.assignCollectorByRequestId</code> → <code>EnterpriseAssignmentService.assignCollector</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code>, <code>collectors</code></li>
+      <li><strong>Validate</strong>: request thuộc enterprise; validate trạng thái cho phép phân công</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">State machine</span> <span class="tag">Assignment</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/enterprise/requests/{requestId}/eligible-collectors</code> — danh sách collector phù hợp</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseController.getEligibleCollectors</code> → <code>EnterpriseAssignmentService.findEligibleCollectors</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collectors</code> (lọc theo status/vị trí/enterprise)</li>
+      <li><strong>Validate</strong>: request thuộc enterprise; lọc collector theo rule “eligible”</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Filter</span> <span class="tag">Rule nghiệp vụ</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/enterprise/requests/{requestId}/report-detail</code> — xem chi tiết report + tiến trình</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseController.getRequestReportDetail</code> → <code>EnterpriseReportDetailService.getRequestReportDetail</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code> + join <code>waste_reports</code>/<code>items</code>/<code>images</code> + (nếu có) <code>collector_reports</code></li>
+      <li><strong>Validate</strong>: enterprise chỉ xem request thuộc mình</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">EntityGraph</span> <span class="tag">Join</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/enterprise/requests/accept/{reportCode}</code> — duyệt report và tạo request</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseController.acceptWasteReport</code> → <code>EnterpriseRequestService.acceptWasteReport</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_reports</code> (status), <code>collection_requests</code> (tạo mới)</li>
+      <li><strong>Validate</strong>: validate reportCode tồn tại; trạng thái report phải phù hợp để accept; enterprise ownership</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">State machine</span> <span class="tag">Transaction</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/enterprise/requests/reject/{reportCode}</code> — từ chối report</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseController.rejectWasteReport</code> → <code>EnterpriseRequestService.rejectWasteReport</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_reports</code> (status=REJECTED)</li>
+      <li><strong>Validate</strong>: validate reason (nếu có), trạng thái report phù hợp để reject</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">State machine</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/enterprise/requests/collector-rejections</code> — danh sách task bị collector từ chối</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseController.getCollectorRejections</code> → <code>EnterpriseCollectorRejectionService.getCollectorRejections</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code> (lọc theo trạng thái reassign) + join report</li>
+      <li><strong>Validate</strong>: filter theo enterprise</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Workflow</span></li>
+    </ul>
+  </details>
 
   <h3>5.x.8. Enterprise – Waste Reports</h3>
-  <ul>
-    <li><code>GET /api/enterprise/waste-reports</code> → <code>EnterpriseWasteReportController.getReports</code> → <code>EnterpriseWasteReportService.getReports</code></li>
-    <li><code>GET /api/enterprise/waste-reports/pending</code> → <code>getPendingReports</code> → <code>EnterpriseWasteReportService.getPendingReports</code></li>
-    <li><code>GET /api/enterprise/waste-reports/{id}</code> → <code>getReportById</code> → <code>EnterpriseWasteReportService.getReportById</code></li>
-  </ul>
+  <details>
+    <summary><code>GET /api/enterprise/waste-reports</code> — danh sách report cho enterprise</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseWasteReportController.getReports</code> → <code>EnterpriseWasteReportService.getReports</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_reports</code> + join <code>waste_report_items</code>/<code>report_images</code> + <code>collection_requests</code> (nếu có)</li>
+      <li><strong>Validate</strong>: enterprise ownership; filter theo khu vực phục vụ (service area) nếu áp dụng</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Authorization</span> <span class="tag">EntityGraph</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/enterprise/waste-reports/pending</code> — report đang chờ xử lý</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseWasteReportController.getPendingReports</code> → <code>EnterpriseWasteReportService.getPendingReports</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_reports</code> (lọc status=PENDING)</li>
+      <li><strong>Validate</strong>: enterprise ownership</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">State filter</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/enterprise/waste-reports/{id}</code> — chi tiết report</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseWasteReportController.getReportById</code> → <code>EnterpriseWasteReportService.getReportById</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_reports</code> + items/images + request (nếu có)</li>
+      <li><strong>Validate</strong>: enterprise chỉ xem report thuộc mình</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Authorization</span></li>
+    </ul>
+  </details>
 
   <h3>5.x.9. Enterprise – Collector Reports</h3>
-  <ul>
-    <li><code>GET /api/enterprise/collector-reports</code> → <code>EnterpriseCollectorReportController.getCollectorReports</code> → <code>EnterpriseCollectorReportService.getCollectorReports</code></li>
-  </ul>
+  <details>
+    <summary><code>GET /api/enterprise/collector-reports</code> — danh sách collector report</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseCollectorReportController.getCollectorReports</code> → <code>EnterpriseCollectorReportService.getCollectorReports</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collector_reports</code> + items/images + join <code>collection_requests</code></li>
+      <li><strong>Validate</strong>: enterprise chỉ xem report thuộc enterprise của mình</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Authorization</span> <span class="tag">EntityGraph</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/enterprise/collector-reports/{collectorReportId}/reward</code> — xác minh & thưởng điểm</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseCollectorReportController.reward</code> → <code>EnterpriseCollectorReportService.reward</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>CollectorReport</code>/<code>CollectorReportItem</code> (cập nhật totalPoint), <code>PointTransaction</code> → <code>point_transactions</code> (tạo giao dịch <code>EARN</code>), cập nhật <code>Citizen</code> → <code>citizens</code> (totalPoints)</li>
+      <li><strong>Validate</strong>: <code>@Valid</code> với <code>EnterpriseCollectorReportRewardRequest</code> (verificationRate 0..100); rule service: collectorReportId thuộc enterprise, <strong>chặn cộng trùng</strong> bằng cách kiểm tra đã có <code>EARN</code> theo <code>collectionRequestId</code>, tính điểm theo <code>quantity * pointPerUnitSnapshot * verificationRate</code></li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Bean Validation</span> <span class="tag">Transaction</span> <span class="tag">Points</span> <span class="tag">Idempotency</span></li>
+    </ul>
+  </details>
 
   <h3>5.x.10. Enterprise – Feedback</h3>
-  <ul>
-    <li><code>GET /api/enterprise/feedbacks</code> → <code>EnterpriseFeedbackController.getFeedbacks</code> → <code>EnterpriseFeedbackService.getFeedbacks</code></li>
-    <li><code>GET /api/enterprise/feedbacks/{id}</code> → <code>getFeedbackDetail</code> → <code>EnterpriseFeedbackService.getFeedbackDetail</code></li>
-    <li><code>POST /api/enterprise/feedbacks/{id}/resolve</code> → <code>resolveFeedback</code> → <code>EnterpriseFeedbackService.resolveFeedback</code></li>
-  </ul>
+  <details>
+    <summary><code>GET /api/enterprise/feedbacks</code> — danh sách complaint/feedback</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseFeedbackController.getFeedbacks</code> → <code>EnterpriseFeedbackService.getFeedbacks</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>Feedback</code> → <code>feedbacks</code> (join citizen/collectionRequest/collector để hiển thị)</li>
+      <li><strong>Validate</strong>: enterprise chỉ xem feedback thuộc mình</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Authorization</span> <span class="tag">EntityGraph</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/enterprise/feedbacks/{id}</code> — chi tiết 1 feedback</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseFeedbackController.getFeedbackDetail</code> → <code>EnterpriseFeedbackService.getFeedbackDetail</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>feedbacks</code> + join request/report/collectorReport (tuỳ use-case hiển thị)</li>
+      <li><strong>Validate</strong>: enterprise ownership; 404 nếu không tồn tại</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Authorization</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/enterprise/feedbacks/{id}/resolve</code> — giải quyết complaint</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseFeedbackController.resolveFeedback</code> → <code>EnterpriseFeedbackService.resolveFeedback</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>feedbacks</code> (update <code>status</code>/<code>resolution</code>), có thể cập nhật <code>collectors</code> (violationCount) theo rule</li>
+      <li><strong>Validate</strong>: <code>@Valid</code> với <code>EnterpriseFeedbackResolveRequest</code> (<code>@NotBlank</code> resolution/status); rule service: chỉ resolve khi đúng trạng thái, check enterprise ownership</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Bean Validation</span> <span class="tag">Workflow</span></li>
+    </ul>
+  </details>
 
-  <h3>5.x.11. Enterprise – Statistics</h3>
-  <ul>
-    <li><code>GET /api/enterprise/reports/general</code> → <code>EnterpriseStatisticsController.getGeneralStats</code> → <code>EnterpriseStatisticsService.getGeneralStats</code></li>
-    <li><code>GET /api/enterprise/reports/waste-volume</code> → <code>getWasteVolumeStats</code> → <code>EnterpriseStatisticsService.getWasteVolumeStats</code></li>
-    <li><code>GET /api/enterprise/reports/waste-volume/daily</code> → <code>getDailyWasteVolumeStats</code> → <code>EnterpriseStatisticsService.getDailyWasteVolumeStats</code></li>
-    <li><code>GET /api/enterprise/reports/count</code> → <code>getReportCountStats</code> → <code>EnterpriseStatisticsService.getReportCountStats</code></li>
-    <li><code>GET /api/enterprise/reports/citizens</code> → <code>getCitizenPointSummaries</code> → <code>EnterpriseStatisticsService.getCitizenPointSummaries</code></li>
-  </ul>
+  <h3>5.x.11. Enterprise – Statistics & Point Adjustments</h3>
+  <details>
+    <summary><code>GET /api/enterprise/reports/general</code> — thống kê tổng quan</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseStatisticsController.getGeneralStats</code> → <code>EnterpriseStatisticsService.getGeneralStats</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code>, <code>collector_report_items</code>, <code>point_transactions</code></li>
+      <li><strong>Validate</strong>: enterprise ownership; filter theo thời gian (nếu có)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Aggregate SQL</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/enterprise/reports/waste-volume</code> — thống kê khối lượng theo kỳ</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseStatisticsController.getWasteVolumeStats</code> → <code>EnterpriseStatisticsService.getWasteVolumeStats</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collector_report_items</code>, <code>collection_requests</code></li>
+      <li><strong>Validate</strong>: filter year/month/quarter (tuỳ implement)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">SUM</span> <span class="tag">GROUP BY</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/enterprise/reports/waste-volume/daily</code> — khối lượng theo ngày</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseStatisticsController.getDailyWasteVolumeStats</code> → <code>EnterpriseStatisticsService.getDailyWasteVolumeStats</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collector_report_items</code></li>
+      <li><strong>Validate</strong>: normalize date range</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Time-series</span> <span class="tag">Aggregate SQL</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/enterprise/reports/count</code> — đếm số report/task theo kỳ</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseStatisticsController.getReportCountStats</code> → <code>EnterpriseStatisticsService.getReportCountStats</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_reports</code>, <code>collection_requests</code></li>
+      <li><strong>Validate</strong>: filter theo enterprise, theo thời gian</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">COUNT</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/enterprise/reports/citizens</code> — tổng hợp điểm theo công dân</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseStatisticsController.getCitizenPointSummaries</code> → <code>EnterpriseStatisticsService.getCitizenPointSummaries</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>point_transactions</code> + join <code>citizens</code>/<code>users</code></li>
+      <li><strong>Validate</strong>: enterprise ownership; null points → 0</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Leaderboard</span> <span class="tag">GROUP BY</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/enterprise/points/adjustments</code> — điều chỉnh điểm (tạo giao dịch)</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterprisePointAdjustmentController.create</code> → <code>EnterprisePointAdjustmentService.create</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>PointTransaction</code> → <code>point_transactions</code>, <code>Citizen</code> → <code>citizens</code>, liên kết <code>CollectionRequest</code>/<code>WasteReport</code> (nếu có)</li>
+      <li><strong>Validate</strong>: <code>@Valid</code> với <code>EnterprisePointAdjustmentCreateRequest</code> (<code>@NotNull</code> points/collectionRequestId); rule service: enterprise ownership, tránh cộng/trừ sai ngữ cảnh</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Bean Validation</span> <span class="tag">Transaction</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>PUT /api/enterprise/points/adjustments/{id}</code> — cập nhật điều chỉnh điểm</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterprisePointAdjustmentController.update</code> → <code>EnterprisePointAdjustmentService.update</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>point_transactions</code> (update), cập nhật lại <code>citizens.totalPoints</code> nếu cần</li>
+      <li><strong>Validate</strong>: <code>@Valid</code> với <code>EnterprisePointAdjustmentUpdateRequest</code> (<code>@NotNull</code> points); enterprise ownership</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Consistency</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>DELETE /api/enterprise/points/adjustments/{id}</code> — xoá điều chỉnh điểm</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterprisePointAdjustmentController.delete</code> → <code>EnterprisePointAdjustmentService.delete</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>point_transactions</code> (xóa), cập nhật lại <code>citizens.totalPoints</code> nếu cần</li>
+      <li><strong>Validate</strong>: enterprise ownership</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Transaction</span></li>
+    </ul>
+  </details>
 
   <h3>5.x.12. Enterprise – Profile & Voucher</h3>
-  <ul>
-    <li><code>PUT /api/enterprise/profile</code> → <code>EnterpriseProfileController.updateMyProfile</code> → <code>ProfileService.updateEnterpriseProfile</code></li>
-    <li><code>GET /api/enterprise/vouchers</code> → <code>EnterpriseVoucherController.list</code> → <code>EnterpriseVoucherService.list</code></li>
-    <li><code>GET /api/enterprise/vouchers/{id}</code> → <code>getById</code> → <code>EnterpriseVoucherService.getById</code></li>
-    <li><code>POST /api/enterprise/vouchers</code> (multipart) → <code>create</code> → <code>EnterpriseVoucherService.create</code></li>
-    <li><code>PUT /api/enterprise/vouchers/{id}</code> → <code>update</code> → <code>EnterpriseVoucherService.update</code></li>
-    <li><code>DELETE /api/enterprise/vouchers/{id}</code> → <code>delete</code> → <code>EnterpriseVoucherService.softDelete</code></li>
-  </ul>
+  <details>
+    <summary><code>PUT /api/enterprise/profile</code> — cập nhật hồ sơ enterprise</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseProfileController.updateMyProfile</code> → <code>ProfileService.updateEnterpriseProfile</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>Enterprise</code> → <code>enterprise</code></li>
+      <li><strong>Validate</strong>: validate field cơ bản ở service (tên, địa chỉ, khu vực phục vụ…)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Service validation</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>PUT /api/enterprise/password</code> — đổi mật khẩu enterprise</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseAccountController.changePassword</code> → <code>PasswordService.changePassword</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>users</code></li>
+      <li><strong>Validate</strong>: validate mật khẩu cũ/mới ở service</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Security</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/enterprise/collectors</code> — enterprise tạo tài khoản collector</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseCollectorController.createCollector</code> → <code>Profile/AdminAccountService</code> (tuỳ implement)</li>
+      <li><strong>Bảng/Entity</strong>: <code>users</code>, <code>roles</code>, <code>collectors</code>, <code>enterprise</code></li>
+      <li><strong>Validate</strong>: validate thủ công trong controller (check required fields, format, unique email/phone)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Role</span> <span class="tag">Service validation</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/enterprise/collectors</code> — danh sách collector thuộc enterprise</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseCollectorController.getCollectors</code> → service tương ứng</li>
+      <li><strong>Bảng/Entity</strong>: <code>collectors</code> + join <code>users</code></li>
+      <li><strong>Validate</strong>: enterprise ownership</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Authorization</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/enterprise/vouchers</code> — quản lý voucher</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseVoucherController.list</code> → <code>EnterpriseVoucherService.list</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>Voucher</code> → <code>vouchers</code></li>
+      <li><strong>Validate</strong>: filter theo enterprise, active status</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Pagination</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/enterprise/vouchers/{id}</code> — chi tiết voucher</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseVoucherController.getById</code> → <code>EnterpriseVoucherService.getById</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>vouchers</code></li>
+      <li><strong>Validate</strong>: enterprise ownership</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Authorization</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/enterprise/vouchers</code> (multipart) — tạo voucher</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseVoucherController.create</code> → <code>EnterpriseVoucherService.create</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>vouchers</code> (upload ảnh Cloudinary nếu có)</li>
+      <li><strong>Validate</strong>: validate input (tên, điểm cần, hạn, ảnh) ở service/controller</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Cloudinary</span> <span class="tag">Multipart</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>PUT /api/enterprise/vouchers/{id}</code> — cập nhật voucher</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseVoucherController.update</code> → <code>EnterpriseVoucherService.update</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>vouchers</code></li>
+      <li><strong>Validate</strong>: enterprise ownership; validate fields cập nhật</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Service validation</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>DELETE /api/enterprise/vouchers/{id}</code> — xoá mềm voucher</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>EnterpriseVoucherController.delete</code> → <code>EnterpriseVoucherService.softDelete</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>vouchers</code> (soft delete: <code>active=false</code>)</li>
+      <li><strong>Validate</strong>: enterprise ownership</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Soft delete</span></li>
+    </ul>
+  </details>
 
   <h3>5.x.13. Admin – Accounts & Points</h3>
-  <ul>
-    <li><code>POST /api/admin/accounts/citizens</code> → <code>AdminAccountController.createCitizenAccount</code> → <code>AdminAccountService.createCitizenAccount</code></li>
-    <li><code>POST /api/admin/accounts/collectors</code> → <code>createCollectorAccount</code> → <code>AdminAccountService.createCollectorAccount</code></li>
-    <li><code>POST /api/admin/accounts/enterprises</code> → <code>createEnterpriseAccount</code> → <code>AdminAccountService.createEnterpriseAccount</code></li>
-    <li><code>GET /api/admin/accounts</code> → <code>getAllUsers</code> → <code>AdminAccountService.getAllUsers</code></li>
-    <li><code>GET /api/admin/accounts/{userId}</code> → <code>getUserDetail</code> → <code>AdminAccountService.getUserDetail</code></li>
-    <li><code>PATCH /api/admin/accounts/{userId}/suspend</code> → <code>suspendUser</code> → <code>AdminAccountService.suspendUser</code></li>
-    <li><code>PATCH /api/admin/accounts/{userId}/activate</code> → <code>activateUser</code> → <code>AdminAccountService.activateUser</code></li>
-    <li><code>GET /api/admin/points/citizens</code> → <code>AdminPointController.getAllCitizenPoints</code> → <code>WasteReportService.getLeaderboard</code></li>
-  </ul>
+  <details>
+    <summary><code>POST /api/admin/accounts/citizens</code> — admin tạo tài khoản citizen</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminAccountController.createCitizenAccount</code> → <code>AdminAccountService.createCitizenAccount</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>users</code>, <code>roles</code>, <code>citizens</code></li>
+      <li><strong>Validate</strong>: validate input + unique email/phone ở service</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Role</span> <span class="tag">Admin</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/admin/accounts/collectors</code> — admin tạo tài khoản collector</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminAccountController.createCollectorAccount</code> → <code>AdminAccountService.createCollectorAccount</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>users</code>, <code>roles</code>, <code>collectors</code></li>
+      <li><strong>Validate</strong>: validate input + unique constraint; gán enterprise nếu cần</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Admin</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/admin/accounts/enterprises</code> — admin tạo tài khoản enterprise</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminAccountController.createEnterpriseAccount</code> → <code>AdminAccountService.createEnterpriseAccount</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>users</code>, <code>roles</code>, <code>enterprise</code></li>
+      <li><strong>Validate</strong>: validate input; unique email/phone</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Admin</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/admin/accounts</code> — danh sách user</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminAccountController.getAllUsers</code> → <code>AdminAccountService.getAllUsers</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>users</code> + join profile theo role</li>
+      <li><strong>Validate</strong>: role ADMIN</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Admin</span> <span class="tag">Pagination</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/admin/accounts/{userId}</code> — chi tiết 1 user</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminAccountController.getUserDetail</code> → <code>AdminAccountService.getUserDetail</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>users</code> + join citizen/collector/enterprise</li>
+      <li><strong>Validate</strong>: role ADMIN; 404 nếu không tồn tại</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Admin</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>PATCH /api/admin/accounts/{userId}/suspend</code> — khoá tài khoản</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminAccountController.suspendUser</code> → <code>AdminAccountService.suspendUser</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>users</code> (update active/status), có thể ảnh hưởng denylist token</li>
+      <li><strong>Validate</strong>: rule không cho tự khoá admin; kiểm tra user tồn tại</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Authorization</span> <span class="tag">Token revoke</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>PATCH /api/admin/accounts/{userId}/activate</code> — mở khoá tài khoản</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminAccountController.activateUser</code> → <code>AdminAccountService.activateUser</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>users</code></li>
+      <li><strong>Validate</strong>: role ADMIN</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Admin</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>DELETE /api/admin/accounts/{userId}</code> — xoá mềm user (soft-delete)</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminAccountController.deleteUser</code> → <code>AdminAccountService.deleteUser</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>users</code> (soft-delete: update <code>status = "deleted"</code>)</li>
+      <li><strong>Validate</strong>: admin không thể tự xoá chính mình; check user tồn tại</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Admin</span> <span class="tag">Soft delete</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/admin/points/citizens</code> — tổng hợp điểm công dân (admin view)</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminPointController.getAllCitizenPoints</code> → service leaderboard</li>
+      <li><strong>Bảng/Entity</strong>: <code>point_transactions</code> + <code>citizens</code>/<code>users</code></li>
+      <li><strong>Validate</strong>: role ADMIN</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Leaderboard</span> <span class="tag">GROUP BY</span></li>
+    </ul>
+  </details>
 
   <h3>5.x.14. Admin – Complaints, Reports, Waste Category, Point Rule</h3>
-  <ul>
-    <li><code>GET /api/admin/complaints</code> → <code>AdminComplaintController.getAllComplaints</code> → <code>AdminComplaintService.getAllComplaints</code></li>
-    <li><code>GET /api/admin/complaints/{id}</code> → <code>getComplaintDetail</code> → <code>AdminComplaintService.getComplaintDetail</code></li>
-    <li><code>POST /api/admin/complaints/{id}/resolve</code> → <code>resolveComplaint</code> → <code>AdminComplaintService.resolveComplaint</code></li>
-    <li><code>GET /api/admin/reports/waste-reports</code> → <code>AdminReportController.getWasteReports</code> → <code>EnterpriseWasteReportService.getReports</code></li>
-    <li><code>GET /api/admin/reports/waste-reports/pending</code> → <code>getPendingWasteReports</code> → <code>EnterpriseWasteReportService.getPendingReports</code></li>
-    <li><code>GET /api/admin/reports/waste/{id}</code> → <code>getWasteReportById</code> → <code>EnterpriseWasteReportService.getReportById</code></li>
-    <li><code>GET /api/admin/reports/collector</code> → <code>getCollectorReports</code> → <code>EnterpriseCollectorReportService.getCollectorReports</code></li>
-    <li><code>GET /api/admin/waste-categories</code> → <code>AdminWasteCategoryController.getAllCategories</code> → <code>WasteCategoryService.getAllCategories</code></li>
-    <li><code>GET /api/admin/waste-categories/{id}</code> → <code>getCategory</code> → <code>WasteCategoryService.getCategory</code></li>
-    <li><code>POST /api/admin/waste-categories</code> → <code>createCategory</code> → <code>WasteCategoryService.createCategory</code></li>
-    <li><code>PATCH /api/admin/waste-categories/{id}</code> → <code>updateCategory</code> → <code>WasteCategoryService.updateCategory</code></li>
-    <li><code>DELETE /api/admin/waste-categories/{id}</code> → <code>deleteCategory</code> → <code>WasteCategoryService.deleteCategory</code></li>
-    <li><code>GET /api/admin/point-rule</code> → <code>AdminPointRuleController.getPointRule</code> → <code>PointRuleService.getPointRule</code></li>
-    <li><code>PUT /api/admin/point-rule</code> → <code>updatePointRule</code> → <code>PointRuleService.updatePointRule</code></li>
-  </ul>
+  <details>
+    <summary><code>GET /api/admin/complaints</code> — danh sách khiếu nại (admin)</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminComplaintController.getAllComplaints</code> → <code>AdminComplaintService.getAllComplaints</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>feedbacks</code> + <code>collector_feedbacks</code></li>
+      <li><strong>Validate</strong>: role ADMIN</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Admin</span> <span class="tag">EntityGraph</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/admin/complaints/{id}</code> — chi tiết complaint</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminComplaintController.getComplaintDetail</code> → <code>AdminComplaintService.getComplaintDetail</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>feedbacks</code>/<code>collector_feedbacks</code> + join report/request/reportItems/images (nếu cần)</li>
+      <li><strong>Validate</strong>: role ADMIN; 404 nếu không tồn tại</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Admin</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/admin/complaints/{id}/resolve</code> — resolve complaint</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminComplaintController.resolveComplaint</code> → <code>AdminComplaintService.resolveComplaint</code></li>
+      <li><strong>Bảng/Entity</strong>: update <code>feedbacks</code>/<code>collector_feedbacks</code>; có thể update <code>collectors</code> (violationCount)</li>
+      <li><strong>Validate</strong>: <code>@Valid</code> với <code>EnterpriseFeedbackResolveRequest</code></li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Workflow</span> <span class="tag">Bean Validation</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/admin/reports/waste-reports</code> — xem waste reports (admin)</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminReportController.getWasteReports</code> → service tương ứng</li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_reports</code> + items/images + request</li>
+      <li><strong>Validate</strong>: role ADMIN</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Admin</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/admin/reports/waste-reports/pending</code> — waste report pending</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminReportController.getPendingWasteReports</code> → service tương ứng</li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_reports</code></li>
+      <li><strong>Validate</strong>: role ADMIN</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Filter</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/admin/reports/waste/{id}</code> — chi tiết waste report</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminReportController.getWasteReportById</code> → service tương ứng</li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_reports</code> + join items/images</li>
+      <li><strong>Validate</strong>: role ADMIN</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">EntityGraph</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/admin/reports/collector</code> — xem collector reports (admin)</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminReportController.getCollectorReports</code> → service tương ứng</li>
+      <li><strong>Bảng/Entity</strong>: <code>collector_reports</code> + join request/enterprise</li>
+      <li><strong>Validate</strong>: role ADMIN</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Admin</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/admin/waste-categories</code> — danh sách waste categories</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminWasteCategoryController.getAllCategories</code> → <code>WasteCategoryService.getAllCategories</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_categories</code></li>
+      <li><strong>Validate</strong>: role ADMIN</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Read-only</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/admin/waste-categories/{id}</code> — chi tiết category</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminWasteCategoryController.getCategory</code> → <code>WasteCategoryService.getCategory</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_categories</code></li>
+      <li><strong>Validate</strong>: 404 nếu không tồn tại</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Admin</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>POST /api/admin/waste-categories</code> — tạo category</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminWasteCategoryController.createCategory</code> → <code>WasteCategoryService.createCategory</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_categories</code></li>
+      <li><strong>Validate</strong>: <code>@Valid</code> với <code>WasteCategoryRequest</code> (<code>@NotBlank</code>, <code>@Positive</code>)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Bean Validation</span> <span class="tag">Admin</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>PATCH /api/admin/waste-categories/{id}</code> — cập nhật category</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminWasteCategoryController.updateCategory</code> → <code>WasteCategoryService.updateCategory</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_categories</code></li>
+      <li><strong>Validate</strong>: <code>@Valid</code> với <code>UpdateWasteCategoryRequest</code> (optional + <code>@Positive</code>)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Partial update</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>DELETE /api/admin/waste-categories/{id}</code> — xoá category</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminWasteCategoryController.deleteCategory</code> → <code>WasteCategoryService.deleteCategory</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_categories</code></li>
+      <li><strong>Validate</strong>: không cho xoá nếu đang được dùng (tuỳ rule/constraint)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Data integrity</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/admin/point-rule</code> — xem rule tính điểm</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminPointRuleController.getPointRule</code> → <code>PointRuleService.getPointRule</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>PointRule</code> → <code>point_rule</code></li>
+      <li><strong>Validate</strong>: role ADMIN</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Config data</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>PUT /api/admin/point-rule</code> — cập nhật rule tính điểm</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminPointRuleController.updatePointRule</code> → <code>PointRuleService.updatePointRule</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>point_rule</code></li>
+      <li><strong>Validate</strong>: <code>@Valid</code> với <code>PointRuleRequest</code> (<code>@NotBlank</code> content)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Bean Validation</span> <span class="tag">Admin</span></li>
+    </ul>
+  </details>
 
   <h3>5.x.15. Admin – Analytics</h3>
-  <ul>
-    <li><code>GET /api/admin/analytics/system</code> → <code>AdminAnalyticsController.getSystemAnalytics</code> → <code>AdminAnalyticsService.getSystemAnalytics</code></li>
-    <li><code>GET /api/admin/analytics/collected-weight</code> → <code>getCollectedWeightChart</code> → <code>AdminAnalyticsService.getCollectedWeightChart</code></li>
-    <li><code>GET /api/admin/analytics/collected-weight/daily</code> → <code>getCollectedWeightDailyChart</code> → <code>AdminAnalyticsService.getCollectedWeightDailyChart</code></li>
-    <li><code>GET /api/admin/analytics/leaderboard/collectors</code> → <code>getCollectorLeaderboard</code> → <code>AdminAnalyticsService.getCollectorLeaderboard</code></li>
-    <li><code>GET /api/admin/analytics/leaderboard/citizens</code> → <code>getCitizenLeaderboard</code> → <code>AdminAnalyticsService.getCitizenLeaderboard</code></li>
-    <li><code>GET /api/admin/analytics/collected-waste-by-unit</code> → <code>getCollectedWasteByUnit</code> → <code>AdminAnalyticsService.getCollectedWasteByUnit</code></li>
-  </ul>
+  <details>
+    <summary><code>GET /api/admin/analytics/system</code> — thống kê hệ thống</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminAnalyticsController.getSystemAnalytics</code> → <code>AdminAnalyticsService.getSystemAnalytics</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>waste_reports</code>, <code>collection_requests</code>, <code>point_transactions</code> (tuỳ chỉ số)</li>
+      <li><strong>Validate</strong>: role ADMIN</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Dashboard</span> <span class="tag">Aggregate SQL</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/admin/analytics/collected-weight</code> — chart khối lượng thu gom</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminAnalyticsController.getCollectedWeightChart</code> → <code>AdminAnalyticsService.getCollectedWeightChart</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collector_report_items</code></li>
+      <li><strong>Validate</strong>: filter theo kỳ (nếu có)</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Time-series</span> <span class="tag">SUM</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/admin/analytics/collected-weight/daily</code> — chart theo ngày</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminAnalyticsController.getCollectedWeightDailyChart</code> → <code>AdminAnalyticsService.getCollectedWeightDailyChart</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collector_report_items</code></li>
+      <li><strong>Validate</strong>: normalize date range</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Time-series</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/admin/analytics/leaderboard/collectors</code> — leaderboard collector</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminAnalyticsController.getCollectorLeaderboard</code> → <code>AdminAnalyticsService.getCollectorLeaderboard</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collection_requests</code>/<code>collector_report_items</code></li>
+      <li><strong>Validate</strong>: role ADMIN</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Leaderboard</span> <span class="tag">GROUP BY</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/admin/analytics/leaderboard/citizens</code> — leaderboard citizen</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminAnalyticsController.getCitizenLeaderboard</code> → <code>AdminAnalyticsService.getCitizenLeaderboard</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>point_transactions</code> + join <code>citizens</code></li>
+      <li><strong>Validate</strong>: role ADMIN</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Leaderboard</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /api/admin/analytics/collected-waste-by-unit</code> — khối lượng theo đơn vị</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>AdminAnalyticsController.getCollectedWasteByUnit</code> → <code>AdminAnalyticsService.getCollectedWasteByUnit</code></li>
+      <li><strong>Bảng/Entity</strong>: <code>collector_report_items</code> + join <code>waste_categories</code> (unit)</li>
+      <li><strong>Validate</strong>: role ADMIN</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">GROUP BY</span></li>
+    </ul>
+  </details>
 
   <h3>5.x.16. Files & Home</h3>
-  <ul>
-    <li><code>POST /api/files/images</code> (multipart) → <code>FileController.uploadImage</code> → <code>CloudinaryService.uploadImage</code></li>
-    <li><code>DELETE /api/files/images</code> → <code>deleteImage</code> → <code>CloudinaryService.deleteImage</code></li>
-    <li><code>GET /</code> → <code>HomeController.index</code> (trả về JSON đơn giản: message, status, documentation).</li>
-  </ul>
+  <details>
+    <summary><code>POST /api/files/images</code> (multipart) — upload ảnh Cloudinary</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>FileController.uploadImage</code> → <code>CloudinaryService.uploadImage</code></li>
+      <li><strong>Bảng/Entity</strong>: không ghi DB trực tiếp; module khác lưu URL/publicId vào <code>report_images</code>/<code>collector_report_images</code>/<code>vouchers</code>…</li>
+      <li><strong>Validate</strong>: validate MIME type/extension/size; bắt lỗi upload</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Cloudinary</span> <span class="tag">Upload</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>DELETE /api/files/images</code> — xoá ảnh Cloudinary</summary>
+    <ul>
+      <li><strong>Controller/Service</strong>: <code>FileController.deleteImage</code> → <code>CloudinaryService.deleteImage</code></li>
+      <li><strong>Bảng/Entity</strong>: không ghi DB trực tiếp</li>
+      <li><strong>Validate</strong>: validate publicId; handle lỗi Cloudinary</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Cloudinary</span></li>
+    </ul>
+  </details>
+  <details>
+    <summary><code>GET /</code> — health/info</summary>
+    <ul>
+      <li><strong>Controller</strong>: <code>HomeController.index</code></li>
+      <li><strong>Bảng/Entity</strong>: không</li>
+      <li><strong>Validate</strong>: không</li>
+      <li><strong>Kiến thức/pattern</strong>: <span class="tag">Public</span></li>
+    </ul>
+  </details>
 
   <h2>6. Tối ưu hiệu năng & tránh N+1</h2>
 
@@ -927,4 +1865,3 @@ public class WasteReport {
   </p>
 </body>
 </html>
-

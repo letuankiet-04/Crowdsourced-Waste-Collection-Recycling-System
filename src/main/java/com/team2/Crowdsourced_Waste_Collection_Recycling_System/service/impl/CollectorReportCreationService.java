@@ -3,12 +3,10 @@ package com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.impl;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.CreateCollectorReportRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorReportResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.WasteCategoryResponse;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Citizen;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectorReport;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectorReportImage;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectorReportItem;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectionRequest;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.PointTransaction;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.WasteCategory;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.WasteReport;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus;
@@ -18,8 +16,6 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.colle
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportItemRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionRequestRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.profile.CitizenRepository;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.reward.PointTransactionRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.waste.WasteCategoryRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.waste.WasteReportRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CloudinaryService;
@@ -40,16 +36,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CollectorReportCreationService {
 
-    private static final String EARN_TRANSACTION_TYPE = "EARN";
-    private static final String EARN_DESCRIPTION = "Điểm thưởng thu gom";
-
     private final CollectorReportRepository collectorReportRepository;
     private final CollectionRequestRepository collectionRequestRepository;
     private final WasteCategoryRepository wasteCategoryRepository;
     private final CollectorReportItemRepository collectorReportItemRepository;
     private final CollectorReportImageRepository collectorReportImageRepository;
-    private final CitizenRepository citizenRepository;
-    private final PointTransactionRepository pointTransactionRepository;
     private final WasteReportRepository wasteReportRepository;
     private final CloudinaryService cloudinaryService;
 
@@ -59,16 +50,15 @@ public class CollectorReportCreationService {
         WasteReport wasteReport = getAndValidateWasteReport(collectionRequest);
         validateInput(request);
 
-        Calculation calculation = calculateItems(request.getCategoryIds(), request.getQuantities(), request.getVerificationRate());
+        Calculation calculation = prepareItems(request.getCategoryIds(), request.getQuantities());
         LocalDateTime now = LocalDateTime.now();
 
-        CollectorReport report = createAndSaveReport(collectionRequest, request, calculation.totalPoints(), now);
+        CollectorReport report = createAndSaveReport(collectionRequest, request, now);
         saveItems(report, calculation.items());
         List<String> imageUrls = uploadImages(report, request.getImages(), now);
 
         confirmCompleted(requestId, collectorId, calculation.totalWeightKg(), now);
         updateWasteReportStatus(wasteReport, now);
-        rewardCitizen(collectionRequest, wasteReport, calculation.totalPoints(), now);
 
         return buildResponse(report, imageUrls, calculation.items());
     }
@@ -117,14 +107,13 @@ public class CollectorReportCreationService {
         }
     }
 
-    private Calculation calculateItems(List<Integer> categoryIds, List<BigDecimal> quantities, Double verificationRate) {
+    private Calculation prepareItems(List<Integer> categoryIds, List<BigDecimal> quantities) {
         List<CollectorReportItem> items = new ArrayList<>();
         BigDecimal totalWeightKg = BigDecimal.ZERO;
-        int totalPoints = 0;
-
         for (int i = 0; i < categoryIds.size(); i++) {
             Integer categoryId = categoryIds.get(i);
             BigDecimal quantity = quantities.get(i);
+
 
             WasteCategory category = wasteCategoryRepository.findById(categoryId)
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category ID " + categoryId + " không tồn tại"));
@@ -134,34 +123,23 @@ public class CollectorReportCreationService {
             item.setQuantity(quantity);
             item.setUnitSnapshot(category.getUnit());
             item.setPointPerUnitSnapshot(category.getPointPerUnit());
-
-            int points = 0;
-            if (category.getPointPerUnit() != null) {
-                points = quantity.multiply(category.getPointPerUnit()).intValue();
-            }
-
-            if (verificationRate != null) {
-                points = (int) (points * (verificationRate / 100.0));
-            }
-
-            item.setTotalPoint(points);
+            item.setTotalPoint(0);
 
             items.add(item);
-            totalPoints += points;
 
             totalWeightKg = totalWeightKg.add(quantity);
         }
 
-        return new Calculation(items, totalPoints, totalWeightKg);
+        return new Calculation(items, totalWeightKg);
     }
 
-    private CollectorReport createAndSaveReport(CollectionRequest collectionRequest, CreateCollectorReportRequest request, int totalPoints, LocalDateTime now) {
+    private CollectorReport createAndSaveReport(CollectionRequest collectionRequest, CreateCollectorReportRequest request, LocalDateTime now) {
         CollectorReport report = new CollectorReport();
         report.setCollectionRequest(collectionRequest);
         report.setCollector(collectionRequest.getCollector());
         report.setStatus(CollectorReportStatus.COMPLETED);
         report.setCollectorNote(request.getCollectorNote());
-        report.setTotalPoint(totalPoints);
+        report.setTotalPoint(0);
         report.setCollectedAt(now);
         report.setLatitude(BigDecimal.valueOf(request.getLatitude()));
         report.setLongitude(BigDecimal.valueOf(request.getLongitude()));
@@ -217,50 +195,6 @@ public class CollectorReportCreationService {
         wasteReportRepository.save(wasteReport);
     }
 
-    private void rewardCitizen(CollectionRequest collectionRequest, WasteReport wasteReport, int points, LocalDateTime now) {
-        if (points <= 0) {
-            return;
-        }
-
-        Integer citizenId = wasteReport.getCitizen() != null ? wasteReport.getCitizen().getId() : null;
-        if (citizenId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Waste report thiếu citizen");
-        }
-
-        boolean alreadyRewarded = pointTransactionRepository.existsByCollectionRequestIdAndTransactionType(
-                collectionRequest.getId(),
-                EARN_TRANSACTION_TYPE
-        );
-        if (alreadyRewarded) {
-            return;
-        }
-
-        Citizen citizen = citizenRepository.findByIdForUpdate(citizenId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Citizen không tồn tại"));
-
-        if (pointTransactionRepository.existsByCollectionRequestIdAndTransactionType(collectionRequest.getId(), EARN_TRANSACTION_TYPE)) {
-            return;
-        }
-
-        int currentPoints = citizen.getTotalPoints() == null ? 0 : citizen.getTotalPoints();
-        int balanceAfter = currentPoints + points;
-
-        citizen.setTotalPoints(balanceAfter);
-        citizenRepository.save(citizen);
-
-        PointTransaction tx = new PointTransaction();
-        tx.setCitizen(citizen);
-        tx.setReport(wasteReport);
-        tx.setCollectionRequest(collectionRequest);
-        tx.setPoints(points);
-        tx.setTransactionType(EARN_TRANSACTION_TYPE);
-        tx.setDescription(EARN_DESCRIPTION);
-        tx.setBalanceAfter(balanceAfter);
-        tx.setCreatedBy(collectionRequest.getCollector().getUser());
-        tx.setCreatedAt(now);
-        pointTransactionRepository.save(tx);
-    }
-
     private CollectorReportResponse buildResponse(CollectorReport report, List<String> imageUrls, List<CollectorReportItem> items) {
         List<WasteCategoryResponse> categories = new ArrayList<>();
         for (CollectorReportItem item : items) {
@@ -291,6 +225,6 @@ public class CollectorReportCreationService {
                 .build();
     }
 
-    private record Calculation(List<CollectorReportItem> items, int totalPoints, BigDecimal totalWeightKg) {
+    private record Calculation(List<CollectorReportItem> items, BigDecimal totalWeightKg) {
     }
 }

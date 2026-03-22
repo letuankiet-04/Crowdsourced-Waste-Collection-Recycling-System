@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateComplaintRequest {
     Integer reportId;
+    String reportCode;
 
     @NotBlank(message = "Loại khiếu nại không được để trống")
     String type;
