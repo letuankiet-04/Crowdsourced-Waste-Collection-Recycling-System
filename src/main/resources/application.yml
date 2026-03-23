@@ -29,11 +29,11 @@ server:
   port: ${PORT:8080}
 
 workrule:
-  accept-timeout-hours: 4
+  accept-timeout-hours: 24
   sla-hours: 72
   suspend-threshold: 3
-  working-start-hour: 7
-  working-end-hour: 17
+  working-start-hour: 0
+  working-end-hour: 23
   reassign-radius-km: 10.0
 
 jwt:
