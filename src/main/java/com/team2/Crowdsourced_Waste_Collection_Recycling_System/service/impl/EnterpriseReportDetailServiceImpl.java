@@ -20,6 +20,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.Enterpri
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.LinkedHashMap;
@@ -37,6 +38,7 @@ public class EnterpriseReportDetailServiceImpl implements EnterpriseReportDetail
     private final WasteReportItemRepository wasteReportItemRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public EnterpriseRequestReportDetailResponse getRequestReportDetail(Integer enterpriseId, Integer requestId) {
         // Kiểm tra quyền truy cập
         requireEnterpriseId(enterpriseId);
