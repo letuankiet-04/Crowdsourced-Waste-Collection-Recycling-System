@@ -44,11 +44,14 @@ public class CollectorReportCreationService {
     private final WasteReportRepository wasteReportRepository;
     private final CloudinaryService cloudinaryService;
 
+    private static final double EARTH_RADIUS_METERS = 6371000.0;
+    private static final double MAX_ALLOWED_DISTANCE_METERS = 30.0;
+
     @Transactional
     public CollectorReportResponse createCollectorReport(Integer requestId, Integer collectorId, CreateCollectorReportRequest request) {
         CollectionRequest collectionRequest = getAndValidateCollectionRequest(requestId, collectorId);
         WasteReport wasteReport = getAndValidateWasteReport(collectionRequest);
-        validateInput(request);
+        validateInput(request, wasteReport);
 
         Calculation calculation = prepareItems(request.getCategoryIds(), request.getQuantities());
         LocalDateTime now = LocalDateTime.now();
@@ -91,7 +94,7 @@ public class CollectorReportCreationService {
         return wasteReport;
     }
 
-    private void validateInput(CreateCollectorReportRequest request) {
+    private void validateInput(CreateCollectorReportRequest request, WasteReport wasteReport) {
         List<MultipartFile> images = request.getImages();
         if (images == null || images.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cần ít nhất 1 ảnh");
@@ -105,6 +108,32 @@ public class CollectorReportCreationService {
         if (quantities == null || quantities.size() != categoryIds.size()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dữ liệu khối lượng không hợp lệ");
         }
+
+        if (request.getLatitude() == null || request.getLongitude() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu toạ độ trong báo cáo");
+        }
+
+        double distance = calculateDistanceInMeters(
+                wasteReport.getLatitude().doubleValue(), wasteReport.getLongitude().doubleValue(),
+                request.getLatitude().doubleValue(), request.getLongitude().doubleValue()
+        );
+
+        if (distance > MAX_ALLOWED_DISTANCE_METERS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Vị trí báo cáo thu gom cách vị trí rác quá 30m");
+        }
+    }
+
+    private double calculateDistanceInMeters(double lat1, double lon1, double lat2, double lon2) {
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                   Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+                   Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return EARTH_RADIUS_METERS * c;
     }
 
     private Calculation prepareItems(List<Integer> categoryIds, List<BigDecimal> quantities) {

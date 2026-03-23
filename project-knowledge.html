@@ -84,6 +84,94 @@
     <li><span class="tag">Build</span> Maven Wrapper (<code>mvnw.cmd</code>) + cấu hình UTF-8 trong pom để tránh lỗi compile tiếng Việt trên Windows</li>
   </ul>
 
+  <h2>1.x. Các phép tính sử dụng trong dự án</h2>
+  <p class="section-note">
+    Mục này tổng hợp các phép tính/toán học và tính toán nghiệp vụ được dùng trong hệ thống (geo distance, chống spam, điểm thưởng, thống kê, SLA thời gian, xử lý ảnh).
+  </p>
+
+  <h3>1.x.1. Tính khoảng cách giữa 2 tọa độ (Haversine)</h3>
+  <ul>
+    <li><strong>Mục đích</strong>: kiểm tra vị trí collector khi tạo collector report (đảm bảo ở gần vị trí report).</li>
+    <li><strong>Đơn vị</strong>: mét.</li>
+    <li><strong>Hằng số</strong>: bán kính Trái Đất <code>R = 6,371,000m</code>.</li>
+  </ul>
+  <pre><code>dLat = rad(lat2 - lat1)
+dLon = rad(lon2 - lon1)
+a = sin²(dLat/2) + cos(rad(lat1)) * cos(rad(lat2)) * sin²(dLon/2)
+c = 2 * atan2(√a, √(1-a))
+distanceMeters = R * c</code></pre>
+  <ul>
+    <li><strong>Rule đi kèm</strong>: <code>distanceMeters ≤ 30</code> thì coi như “đang ở đúng vị trí”.</li>
+    <li><strong>Tham chiếu</strong>: <code>CollectorReportCreationService.calculateDistanceInMeters</code>.</li>
+  </ul>
+
+  <h3>1.x.2. Chống spam/trùng vị trí (so sánh delta tọa độ)</h3>
+  <ul>
+    <li><strong>Mục đích</strong>: chặn citizen gửi report trùng/near-duplicate trong khoảng thời gian ngắn.</li>
+    <li><strong>Cách làm</strong>: so sánh theo “hình chữ nhật” tọa độ (xấp xỉ), không dùng Haversine ở bước đếm DB.</li>
+  </ul>
+  <pre><code>nearDuplicate nếu:
+  |wr.latitude - lat| ≤ latDelta
+  và |wr.longitude - lng| ≤ lngDelta
+  và wr.createdAt ∈ [from, to]</code></pre>
+  <ul>
+    <li><strong>Giá trị đang dùng</strong>: <code>latDelta = lngDelta = 0.00030</code> (xấp xỉ ~30m tuỳ vĩ độ).</li>
+    <li><strong>Rule đi kèm</strong>: nếu trong 10 phút gần nhất có near-duplicate &gt; 0 thì reject.</li>
+    <li><strong>Tham chiếu</strong>: <code>WasteReportRepository.countRecentNearDuplicate</code> và <code>WasteReportServiceImpl</code>.</li>
+  </ul>
+
+  <h3>1.x.3. Tính điểm thưởng (points) theo khối lượng & tỉ lệ xác minh</h3>
+  <ul>
+    <li><strong>Điểm theo item (rule tính cơ bản)</strong>: điểm tỉ lệ thuận với khối lượng (quantity) và điểm/đơn vị.</li>
+  </ul>
+  <pre><code>raw = quantity * pointPerUnit
+point = round(raw, 0, HALF_UP)
+totalPoint = Σ point</code></pre>
+  <ul>
+    <li><strong>Điểm sau xác minh</strong>: enterprise thưởng theo <code>verificationRate</code> (0..100%).</li>
+  </ul>
+  <pre><code>basePoints = int(quantity * pointPerUnitSnapshot)
+adjusted = int(basePoints * (verificationRate / 100.0))
+earnedPoints = Σ adjusted</code></pre>
+  <ul>
+    <li><strong>Tham chiếu</strong>: <code>RecyclableRewardCalculator</code>, <code>EnterpriseCollectorReportServiceImpl</code>.</li>
+  </ul>
+
+  <h3>1.x.4. Thống kê/aggregate (SUM/COUNT/GROUP BY, leaderboard)</h3>
+  <ul>
+    <li><strong>Mục đích</strong>: dashboard, leaderboard, biểu đồ theo thời gian.</li>
+    <li><strong>Mẫu tính phổ biến</strong>: <code>COUNT</code>, <code>SUM</code>, <code>GROUP BY</code> theo ngày/tháng/quý/năm.</li>
+    <li><strong>Null handling</strong>: dùng <code>COALESCE(..., 0)</code> hoặc fallback <code>null → 0</code> khi map DTO.</li>
+  </ul>
+  <pre><code>averagePointsPerCitizen =
+  (totalCitizens &gt; 0) ? (totalPointsDistributed / totalCitizens) : 0</code></pre>
+  <ul>
+    <li><strong>Tham chiếu</strong>: <code>CollectionRequestRepository</code>, <code>PointTransactionRepository</code>, <code>CollectorReportItemRepository</code>, <code>AdminAnalyticsServiceImpl</code>.</li>
+  </ul>
+
+  <h3>1.x.5. Tính toán thời gian/SLA (cộng giờ, duration)</h3>
+  <ul>
+    <li><strong>Due date</strong>: tính thời điểm hết hạn SLA từ thời điểm tạo.</li>
+  </ul>
+  <pre><code>dueAt = createdAt + slaHours
+hoursRemaining = Duration.between(now, dueAt).toHours()</code></pre>
+  <ul>
+    <li><strong>Ngưỡng timeout/vi phạm</strong>: so sánh “hiện tại trừ X giờ” để tìm các task quá hạn.</li>
+    <li><strong>Tham chiếu</strong>: <code>EnterpriseAssignmentServiceImpl</code>, <code>TaskAutomationServiceImpl</code>.</li>
+  </ul>
+
+  <h3>1.x.6. Xử lý ảnh (tính scale resize giữ tỉ lệ)</h3>
+  <ul>
+    <li><strong>Mục đích</strong>: resize ảnh về giới hạn kích thước trước khi upload (giữ tỉ lệ khung hình).</li>
+  </ul>
+  <pre><code>scale = min(maxWidth/originalWidth, maxHeight/originalHeight)
+scale = min(scale, 1)
+newW = max(1, int(originalW * scale))
+newH = max(1, int(originalH * scale))</code></pre>
+  <ul>
+    <li><strong>Tham chiếu</strong>: <code>FileUpLoadUtil.resizeImage</code>.</li>
+  </ul>
+
   <h2>2. Các module chức năng chính</h2>
 
   <h3>2.1. Báo cáo rác của công dân (WasteReport)</h3>
