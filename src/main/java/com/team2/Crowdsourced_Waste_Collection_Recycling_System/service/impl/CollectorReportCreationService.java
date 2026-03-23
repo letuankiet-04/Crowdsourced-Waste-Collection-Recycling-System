@@ -141,8 +141,8 @@ public class CollectorReportCreationService {
         report.setCollectorNote(request.getCollectorNote());
         report.setTotalPoint(0);
         report.setCollectedAt(now);
-        report.setLatitude(BigDecimal.valueOf(request.getLatitude()));
-        report.setLongitude(BigDecimal.valueOf(request.getLongitude()));
+        report.setLatitude(request.getLatitude().setScale(8, RoundingMode.HALF_UP));
+        report.setLongitude(request.getLongitude().setScale(8, RoundingMode.HALF_UP));
         report.setCreatedAt(now);
 
         CollectorReport saved = collectorReportRepository.save(report);

@@ -99,8 +99,8 @@ public class WasteReportServiceImpl implements WasteReportService {
         List<Integer> categoryIds = validateCreateRequest(request);
 
         // 3. Xử lý tọa độ (làm tròn 8 chữ số thập phân)
-        BigDecimal latitude = BigDecimal.valueOf(request.getLatitude()).setScale(8, RoundingMode.HALF_UP);
-        BigDecimal longitude = BigDecimal.valueOf(request.getLongitude()).setScale(8, RoundingMode.HALF_UP);
+        BigDecimal latitude = request.getLatitude().setScale(8, RoundingMode.HALF_UP);
+        BigDecimal longitude = request.getLongitude().setScale(8, RoundingMode.HALF_UP);
 
         // 4. Kiểm tra spam: nếu vừa gửi báo cáo ở vị trí này trong 10 phút trước thì chặn
         LocalDateTime now = LocalDateTime.now();
@@ -212,10 +212,10 @@ public class WasteReportServiceImpl implements WasteReportService {
             report.setDescription(request.getDescription());
         }
         if (request.getLatitude() != null) {
-            report.setLatitude(BigDecimal.valueOf(request.getLatitude()).setScale(8, RoundingMode.HALF_UP));
+            report.setLatitude(request.getLatitude().setScale(8, RoundingMode.HALF_UP));
         }
         if (request.getLongitude() != null) {
-            report.setLongitude(BigDecimal.valueOf(request.getLongitude()).setScale(8, RoundingMode.HALF_UP));
+            report.setLongitude(request.getLongitude().setScale(8, RoundingMode.HALF_UP));
         }
         if (request.getAddress() != null) {
             report.setAddress(request.getAddress());
@@ -854,9 +854,12 @@ public class WasteReportServiceImpl implements WasteReportService {
         if (request.getLatitude() == null || request.getLongitude() == null) {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
-        double lat = request.getLatitude();
-        double lng = request.getLongitude();
-        if (lat < -90.0 || lat > 90.0 || lng < -180.0 || lng > 180.0) {
+        BigDecimal lat = request.getLatitude();
+        BigDecimal lng = request.getLongitude();
+        if (lat.compareTo(new BigDecimal("-90.0")) < 0 ||
+                lat.compareTo(new BigDecimal("90.0")) > 0 ||
+                lng.compareTo(new BigDecimal("-180.0")) < 0 ||
+                lng.compareTo(new BigDecimal("180.0")) > 0) {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
         return resolvedCategoryIds;
