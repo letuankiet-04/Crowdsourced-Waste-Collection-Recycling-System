@@ -2,7 +2,7 @@ spring:
   application:
     name: Crowdsourced-Waste-Collection-Recycling-System
   jackson:
-    time-zone: Asia/Ho_Chi_Minh
+    time-zone: UTC
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://${MYSQLHOST:${MYSQL_HOST:mainline.proxy.rlwy.net}}:${MYSQLPORT:${MYSQL_PORT:37671}}/${MYSQLDATABASE:${MYSQL_DATABASE:railway}}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&connectTimeout=10000&socketTimeout=60000}
     username: ${SPRING_DATASOURCE_USERNAME:${MYSQLUSER:${MYSQL_USER:root}}}
@@ -23,7 +23,7 @@ spring:
       hibernate:
         format_sql: false
         jdbc:
-          time_zone: Asia/Ho_Chi_Minh
+          time_zone: UTC
 
 server:
   port: ${PORT:8080}
@@ -94,4 +94,4 @@ spring:
       hibernate:
         format_sql: false
         jdbc:
-          time_zone: Asia/Ho_Chi_Minh
+          time_zone: UTC

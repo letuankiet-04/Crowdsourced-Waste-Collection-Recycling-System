@@ -27,8 +27,8 @@ Kích hoạt profile bằng biến môi trường:
 
 ### 2.2. Time zone JSON/JPA
 
-- `spring.jackson.time-zone: Asia/Ho_Chi_Minh`: serialize/deserialize thời gian theo TZ.
-- `spring.jpa.properties.hibernate.jdbc.time_zone: Asia/Ho_Chi_Minh`: đồng bộ TZ khi Hibernate ghi/đọc timestamp.
+- `spring.jackson.time-zone: UTC`: serialize/deserialize thời gian theo TZ.
+- `spring.jpa.properties.hibernate.jdbc.time_zone: UTC`: đồng bộ TZ khi Hibernate ghi/đọc timestamp.
 
 ### 2.3. Datasource (MySQL)
 

@@ -259,7 +259,7 @@ volumes:
     <li><span class="tag">Driver</span> Dùng MySQL connector (runtime) và Spring Data JPA/Hibernate.</li>
     <li><span class="tag">JDBC URL</span> Format: <code>jdbc:mysql://{host}:{port}/{db}?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=UTC...</code>.</li>
     <li><span class="tag">DDL</span> Mặc định <code>ddl-auto=update</code> (tự update schema khi chạy). Profile <code>prod</code> dùng <code>validate</code>.</li>
-    <li><span class="tag">Timezone</span> JSON/JPA dùng <code>Asia/Ho_Chi_Minh</code>; JDBC URL đang set <code>serverTimezone=UTC</code> nên cần nhất quán khi xem dữ liệu timestamp.</li>
+    <li><span class="tag">Timezone</span> JSON/JPA dùng <code>UTC</code>; JDBC URL đang set <code>serverTimezone=UTC</code> nên cần nhất quán khi xem dữ liệu timestamp.</li>
     <li><span class="tag">Persistence</span> Khi chạy MySQL bằng container, nên mount volume để không mất dữ liệu khi restart.</li>
   </ul>
 
