@@ -707,7 +707,7 @@ public class WasteReportServiceImpl implements WasteReportService {
             return timestamp.toLocalDateTime();
         }
         if (value instanceof java.util.Date date) {
-            return LocalDateTime.ofInstant(date.toInstant(), java.time.ZoneId.systemDefault());
+            return LocalDateTime.ofInstant(date.toInstant(), java.time.ZoneOffset.UTC);
         }
         return null;
     }

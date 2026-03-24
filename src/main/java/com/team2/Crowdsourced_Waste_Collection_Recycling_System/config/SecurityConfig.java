@@ -47,6 +47,9 @@ public class SecurityConfig {
     @Autowired
     private TokenDenylistService tokenDenylistService;
 
+    @Autowired
+    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    
     
 
     @Bean
@@ -60,7 +63,7 @@ public class SecurityConfig {
         httpSecurity.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer
                         .decoder(jwtDecoder())
                         .jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                .authenticationEntryPoint(new JwtAuthenticationEntryPoint()));
+                .authenticationEntryPoint(jwtAuthenticationEntryPoint));
 
         httpSecurity.csrf(AbstractHttpConfigurer::disable);
         httpSecurity.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
