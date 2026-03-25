@@ -163,6 +163,64 @@
       </div>
 
       <div class="card">
+        <h3>Cơ chế eKYC trong hệ thống</h3>
+        <p class="subtitle">
+          Dưới đây là cơ chế eKYC đã được triển khai trong project (từ lúc người dùng chụp CCCD đến lúc dùng kết quả để đăng ký).
+        </p>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Bước</th>
+              <th>Ai làm</th>
+              <th>Dữ liệu vào</th>
+              <th>Dữ liệu ra</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1) Upload ảnh CCCD</td>
+              <td>Frontend → Backend</td>
+              <td>2 file: <code>front</code>, <code>back</code></td>
+              <td>Backend có ảnh để upload VNPT + (tuỳ chọn) upload Cloudinary</td>
+            </tr>
+            <tr>
+              <td>2) Upload VNPT file-service</td>
+              <td>Backend → VNPT</td>
+              <td>Ảnh (gốc hoặc enhance)</td>
+              <td><code>hashFront</code>, <code>hashBack</code> (định danh ảnh ở VNPT)</td>
+            </tr>
+            <tr>
+              <td>3) Gọi model AI VNPT</td>
+              <td>Backend → VNPT</td>
+              <td>hash + <code>client_session</code> + token body</td>
+              <td>JSON kết quả: classify/liveness/ocr</td>
+            </tr>
+            <tr>
+              <td>4) Lưu session eKYC</td>
+              <td>Backend → DB</td>
+              <td>hash, raw JSON, trạng thái</td>
+              <td>Bản ghi <code>ekyc_sessions</code> + <code>ekycSessionId</code></td>
+            </tr>
+            <tr>
+              <td>5) Trích xuất profile</td>
+              <td>Backend</td>
+              <td><code>ocrFront.object</code> + <code>ocrBack.object</code></td>
+              <td><code>profile</code> (họ tên, số CCCD, ngày sinh, địa chỉ...)</td>
+            </tr>
+            <tr>
+              <td>6) Liên kết với đăng ký</td>
+              <td>Backend</td>
+              <td><code>ekycSessionId</code> gửi kèm <code>/api/auth/register</code></td>
+              <td>Validate eKYC OK → set <code>ekyc_sessions.user_id</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="warn" style="margin-top: 10px">
+          Hash VNPT chỉ là định danh ảnh trên hệ thống VNPT; ảnh thật (để audit) được lưu thêm trên Cloudinary nếu cấu hình Cloudinary hợp lệ.
+        </div>
+      </div>
+
+      <div class="card">
         <h3>Mục lục</h3>
         <ul>
           <li><a href="#config">1) Cấu hình</a></li>
