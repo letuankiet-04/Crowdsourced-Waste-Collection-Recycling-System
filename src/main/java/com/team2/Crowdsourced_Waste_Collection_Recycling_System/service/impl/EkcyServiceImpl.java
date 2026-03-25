@@ -14,6 +14,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Eky
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.integration.vnpt.VnptEkycClient;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.EkycSession;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.EkycSessionRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CloudinaryService;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.EkcyService;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.util.FileUpLoadUtil;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.util.VnptImagePreprocessUtil;
@@ -29,6 +30,7 @@ public class EkcyServiceImpl implements EkcyService {
     private final VnptEkycClient vnptEkycClient;
     private final ObjectMapper objectMapper;
     private final EkycSessionRepository ekycSessionRepository;
+    private final CloudinaryService cloudinaryService;
 
     @Override
     public String upload(EkcyUploadRequest request, MultipartFile file, boolean enhance) {
@@ -96,12 +98,34 @@ public class EkcyServiceImpl implements EkcyService {
 
         String hashFront;
         String hashBack;
+        byte[] frontBytes = null;
+        byte[] backBytes = null;
         if (!enhance) {
+            try {
+                var frontUploaded = cloudinaryService.uploadImage(frontFile, "ekyc");
+                ekycSession.setFrontImageUrl(frontUploaded.getUrl());
+                ekycSession.setFrontImagePublicId(frontUploaded.getPublicId());
+                var backUploaded = cloudinaryService.uploadImage(backFile, "ekyc");
+                ekycSession.setBackImageUrl(backUploaded.getUrl());
+                ekycSession.setBackImagePublicId(backUploaded.getPublicId());
+                ekycSession = ekycSessionRepository.save(ekycSession);
+            } catch (RuntimeException ignored) {
+            }
             hashFront = vnptEkycClient.upload(frontFile, "front", "ekyc_front");
             hashBack = vnptEkycClient.upload(backFile, "back", "ekyc_back");
         } else {
-            byte[] frontBytes = VnptImagePreprocessUtil.preprocess(frontFile);
-            byte[] backBytes = VnptImagePreprocessUtil.preprocess(backFile);
+            frontBytes = VnptImagePreprocessUtil.preprocess(frontFile);
+            backBytes = VnptImagePreprocessUtil.preprocess(backFile);
+            try {
+                var frontUploaded = cloudinaryService.uploadImageBytes(frontBytes, "front.jpg", "ekyc");
+                ekycSession.setFrontImageUrl(frontUploaded.getUrl());
+                ekycSession.setFrontImagePublicId(frontUploaded.getPublicId());
+                var backUploaded = cloudinaryService.uploadImageBytes(backBytes, "back.jpg", "ekyc");
+                ekycSession.setBackImageUrl(backUploaded.getUrl());
+                ekycSession.setBackImagePublicId(backUploaded.getPublicId());
+                ekycSession = ekycSessionRepository.save(ekycSession);
+            } catch (RuntimeException ignored) {
+            }
             hashFront = vnptEkycClient.uploadBytes(frontBytes, "front.jpg", "front", "ekyc_front");
             hashBack = vnptEkycClient.uploadBytes(backBytes, "back.jpg", "back", "ekyc_back");
         }
@@ -177,6 +201,10 @@ public class EkcyServiceImpl implements EkcyService {
                     .status(ekycSession.getStatus())
                     .hashFront(hashFront)
                     .hashBack(hashBack)
+                    .frontImageUrl(ekycSession.getFrontImageUrl())
+                    .frontImagePublicId(ekycSession.getFrontImagePublicId())
+                    .backImageUrl(ekycSession.getBackImageUrl())
+                    .backImagePublicId(ekycSession.getBackImagePublicId())
                     .profile(profile)
                     .classify(classify)
                     .liveness(liveness)
@@ -246,6 +274,10 @@ public class EkcyServiceImpl implements EkcyService {
                 .enhance(session.getEnhance())
                 .hashFront(session.getHashFront())
                 .hashBack(session.getHashBack())
+                .frontImageUrl(session.getFrontImageUrl())
+                .frontImagePublicId(session.getFrontImagePublicId())
+                .backImageUrl(session.getBackImageUrl())
+                .backImagePublicId(session.getBackImagePublicId())
                 .profile(EkycExtractedProfileResponse.builder()
                         .idNumber(session.getIdNumber())
                         .citizenId(session.getCitizenId())

@@ -8,5 +8,7 @@ public interface CloudinaryService {
 
     CloudinaryResponse uploadImage(MultipartFile file, String module);
 
+    CloudinaryResponse uploadImageBytes(byte[] bytes, String fileName, String module);
+
     void deleteImage(String publicId);
 }

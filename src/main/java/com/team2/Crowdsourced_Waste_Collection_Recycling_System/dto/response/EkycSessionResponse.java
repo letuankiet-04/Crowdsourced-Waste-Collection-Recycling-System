@@ -26,6 +26,10 @@ public class EkycSessionResponse {
 
     String hashFront;
     String hashBack;
+    String frontImageUrl;
+    String frontImagePublicId;
+    String backImageUrl;
+    String backImagePublicId;
 
     EkycExtractedProfileResponse profile;
 

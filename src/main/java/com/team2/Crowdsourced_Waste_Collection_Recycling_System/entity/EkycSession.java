@@ -48,6 +48,18 @@ public class EkycSession {
     @Column(name = "hash_back", length = 512)
     private String hashBack;
 
+    @Column(name = "front_image_url", length = 1024)
+    private String frontImageUrl;
+
+    @Column(name = "front_image_public_id", length = 512)
+    private String frontImagePublicId;
+
+    @Column(name = "back_image_url", length = 1024)
+    private String backImageUrl;
+
+    @Column(name = "back_image_public_id", length = 512)
+    private String backImagePublicId;
+
     @Column(name = "classify_ok")
     private Boolean classifyOk;
 

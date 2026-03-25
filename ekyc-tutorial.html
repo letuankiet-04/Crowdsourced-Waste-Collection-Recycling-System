@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VNPT eKYC Tutorial (Backend)</title>
+    <style>
+      :root {
+        --bg: #0b1220;
+        --panel: #111a2e;
+        --text: #e6edf3;
+        --muted: #9fb0c0;
+        --accent: #58a6ff;
+        --border: rgba(255, 255, 255, 0.08);
+        --codebg: #0a0f1c;
+      }
+      html, body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
+          "Segoe UI Emoji";
+        background: linear-gradient(180deg, var(--bg), #070b13);
+        color: var(--text);
+        line-height: 1.6;
+      }
+      .container {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 28px 18px 60px;
+      }
+      header {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 18px 18px;
+      }
+      h1 {
+        margin: 0 0 6px;
+        font-size: 22px;
+      }
+      .subtitle {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      h2 {
+        margin: 22px 0 10px;
+        font-size: 18px;
+      }
+      h3 {
+        margin: 18px 0 8px;
+        font-size: 15px;
+        color: var(--text);
+      }
+      .card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px 16px;
+        margin-top: 12px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      @media (min-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      code, pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+      pre {
+        margin: 10px 0 0;
+        padding: 12px 12px;
+        background: var(--codebg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: auto;
+      }
+      .pill {
+        display: inline-block;
+        padding: 2px 10px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        color: var(--muted);
+        font-size: 12px;
+        margin-right: 8px;
+      }
+      ul {
+        margin: 10px 0 0 18px;
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        gap: 8px 12px;
+        margin-top: 10px;
+      }
+      .k {
+        color: var(--muted);
+      }
+      .v {
+        color: var(--text);
+      }
+      .warn {
+        border-left: 4px solid #f0883e;
+        padding-left: 12px;
+        color: var(--text);
+      }
+      .ok {
+        border-left: 4px solid #2ea043;
+        padding-left: 12px;
+        color: var(--text);
+      }
+      footer {
+        margin-top: 26px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+      }
+      .table th, .table td {
+        border: 1px solid var(--border);
+        padding: 8px 10px;
+        vertical-align: top;
+      }
+      .table th {
+        text-align: left;
+        color: var(--muted);
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>VNPT eKYC Tutorial (Spring Boot)</h1>
+        <p class="subtitle">
+          Tài liệu triển khai & sử dụng module eKYC trong project Crowdsourced Waste Collection & Recycling System
+        </p>
+      </header>
+
+      <div class="card">
+        <span class="pill">Base URL VNPT API</span>
+        <span class="pill">https://api.idg.vnpt.vn</span>
+        <div class="warn" style="margin-top: 10px">
+          Khuyến nghị không gọi VNPT trực tiếp từ frontend vì sẽ lộ Token-id/Token-key/Access token. Frontend chỉ gọi backend.
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Mục lục</h3>
+        <ul>
+          <li><a href="#config">1) Cấu hình</a></li>
+          <li><a href="#architecture">2) Kiến trúc & luồng dữ liệu</a></li>
+          <li><a href="#endpoints">3) Endpoint backend & request/response</a></li>
+          <li><a href="#enhance">4) Enhance (chuẩn hoá ảnh) là gì?</a></li>
+          <li><a href="#db">5) Lưu DB: bảng ekyc_sessions</a></li>
+          <li><a href="#profile">6) Thông tin người dùng trích xuất từ CCCD</a></li>
+          <li><a href="#register">7) Gắn eKYC vào luồng đăng ký</a></li>
+          <li><a href="#troubleshoot">8) Troubleshooting nhanh</a></li>
+        </ul>
+      </div>
+
+      <h2 id="config">1) Cấu hình</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>application.yml</h3>
+          <p class="subtitle">Các biến cấu hình đã được thêm trong <code>vnpt.ekyc</code>.</p>
+          <pre>vnpt:
+  ekyc:
+    base-url: ${VNPT_EKYC_BASE_URL:https://api.idg.vnpt.vn}
+    access-token: ${VNPT_EKYC_ACCESS_TOKEN:}
+    token-id: ${VNPT_EKYC_TOKEN_ID:}
+    token-key: ${VNPT_EKYC_TOKEN_KEY:}
+    mac-address: ${VNPT_EKYC_MAC_ADDRESS:TEST1}
+    timeout-ms: ${VNPT_EKYC_TIMEOUT_MS:15000}</pre>
+          <div class="warn" style="margin-top: 10px">
+            Không hardcode token lên repo. Nên set bằng biến môi trường: <code>VNPT_EKYC_ACCESS_TOKEN</code>, <code>VNPT_EKYC_TOKEN_ID</code>, <code>VNPT_EKYC_TOKEN_KEY</code>.
+          </div>
+        </div>
+        <div class="card">
+          <h3>Headers VNPT</h3>
+          <div class="kv">
+            <div class="k">Authorization</div>
+            <div class="v">Bearer &lt;access_token&gt;</div>
+            <div class="k">Token-id</div>
+            <div class="v">&lt;token_id&gt;</div>
+            <div class="k">Token-key</div>
+            <div class="v">&lt;token_key&gt;</div>
+            <div class="k">mac-address</div>
+            <div class="v">TEST1 (configurable)</div>
+          </div>
+          <p class="subtitle" style="margin-top: 10px">
+            Backend tự inject toàn bộ headers này khi gọi VNPT.
+          </p>
+          <div class="warn" style="margin-top: 10px">
+            Lỗi <code>401 Unauthorized</code> gần như luôn là do Access token hết hạn hoặc Token-id/Token-key không khớp với token hiện tại.
+          </div>
+        </div>
+      </div>
+
+      <h2 id="architecture">2) Kiến trúc & luồng dữ liệu</h2>
+      <div class="card">
+        <p class="subtitle">
+          Mô hình tích hợp: frontend → backend → VNPT. Backend đóng vai trò <b>proxy</b> để bảo vệ secrets và chuẩn hoá response.
+        </p>
+        <pre>Frontend (React/Swagger/Postman)
+  |
+  | 1) POST /api/auth/ekyc/flow (multipart front/back)
+  v
+Backend (Spring Boot)
+  | 2) Upload lên VNPT /file-service/v1/addFile  -> hashFront/hashBack
+  | 3) Call AI:
+  |    - /ai/v1/classify/id
+  |    - /ai/v1/card/liveness
+  |    - /ai/v1/ocr/id/front
+  |    - /ai/v1/ocr/id/back
+  |    - /ai/v1/ocr/id (OCR full)
+  | 4) Lưu DB (ekyc_sessions): raw JSON + flags + profile extracted
+  v
+Client nhận: ekycSessionId + profile + raw JSON (nếu cần)</pre>
+        <p class="subtitle" style="margin-top: 10px">
+          Lưu ý thực tế VNPT: <code>ocr full</code> có thể fail 400 trong khi <code>ocr front/back</code> vẫn OK. Vì vậy backend hiện validate đăng ký dựa trên classify + liveness + ocr front/back.
+        </p>
+      </div>
+
+      <h2 id="endpoints">3) Endpoint backend & request/response</h2>
+      <div class="card">
+        <p class="subtitle">Base path: <code>/api/auth/ekyc</code></p>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Consumes</th>
+              <th>Mục đích</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>POST /upload</code> (query: <code>enhance</code>)</td>
+              <td>multipart/form-data</td>
+              <td>Upload ảnh lên VNPT, trả về <code>hash</code></td>
+            </tr>
+            <tr>
+              <td><code>POST /classify</code></td>
+              <td>application/json</td>
+              <td>Nhận diện loại giấy tờ từ <code>hash</code></td>
+            </tr>
+            <tr>
+              <td><code>POST /liveness</code></td>
+              <td>application/json</td>
+              <td>Kiểm tra giấy tờ thật/giả</td>
+            </tr>
+            <tr>
+              <td><code>POST /ocr/front</code></td>
+              <td>application/json</td>
+              <td>OCR mặt trước</td>
+            </tr>
+            <tr>
+              <td><code>POST /ocr/back</code></td>
+              <td>application/json</td>
+              <td>OCR mặt sau</td>
+            </tr>
+            <tr>
+              <td><code>POST /ocr/full</code></td>
+              <td>application/json</td>
+              <td>OCR full (front + back)</td>
+            </tr>
+            <tr>
+              <td><code>POST /flow</code> (query: <code>clientSession</code>, <code>enhance</code>, ...)</td>
+              <td>multipart/form-data</td>
+              <td>Full flow: upload → classify → liveness → ocr front/back → ocr full, đồng thời lưu DB</td>
+            </tr>
+            <tr>
+              <td><code>GET /sessions/{id}</code></td>
+              <td>-</td>
+              <td>Lấy lại kết quả eKYC đã lưu theo <code>ekycSessionId</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>Giải thích các tham số quan trọng</h3>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Tham số</th>
+              <th>Dùng ở đâu</th>
+              <th>Ý nghĩa</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>clientSession</code></td>
+              <td><code>/flow</code>, các API AI</td>
+              <td>Session theo định dạng VNPT: <code>ANDROID_model_os_Device_sdk_deviceId_timestamp</code> (khuyến nghị đúng format để tránh lỗi khó đoán).</td>
+            </tr>
+            <tr>
+              <td><code>token</code></td>
+              <td>Body VNPT (classify/ocr)</td>
+              <td>Chuỗi định danh do client tự tạo (không dùng ký tự đặc biệt). Không phải JWT của hệ thống.</td>
+            </tr>
+            <tr>
+              <td><code>type</code></td>
+              <td>OCR</td>
+              <td>-1 auto; 5 hộ chiếu; 6 bằng lái; 7 CM quân đội. Với CCCD mới thường ra type 2/3 từ classify.</td>
+            </tr>
+            <tr>
+              <td><code>cropParam</code></td>
+              <td>OCR full</td>
+              <td>Tỉ lệ crop <code>0.14,0.3</code> (dấu chấm thập phân). Nếu OCR full hay fail, thử bỏ trống để VNPT tự crop.</td>
+            </tr>
+            <tr>
+              <td><code>enhance</code></td>
+              <td><code>/upload</code>, <code>/flow</code></td>
+              <td>Bật chuẩn hoá ảnh trước khi upload VNPT (resize/re-encode/sharpen nhẹ) để giảm một số lỗi quality.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Ví dụ request/response nhanh</h3>
+      <div class="grid">
+        <div class="card">
+          <h3>Upload</h3>
+          <p class="subtitle">
+            Upload không cần <code>clientSession</code>. Response backend trả <code>hash</code> để dùng cho các bước AI.
+          </p>
+          <pre>curl -X POST "http://localhost:8080/api/auth/ekyc/upload?enhance=true&amp;title=front&amp;description=ekyc_front" \
+  -H "Accept: application/json" \
+  -F "file=@/path/to/front.jpg"</pre>
+        </div>
+        <div class="card">
+          <h3>Classify (hash → loại giấy tờ)</h3>
+          <pre>curl -X POST "http://localhost:8080/api/auth/ekyc/classify" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "img_card": "&lt;hashFront&gt;",
+    "client_session": "ANDROID_nokia7.2_28_Device_1.0_08d2d8686ee5fa0e_1710000000",
+    "token": "abc123"
+  }'</pre>
+        </div>
+      </div>
+
+      <h2 id="enhance">4) Enhance (chuẩn hoá ảnh) là gì?</h2>
+      <div class="card">
+        <p class="subtitle">
+          <code>enhance=true</code> bật preprocessing phía backend trước khi upload lên VNPT. Mục tiêu là chuẩn hoá ảnh để model AI dễ xử lý hơn.
+        </p>
+        <ul>
+          <li>Convert RGB nền trắng (tránh PNG alpha)</li>
+          <li>Resize xuống tối đa cạnh dài ~ 2200px</li>
+          <li>Sharpen nhẹ</li>
+          <li>Encode JPEG quality cao (~0.92)</li>
+        </ul>
+        <div class="warn" style="margin-top: 10px">
+          Enhance không “cứu” được ảnh chụp quá lóa/nhòe/mất góc. Nó chỉ giúp giảm các lỗi do định dạng/size/encode.
+        </div>
+      </div>
+
+      <h2>5) Full flow: cách gọi nhanh</h2>
+      <div class="card">
+        <p class="subtitle">
+          Full flow dùng 2 file: <code>front</code> + <code>back</code>. <code>clientSession</code> nên theo format VNPT khuyến nghị.
+        </p>
+        <pre>curl -X POST "http://localhost:8080/api/auth/ekyc/flow?clientSession=ANDROID_nokia7.2_28_Device_1.0_08d2d8686ee5fa0e_1710000000&amp;token=abc123&amp;type=-1&amp;validatePostcode=true&amp;cropParam=0.14,0.3&amp;enhance=true" \
+  -H "Accept: application/json" \
+  -F "front=@/path/to/front.jpg" \
+  -F "back=@/path/to/back.jpg"</pre>
+        <div class="ok" style="margin-top: 10px">
+          Response trả thêm <code>ekycSessionId</code> và <code>profile</code> (thông tin người dùng trích xuất từ OCR front/back).
+        </div>
+      </div>
+
+      <h2 id="db">5) Lưu DB: bảng ekyc_sessions</h2>
+      <div class="card">
+        <p class="subtitle">
+          Kết quả eKYC được lưu vào bảng <code>ekyc_sessions</code> để truy vấn/audit và phục vụ đăng ký.
+        </p>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Nhóm</th>
+              <th>Cột</th>
+              <th>Mô tả</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Định danh</td>
+              <td><code>id</code>, <code>user_id</code>, <code>client_session</code></td>
+              <td><code>id</code> là UUID string; <code>user_id</code> set khi đăng ký thành công kèm ekycSessionId</td>
+            </tr>
+            <tr>
+              <td>Hash ảnh</td>
+              <td><code>hash_front</code>, <code>hash_back</code></td>
+              <td>Hash VNPT trả về sau upload</td>
+            </tr>
+            <tr>
+              <td>Raw JSON</td>
+              <td><code>classify_raw</code>, <code>liveness_raw</code>, <code>ocr_front_raw</code>, <code>ocr_back_raw</code>, <code>ocr_full_raw</code></td>
+              <td>Lưu nguyên JSON VNPT để đối soát</td>
+            </tr>
+            <tr>
+              <td>Trạng thái bước</td>
+              <td><code>*_ok</code>, <code>*_code</code></td>
+              <td>Ok/codes theo <code>message</code> VNPT</td>
+            </tr>
+            <tr>
+              <td>Profile đã tách</td>
+              <td>
+                <code>id_number</code>, <code>full_name</code>, <code>birth_day</code>, <code>origin_location</code>, <code>recent_location</code>,
+                <code>issue_date</code>, <code>issue_place</code>, <code>card_type</code>...
+              </td>
+              <td>Backend tự extract từ OCR front/back để client lấy nhanh</td>
+            </tr>
+          </tbody>
+        </table>
+        <h3 style="margin-top: 14px">Gợi ý query nhanh</h3>
+        <pre>-- Tìm theo số giấy tờ
+SELECT id, status, full_name, id_number, birth_day, created_at
+FROM ekyc_sessions
+WHERE id_number = '012345678901'
+ORDER BY created_at DESC;
+
+-- Tìm session của user đã đăng ký
+SELECT id, user_id, status, full_name, id_number, created_at
+FROM ekyc_sessions
+WHERE user_id = 123
+ORDER BY created_at DESC;</pre>
+      </div>
+
+      <h2 id="profile">6) Thông tin người dùng trích xuất từ CCCD</h2>
+      <div class="card">
+        <p class="subtitle">
+          Backend trích xuất profile từ <code>ocrFront.object</code> + <code>ocrBack.object</code>, lưu vào các cột chuẩn hoá và trả về field <code>profile</code>.
+        </p>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Nguồn VNPT</th>
+              <th>Ghi chú</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>profile.fullName</code></td>
+              <td><code>ocrFront.object.name</code> (fallback <code>name_label</code>)</td>
+              <td>Dùng để prefill form đăng ký</td>
+            </tr>
+            <tr>
+              <td><code>profile.idNumber</code></td>
+              <td><code>ocrFront.object.id</code></td>
+              <td>Số CMND/CCCD</td>
+            </tr>
+            <tr>
+              <td><code>profile.birthDay</code></td>
+              <td><code>ocrFront.object.birth_day</code></td>
+              <td>Chuỗi ngày theo VNPT (ví dụ 26/12/1989)</td>
+            </tr>
+            <tr>
+              <td><code>profile.recentLocation</code></td>
+              <td><code>ocrFront.object.recent_location</code></td>
+              <td>Địa chỉ thường trú</td>
+            </tr>
+            <tr>
+              <td><code>profile.issueDate</code></td>
+              <td><code>ocrBack.object.issue_date</code></td>
+              <td>Ngày cấp (mặt sau)</td>
+            </tr>
+            <tr>
+              <td><code>profile.issuePlace</code></td>
+              <td><code>ocrBack.object.issue_place</code></td>
+              <td>Nơi cấp (mặt sau)</td>
+            </tr>
+          </tbody>
+        </table>
+        <h3 style="margin-top: 14px">Mẫu response có profile</h3>
+        <pre>{
+  "code": 1000,
+  "result": {
+    "ekycSessionId": "b3e8b8c4-....",
+    "status": "COMPLETED",
+    "hashFront": "idg....",
+    "hashBack": "idg....",
+    "frontImageUrl": "https://res.cloudinary.com/.../image/upload/.../ekyc/front.jpg",
+    "backImageUrl": "https://res.cloudinary.com/.../image/upload/.../ekyc/back.jpg",
+    "profile": {
+      "idNumber": "012345678901",
+      "fullName": "NGUYEN VAN A",
+      "birthDay": "01/01/1999",
+      "gender": "Nam",
+      "originLocation": "....",
+      "recentLocation": "....",
+      "issueDate": "23/02/2011",
+      "issuePlace": "Hà Nội",
+      "cardType": "CĂN CƯỚC CÔNG DÂN"
+    }
+  }
+}</pre>
+      </div>
+
+      <h2>6) Lấy lại kết quả đã lưu</h2>
+      <div class="card">
+        <p class="subtitle">Dùng <code>ekycSessionId</code> lấy lại toàn bộ kết quả và <code>profile</code>.</p>
+        <pre>curl "http://localhost:8080/api/auth/ekyc/sessions/&lt;ekycSessionId&gt;"</pre>
+      </div>
+
+      <h2 id="images">6.1) Lưu ảnh lên Cloudinary (front/back)</h2>
+      <div class="card">
+        <p class="subtitle">
+          Ngoài hash VNPT, hệ thống cũng upload ảnh CCCD lên Cloudinary để phục vụ audit/đối soát.
+          Link ảnh được lưu trong bảng <code>ekyc_sessions</code> và trả về cho client.
+        </p>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Cột DB</th>
+              <th>Ý nghĩa</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>front_image_url</code>, <code>front_image_public_id</code></td>
+              <td>Ảnh mặt trước đã lưu Cloudinary</td>
+            </tr>
+            <tr>
+              <td><code>back_image_url</code>, <code>back_image_public_id</code></td>
+              <td>Ảnh mặt sau đã lưu Cloudinary</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="warn" style="margin-top: 10px">
+          Ảnh CCCD là dữ liệu nhạy cảm. Cần cân nhắc phân quyền xem ảnh (chỉ admin/CSKH) và chính sách lưu trữ/xoá dữ liệu.
+        </div>
+      </div>
+
+      <h2 id="register">7) Gắn eKYC vào đăng ký</h2>
+      <div class="card">
+        <p class="subtitle">
+          Đăng ký có thể gửi kèm <code>ekycSessionId</code>. Backend sẽ validate eKYC đạt yêu cầu (classify + liveness + ocr front/back OK) rồi link session vào user.
+        </p>
+        <pre>curl -X POST "http://localhost:8080/api/auth/register" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user1@gmail.com",
+    "password": "P@ssw0rd!",
+    "fullName": "NGUYEN VAN A",
+    "phone": "0901234567",
+    "location": "HCM",
+    "ekycSessionId": "&lt;ekycSessionId&gt;"
+  }'</pre>
+        <div class="warn" style="margin-top: 10px">
+          Nếu muốn bắt buộc eKYC cho mọi đăng ký, cần đổi rule tại register để không cho phép <code>ekycSessionId</code> null.
+        </div>
+      </div>
+
+      <h2 id="troubleshoot">8) Troubleshooting nhanh</h2>
+      <div class="card">
+        <ul>
+          <li>
+            <b>401 Unauthorized</b>: Access token hết hạn hoặc Token-id/Token-key mismatch → lấy token mới từ VNPT portal.
+          </li>
+          <li>
+            <b>ocr full (400) quality</b> nhưng front/back OK: thử bỏ <code>cropParam</code>, thử set <code>type</code> theo classify, hoặc giữ OCR full là optional.
+          </li>
+          <li>
+            <b>Ảnh quality</b>: đảm bảo đủ 4 góc, không lóa, không nén lại qua app chat; thử <code>enhance=true</code>.
+          </li>
+          <li>
+            <b>Kiểm tra nhanh</b>: gọi riêng <code>/upload</code> → <code>/classify</code> → <code>/ocr/front</code> → <code>/ocr/back</code> để biết fail ở bước nào.
+          </li>
+        </ul>
+      </div>
+
+      <footer>
+        File: <code>ekyc-tutorial.html</code> • Mở trực tiếp bằng trình duyệt để xem hướng dẫn.
+      </footer>
+    </div>
+  </body>
+</html>

@@ -14,6 +14,10 @@ public class EkcyFullFlowResponse {
     String status;
     String hashFront;
     String hashBack;
+    String frontImageUrl;
+    String frontImagePublicId;
+    String backImageUrl;
+    String backImagePublicId;
     EkycExtractedProfileResponse profile;
     JsonNode classify;
     JsonNode liveness;
