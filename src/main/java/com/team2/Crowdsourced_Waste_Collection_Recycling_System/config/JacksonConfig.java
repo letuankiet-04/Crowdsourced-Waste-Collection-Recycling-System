@@ -32,7 +32,7 @@ public class JacksonConfig {
                     gen.writeString(value.atOffset(ZoneOffset.UTC).format(formatter));
                 }
             });
-            builder.modules(module);
+            builder.modulesToInstall(module);
         };
     }
 }
