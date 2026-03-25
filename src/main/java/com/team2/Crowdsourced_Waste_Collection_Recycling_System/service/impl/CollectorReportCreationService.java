@@ -176,7 +176,7 @@ public class CollectorReportCreationService {
 
         CollectorReport saved = collectorReportRepository.save(report);
         if (saved.getReportCode() == null || saved.getReportCode().isBlank()) {
-            saved.setReportCode(String.format("CRR%06d", saved.getId()));
+            saved.setReportCode(String.format("CR%03d", saved.getId()));
             saved = collectorReportRepository.save(saved);
         }
         return saved;
