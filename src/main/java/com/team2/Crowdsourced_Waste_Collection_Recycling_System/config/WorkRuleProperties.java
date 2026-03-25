@@ -10,11 +10,10 @@ import org.springframework.stereotype.Component;
 @Getter
 @Setter
 public class WorkRuleProperties {
-    private int acceptTimeoutHours = 4;
+    private int acceptTimeoutHours = 24;
     private int slaHours = 72;
     private int suspendThreshold = 3;
-    private int workingStartHour = 7;
-    private int workingEndHour = 17;
-    private double reassignRadiusKm = 10.0;
+    private int workingStartHour = 0;
+    private int workingEndHour = 23;
     private double reportRadiusKm = 0.5;
 }
