@@ -10,6 +10,7 @@ public class RegisterRequest {
     private String phone;
     @JsonAlias("address")
     private String location;
+    private String ekycSessionId;
 
     public RegisterRequest() {
     }
@@ -52,6 +53,14 @@ public class RegisterRequest {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public String getEkycSessionId() {
+        return ekycSessionId;
+    }
+
+    public void setEkycSessionId(String ekycSessionId) {
+        this.ekycSessionId = ekycSessionId;
     }
 
 }

@@ -12,6 +12,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.AppExc
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.ErrorCode;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.profile.CitizenRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.EkycSessionRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.RolePermissionRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.RoleRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.UserRepository;
@@ -66,6 +67,7 @@ public class AuthServiceImpl implements AuthService {
     CitizenRepository citizenRepository;
     CollectorRepository collectorRepository;
     EnterpriseRepository enterpriseRepository;
+    EkycSessionRepository ekycSessionRepository;
     TokenDenylistService tokenDenylistService;
     PasswordEncoder passwordEncoder;
     JWTHelper jwtHelper;
@@ -110,6 +112,11 @@ public class AuthServiceImpl implements AuthService {
             location = null;
         }
 
+        String ekycSessionId = request.getEkycSessionId() != null ? request.getEkycSessionId().trim() : null;
+        if (ekycSessionId != null && ekycSessionId.isBlank()) {
+            ekycSessionId = null;
+        }
+
         User u = new User();
         u.setEmail(email);
         u.setPasswordHash(passwordEncoder.encode(request.getPassword()));
@@ -135,6 +142,23 @@ public class AuthServiceImpl implements AuthService {
         citizen.setTotalReports(0);
         citizen.setValidReports(0);
         Citizen savedCitizen = citizenRepository.save(citizen);
+
+        if (ekycSessionId != null) {
+            var session = ekycSessionRepository.findById(ekycSessionId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "ekycSessionId không tồn tại"));
+            if (!"COMPLETED".equalsIgnoreCase(session.getStatus())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "eKYC chưa hoàn tất");
+            }
+            boolean ok = Boolean.TRUE.equals(session.getClassifyOk())
+                    && Boolean.TRUE.equals(session.getLivenessOk())
+                    && Boolean.TRUE.equals(session.getOcrFrontOk())
+                    && Boolean.TRUE.equals(session.getOcrBackOk());
+            if (!ok) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "eKYC không đạt yêu cầu");
+            }
+            session.setUser(savedUser);
+            ekycSessionRepository.save(session);
+        }
 
         Integer citizenId = savedCitizen.getId();
         String scope = buildScope(role);
