@@ -43,6 +43,8 @@ import java.util.List;
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CitizenReportStatsResponse;
 
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorReportResponse;
+
 @RestController
 @RequestMapping("/api/citizen")
 @RequiredArgsConstructor
@@ -108,6 +110,14 @@ public class CitizenController {
     public ResponseEntity<ApiResponse<CitizenReportResultResponse>> getMyReportResult(@PathVariable("id") Integer id) {
         CitizenReportResultResponse result = wasteReportService.getMyReportResult(id, currentEmail());
         return ok(result, "Lấy kết quả thu gom thành công");
+    }
+
+    @GetMapping("/reports/{id}/collector-report")
+    @PreAuthorize("hasRole('CITIZEN')")
+    @Operation(summary = "Chi tiết báo cáo của người thu gom", description = "Lấy báo cáo thu gom tương ứng với báo cáo rác")
+    public ResponseEntity<ApiResponse<CollectorReportResponse>> getCollectorReport(@PathVariable("id") Integer id) {
+        CollectorReportResponse result = wasteReportService.getCollectorReportByWasteReportId(id, currentEmail());
+        return ok(result, "Lấy chi tiết báo cáo thu gom thành công");
     }
 
     @GetMapping("/rewards/history")

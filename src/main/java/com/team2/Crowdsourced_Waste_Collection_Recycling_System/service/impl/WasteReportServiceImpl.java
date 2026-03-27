@@ -68,6 +68,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CitizenReportStatsResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportItemRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportImageRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorReportResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectorReportItem;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectorReportImage;
+import java.util.LinkedHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -88,6 +93,7 @@ public class WasteReportServiceImpl implements WasteReportService {
     private final CollectorReportItemRepository collectorReportItemRepository;
     private final FeedbackRepository feedbackRepository;
     private final CitizenFeatureMapper citizenFeatureMapper;
+    private final CollectorReportImageRepository collectorReportImageRepository;
 
     @Override
     @Transactional
@@ -1069,6 +1075,76 @@ public class WasteReportServiceImpl implements WasteReportService {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
         return new ArrayList<>(deduped);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CollectorReportResponse getCollectorReportByWasteReportId(Integer reportId, String citizenEmail) {
+        Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
+        WasteReport report = requireOwnedReport(reportId, citizen);
+
+        Optional<CollectionRequest> requestOpt = collectionRequestRepository.findByReport_Id(report.getId());
+        if (requestOpt.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy báo cáo thu gom");
+        }
+        CollectionRequest request = requestOpt.get();
+
+        Optional<CollectorReport> collectorReportOpt = collectorReportRepository.findTopByCollectionRequest_IdOrderByCreatedAtDesc(request.getId());
+        if (collectorReportOpt.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy báo cáo thu gom");
+        }
+        CollectorReport collectorReport = collectorReportOpt.get();
+
+        List<String> imageUrls = new ArrayList<>();
+        var images = collectorReportImageRepository.findByCollectorReport_Id(collectorReport.getId());
+        for (var img : images) {
+            imageUrls.add(img.getImageUrl());
+        }
+
+        List<CollectorReportItem> items = collectorReportItemRepository.findByCollectorReport_Id(collectorReport.getId());
+        List<WasteCategoryResponse> categories = new ArrayList<>();
+        Map<Integer, WasteCategoryResponse> byCategoryId = new LinkedHashMap<>();
+        for (CollectorReportItem item : items) {
+            if (item.getWasteCategory() == null || item.getWasteCategory().getId() == null) {
+                continue;
+            }
+            Integer categoryId = item.getWasteCategory().getId();
+            if (!byCategoryId.containsKey(categoryId)) {
+                WasteCategoryResponse response = new WasteCategoryResponse();
+                response.setId(categoryId);
+                response.setName(item.getWasteCategory().getName());
+                String unit = item.getUnitSnapshot() != null ? item.getUnitSnapshot().name() 
+                            : (item.getWasteCategory().getUnit() != null ? item.getWasteCategory().getUnit().name() : null);
+                response.setUnit(unit);
+                response.setPointPerUnit(item.getWasteCategory().getPointPerUnit());
+                response.setQuantity(item.getQuantity());
+                byCategoryId.put(categoryId, response);
+            } else {
+                WasteCategoryResponse existing = byCategoryId.get(categoryId);
+                if (existing.getQuantity() == null) {
+                    existing.setQuantity(item.getQuantity());
+                } else if (item.getQuantity() != null) {
+                    existing.setQuantity(existing.getQuantity().add(item.getQuantity()));
+                }
+            }
+        }
+        categories = new ArrayList<>(byCategoryId.values());
+
+        return CollectorReportResponse.builder()
+                .id(collectorReport.getId())
+                .reportCode(collectorReport.getReportCode())
+                .collectionRequestId(request.getId())
+                .collectorId(collectorReport.getCollector() != null ? collectorReport.getCollector().getId() : null)
+                .status(collectorReport.getStatus())
+                .collectorNote(collectorReport.getCollectorNote())
+                .totalPoint(collectorReport.getTotalPoint())
+                .collectedAt(collectorReport.getCollectedAt())
+                .latitude(collectorReport.getLatitude())
+                .longitude(collectorReport.getLongitude())
+                .createdAt(collectorReport.getCreatedAt())
+                .imageUrls(imageUrls)
+                .categories(categories)
+                .build();
     }
 
     private Integer tryParseInt(String value) {

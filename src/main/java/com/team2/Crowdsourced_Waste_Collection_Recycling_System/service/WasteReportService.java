@@ -39,5 +39,7 @@ public interface WasteReportService {
     List<WasteCategoryResponse> getWasteCategories();
 
     com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CitizenReportStatsResponse getMyReportStats(String citizenEmail);
+
+    com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorReportResponse getCollectorReportByWasteReportId(Integer reportId, String citizenEmail);
 }
 
