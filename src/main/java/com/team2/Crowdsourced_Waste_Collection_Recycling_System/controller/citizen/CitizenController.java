@@ -156,7 +156,7 @@ public class CitizenController {
     @PutMapping("/password")
     @PreAuthorize("hasRole('CITIZEN')")
     @Operation(summary = "Đổi mật khẩu", description = "Đổi mật khẩu tài khoản công dân hiện tại")
-    public ResponseEntity<ApiResponse<Void>> changePassword(@RequestBody ChangePasswordRequest request) {
+    public ResponseEntity<ApiResponse<Void>> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         passwordService.changePassword(currentEmail(), request);
         return ok("Đổi mật khẩu thành công");
     }

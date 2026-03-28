@@ -5,6 +5,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Api
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.PasswordService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -25,10 +26,9 @@ public class EnterpriseAccountController extends EnterpriseControllerSupport {
     @PutMapping("/password")
     @PreAuthorize("hasAnyRole('ENTERPRISE', 'ENTERPRISE_ADMIN')")
     @Operation(summary = "Đổi mật khẩu", description = "Đổi mật khẩu tài khoản enterprise hiện tại")
-    public ApiResponse<Void> changePassword(@AuthenticationPrincipal Jwt jwt, @RequestBody ChangePasswordRequest request) {
+    public ApiResponse<Void> changePassword(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ChangePasswordRequest request) {
         extractEnterpriseId(jwt);
         passwordService.changePassword(jwt != null ? jwt.getSubject() : null, request);
         return ok("Đổi mật khẩu thành công");
     }
 }
-
