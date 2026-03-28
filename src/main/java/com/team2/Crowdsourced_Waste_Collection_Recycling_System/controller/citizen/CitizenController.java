@@ -43,6 +43,8 @@ import java.util.List;
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CitizenReportStatsResponse;
 
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorReportResponse;
+
 @RestController
 @RequestMapping("/api/citizen")
 @RequiredArgsConstructor
@@ -110,6 +112,14 @@ public class CitizenController {
         return ok(result, "Lấy kết quả thu gom thành công");
     }
 
+    @GetMapping("/reports/{id}/collector-report")
+    @PreAuthorize("hasRole('CITIZEN')")
+    @Operation(summary = "Chi tiết báo cáo của người thu gom", description = "Lấy báo cáo thu gom tương ứng với báo cáo rác")
+    public ResponseEntity<ApiResponse<CollectorReportResponse>> getCollectorReport(@PathVariable("id") Integer id) {
+        CollectorReportResponse result = wasteReportService.getCollectorReportByWasteReportId(id, currentEmail());
+        return ok(result, "Lấy chi tiết báo cáo thu gom thành công");
+    }
+
     @GetMapping("/rewards/history")
     @PreAuthorize("hasRole('CITIZEN')")
     @Operation(summary = "Lịch sử điểm thưởng", description = "Lọc lịch sử theo khoảng thời gian tùy chọn")
@@ -146,7 +156,7 @@ public class CitizenController {
     @PutMapping("/password")
     @PreAuthorize("hasRole('CITIZEN')")
     @Operation(summary = "Đổi mật khẩu", description = "Đổi mật khẩu tài khoản công dân hiện tại")
-    public ResponseEntity<ApiResponse<Void>> changePassword(@RequestBody ChangePasswordRequest request) {
+    public ResponseEntity<ApiResponse<Void>> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         passwordService.changePassword(currentEmail(), request);
         return ok("Đổi mật khẩu thành công");
     }

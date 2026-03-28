@@ -7,29 +7,71 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Com
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Citizen;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Feedback;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.PointTransaction;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import org.springframework.stereotype.Component;
 
-@Mapper(componentModel = "spring")
-public interface CitizenFeatureMapper {
+import java.time.LocalDateTime;
 
-    @Mapping(target = "reportId", expression = "java(transaction.getReport() != null ? transaction.getReport().getId() : (transaction.getCollectionRequest() != null && transaction.getCollectionRequest().getReport() != null ? transaction.getCollectionRequest().getReport().getId() : null))")
-    @Mapping(target = "collectionId", expression = "java(transaction.getCollectionRequest() != null ? transaction.getCollectionRequest().getId() : null)")
-    @Mapping(target = "reportCode", expression = "java(transaction.getReport() != null ? transaction.getReport().getReportCode() : (transaction.getCollectionRequest() != null && transaction.getCollectionRequest().getReport() != null ? transaction.getCollectionRequest().getReport().getReportCode() : null))")
-    @Mapping(target = "point", source = "points")
-    CitizenRewardHistoryResponse toCitizenRewardHistoryResponse(PointTransaction transaction);
+@Component
+public class CitizenFeatureMapper {
 
-    @Mapping(target = "citizenId", source = "id")
-    @Mapping(target = "totalPoint", source = "totalPoints", defaultValue = "0")
-    @Mapping(target = "rank", ignore = true) // Rank is calculated externally
-    CitizenLeaderboardResponse toCitizenLeaderboardResponse(Citizen citizen);
+    public CitizenRewardHistoryResponse toCitizenRewardHistoryResponse(PointTransaction transaction) {
+        if (transaction == null) {
+            return null;
+        }
 
-    @Mapping(target = "reportId", expression = "java(resolveReportId(feedback))")
-    @Mapping(target = "type", source = "feedbackType")
-    @Mapping(target = "content", source = "content")
-    ComplaintResponse toComplaintResponse(Feedback feedback);
+        Integer reportId = null;
+        String reportCode = null;
+        if (transaction.getReport() != null) {
+            reportId = transaction.getReport().getId();
+            reportCode = transaction.getReport().getReportCode();
+        } else if (transaction.getCollectionRequest() != null && transaction.getCollectionRequest().getReport() != null) {
+            reportId = transaction.getCollectionRequest().getReport().getId();
+            reportCode = transaction.getCollectionRequest().getReport().getReportCode();
+        }
 
-    default Integer resolveReportId(Feedback feedback) {
+        Integer collectionId = transaction.getCollectionRequest() != null ? transaction.getCollectionRequest().getId() : null;
+
+        return CitizenRewardHistoryResponse.builder()
+                .reportId(reportId)
+                .collectionId(collectionId)
+                .reportCode(reportCode)
+                .point(transaction.getPoints())
+                .createdAt(transaction.getCreatedAt())
+                .build();
+    }
+
+    public CitizenLeaderboardResponse toCitizenLeaderboardResponse(Citizen citizen) {
+        if (citizen == null) {
+            return null;
+        }
+        return CitizenLeaderboardResponse.builder()
+                .rank(null)
+                .citizenId(citizen.getId())
+                .fullName(citizen.getFullName())
+                .ward(citizen.getWard())
+                .city(citizen.getCity())
+                .totalPoint(citizen.getTotalPoints() != null ? citizen.getTotalPoints() : 0)
+                .build();
+    }
+
+    public ComplaintResponse toComplaintResponse(Feedback feedback) {
+        if (feedback == null) {
+            return null;
+        }
+        return ComplaintResponse.builder()
+                .id(feedback.getId())
+                .reportId(resolveReportId(feedback))
+                .reportCode(resolveReportCode(feedback))
+                .type(feedback.getFeedbackType())
+                .content(feedback.getContent())
+                .status(feedback.getStatus())
+                .resolution(feedback.getResolution())
+                .rating(feedback.getRating())
+                .createdAt(feedback.getCreatedAt())
+                .build();
+    }
+
+    public Integer resolveReportId(Feedback feedback) {
         if (feedback == null) {
             return null;
         }
@@ -43,17 +85,50 @@ public interface CitizenFeatureMapper {
         }
     }
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "citizen", ignore = true)
-    @Mapping(target = "collectionRequest", ignore = true)
-    @Mapping(target = "feedbackCode", ignore = true)
-    @Mapping(target = "createdAt", expression = "java(java.time.LocalDateTime.now())")
-    @Mapping(target = "updatedAt", expression = "java(java.time.LocalDateTime.now())")
-    @Mapping(target = "status", constant = "PENDING")
-    @Mapping(target = "subject", expression = "java(request.getReportId() != null ? \"Complaint for Report #\" + request.getReportId() + \" - \" + request.getType() : \"General Complaint - \" + request.getType())")
-    @Mapping(target = "content", source = "content")
-    @Mapping(target = "feedbackType", source = "type")
-    @Mapping(target = "rating", source = "rating")
-    @Mapping(target = "resolution", ignore = true)
-    Feedback toFeedback(CreateComplaintRequest request);
+    public String resolveReportCode(Feedback feedback) {
+        if (feedback == null) {
+            return null;
+        }
+        try {
+            if (feedback.getCollectionRequest() == null || feedback.getCollectionRequest().getReport() == null) {
+                return null;
+            }
+            return feedback.getCollectionRequest().getReport().getReportCode();
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
+
+    public Feedback toFeedback(CreateComplaintRequest request) {
+        if (request == null) {
+            return null;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        Feedback fb = new Feedback();
+        fb.setId(null);
+        fb.setCitizen(null);
+        fb.setCollectionRequest(null);
+        fb.setFeedbackCode(null);
+        fb.setCreatedAt(now);
+        fb.setUpdatedAt(now);
+        fb.setStatus("PENDING");
+
+        String subject;
+        if (request.getReportCode() != null) {
+            subject = "Complaint for Report " + request.getReportCode() + " - " + request.getType();
+        } else if (request.getReportId() != null) {
+            subject = "Complaint for Report #" + request.getReportId() + " - " + request.getType();
+        } else {
+            subject = "General Complaint - " + request.getType();
+        }
+        fb.setSubject(subject);
+
+        fb.setContent(request.getContent());
+        fb.setFeedbackType(request.getType());
+        fb.setRating(request.getRating());
+        fb.setResolution(null);
+
+        return fb;
+    }
 }

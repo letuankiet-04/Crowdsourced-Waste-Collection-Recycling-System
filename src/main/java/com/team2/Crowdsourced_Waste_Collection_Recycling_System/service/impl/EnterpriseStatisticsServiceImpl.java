@@ -274,8 +274,6 @@ public class EnterpriseStatisticsServiceImpl implements EnterpriseStatisticsServ
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "day không hợp lệ trong tháng " + month);
             }
 
-            // Reuse query by month but filter in java or use separate query?
-            // Reuse countCreatedReportsByDay(year, month) and filter
             List<CollectionRequestRepository.EnterpriseDailyReportCountView> views =
                     collectionRequestRepository.countCreatedReportsByDay(enterpriseId, y, month);
             

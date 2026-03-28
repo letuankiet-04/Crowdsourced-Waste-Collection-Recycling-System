@@ -68,6 +68,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CitizenReportStatsResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportItemRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportImageRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorReportResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectorReportItem;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.CollectorReportImage;
+import java.util.LinkedHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -88,6 +93,7 @@ public class WasteReportServiceImpl implements WasteReportService {
     private final CollectorReportItemRepository collectorReportItemRepository;
     private final FeedbackRepository feedbackRepository;
     private final CitizenFeatureMapper citizenFeatureMapper;
+    private final CollectorReportImageRepository collectorReportImageRepository;
 
     @Override
     @Transactional
@@ -99,8 +105,8 @@ public class WasteReportServiceImpl implements WasteReportService {
         List<Integer> categoryIds = validateCreateRequest(request);
 
         // 3. Xử lý tọa độ (làm tròn 8 chữ số thập phân)
-        BigDecimal latitude = BigDecimal.valueOf(request.getLatitude()).setScale(8, RoundingMode.HALF_UP);
-        BigDecimal longitude = BigDecimal.valueOf(request.getLongitude()).setScale(8, RoundingMode.HALF_UP);
+        BigDecimal latitude = request.getLatitude().setScale(8, RoundingMode.HALF_UP);
+        BigDecimal longitude = request.getLongitude().setScale(8, RoundingMode.HALF_UP);
 
         // 4. Kiểm tra spam: nếu vừa gửi báo cáo ở vị trí này trong 10 phút trước thì chặn
         LocalDateTime now = LocalDateTime.now();
@@ -212,10 +218,10 @@ public class WasteReportServiceImpl implements WasteReportService {
             report.setDescription(request.getDescription());
         }
         if (request.getLatitude() != null) {
-            report.setLatitude(BigDecimal.valueOf(request.getLatitude()).setScale(8, RoundingMode.HALF_UP));
+            report.setLatitude(request.getLatitude().setScale(8, RoundingMode.HALF_UP));
         }
         if (request.getLongitude() != null) {
-            report.setLongitude(BigDecimal.valueOf(request.getLongitude()).setScale(8, RoundingMode.HALF_UP));
+            report.setLongitude(request.getLongitude().setScale(8, RoundingMode.HALF_UP));
         }
         if (request.getAddress() != null) {
             report.setAddress(request.getAddress());
@@ -574,12 +580,16 @@ public class WasteReportServiceImpl implements WasteReportService {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
 
         CollectionRequest collectionRequest = null;
-        if (request.getReportId() != null) {
-            Optional<WasteReport> reportOpt = wasteReportRepository.findById(request.getReportId());
-            if (reportOpt.isEmpty()) {
-                throw new AppException(ErrorCode.WASTE_REPORT_NOT_FOUND);
-            }
-            WasteReport report = reportOpt.get();
+        WasteReport report = null;
+        if (request.getReportCode() != null && !request.getReportCode().isBlank()) {
+            report = wasteReportRepository.findByReportCode(request.getReportCode())
+                    .orElseThrow(() -> new AppException(ErrorCode.WASTE_REPORT_NOT_FOUND));
+        } else if (request.getReportId() != null) {
+            report = wasteReportRepository.findById(request.getReportId())
+                    .orElseThrow(() -> new AppException(ErrorCode.WASTE_REPORT_NOT_FOUND));
+        }
+
+        if (report != null) {
 
             if (!report.getCitizen().getId().equals(citizen.getId())) {
                 throw new AppException(ErrorCode.UNAUTHORIZED);
@@ -651,16 +661,18 @@ public class WasteReportServiceImpl implements WasteReportService {
         for (Object[] row : rows) {
             Integer id = toInteger(row[0]);
             Integer reportId = toInteger(row[1]);
-            String type = row[2] != null ? row[2].toString() : null;
-            String content = row[3] != null ? row[3].toString() : null;
-            String status = row[4] != null ? row[4].toString() : null;
-            String resolution = row[5] != null ? row[5].toString() : null;
-            Integer rating = toInteger(row[6]);
-            LocalDateTime createdAt = toLocalDateTime(row[7]);
+            String reportCode = row[2] != null ? row[2].toString() : null;
+            String type = row[3] != null ? row[3].toString() : null;
+            String content = row[4] != null ? row[4].toString() : null;
+            String status = row[5] != null ? row[5].toString() : null;
+            String resolution = row[6] != null ? row[6].toString() : null;
+            Integer rating = toInteger(row[7]);
+            LocalDateTime createdAt = toLocalDateTime(row[8]);
 
             responses.add(ComplaintResponse.builder()
                     .id(id)
                     .reportId(reportId)
+                    .reportCode(reportCode)
                     .type(type)
                     .content(content)
                     .status(status)
@@ -701,7 +713,7 @@ public class WasteReportServiceImpl implements WasteReportService {
             return timestamp.toLocalDateTime();
         }
         if (value instanceof java.util.Date date) {
-            return LocalDateTime.ofInstant(date.toInstant(), java.time.ZoneId.systemDefault());
+            return LocalDateTime.ofInstant(date.toInstant(), java.time.ZoneOffset.UTC);
         }
         return null;
     }
@@ -848,9 +860,12 @@ public class WasteReportServiceImpl implements WasteReportService {
         if (request.getLatitude() == null || request.getLongitude() == null) {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
-        double lat = request.getLatitude();
-        double lng = request.getLongitude();
-        if (lat < -90.0 || lat > 90.0 || lng < -180.0 || lng > 180.0) {
+        BigDecimal lat = request.getLatitude();
+        BigDecimal lng = request.getLongitude();
+        if (lat.compareTo(new BigDecimal("-90.0")) < 0 ||
+                lat.compareTo(new BigDecimal("90.0")) > 0 ||
+                lng.compareTo(new BigDecimal("-180.0")) < 0 ||
+                lng.compareTo(new BigDecimal("180.0")) > 0) {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
         return resolvedCategoryIds;
@@ -1060,6 +1075,76 @@ public class WasteReportServiceImpl implements WasteReportService {
             throw new AppException(ErrorCode.INVALID_REQUEST);
         }
         return new ArrayList<>(deduped);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CollectorReportResponse getCollectorReportByWasteReportId(Integer reportId, String citizenEmail) {
+        Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
+        WasteReport report = requireOwnedReport(reportId, citizen);
+
+        Optional<CollectionRequest> requestOpt = collectionRequestRepository.findByReport_Id(report.getId());
+        if (requestOpt.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy báo cáo thu gom");
+        }
+        CollectionRequest request = requestOpt.get();
+
+        Optional<CollectorReport> collectorReportOpt = collectorReportRepository.findTopByCollectionRequest_IdOrderByCreatedAtDesc(request.getId());
+        if (collectorReportOpt.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy báo cáo thu gom");
+        }
+        CollectorReport collectorReport = collectorReportOpt.get();
+
+        List<String> imageUrls = new ArrayList<>();
+        var images = collectorReportImageRepository.findByCollectorReport_Id(collectorReport.getId());
+        for (var img : images) {
+            imageUrls.add(img.getImageUrl());
+        }
+
+        List<CollectorReportItem> items = collectorReportItemRepository.findByCollectorReport_Id(collectorReport.getId());
+        List<WasteCategoryResponse> categories = new ArrayList<>();
+        Map<Integer, WasteCategoryResponse> byCategoryId = new LinkedHashMap<>();
+        for (CollectorReportItem item : items) {
+            if (item.getWasteCategory() == null || item.getWasteCategory().getId() == null) {
+                continue;
+            }
+            Integer categoryId = item.getWasteCategory().getId();
+            if (!byCategoryId.containsKey(categoryId)) {
+                WasteCategoryResponse response = new WasteCategoryResponse();
+                response.setId(categoryId);
+                response.setName(item.getWasteCategory().getName());
+                String unit = item.getUnitSnapshot() != null ? item.getUnitSnapshot().name() 
+                            : (item.getWasteCategory().getUnit() != null ? item.getWasteCategory().getUnit().name() : null);
+                response.setUnit(unit);
+                response.setPointPerUnit(item.getWasteCategory().getPointPerUnit());
+                response.setQuantity(item.getQuantity());
+                byCategoryId.put(categoryId, response);
+            } else {
+                WasteCategoryResponse existing = byCategoryId.get(categoryId);
+                if (existing.getQuantity() == null) {
+                    existing.setQuantity(item.getQuantity());
+                } else if (item.getQuantity() != null) {
+                    existing.setQuantity(existing.getQuantity().add(item.getQuantity()));
+                }
+            }
+        }
+        categories = new ArrayList<>(byCategoryId.values());
+
+        return CollectorReportResponse.builder()
+                .id(collectorReport.getId())
+                .reportCode(collectorReport.getReportCode())
+                .collectionRequestId(request.getId())
+                .collectorId(collectorReport.getCollector() != null ? collectorReport.getCollector().getId() : null)
+                .status(collectorReport.getStatus())
+                .collectorNote(collectorReport.getCollectorNote())
+                .totalPoint(collectorReport.getTotalPoint())
+                .collectedAt(collectorReport.getCollectedAt())
+                .latitude(collectorReport.getLatitude())
+                .longitude(collectorReport.getLongitude())
+                .createdAt(collectorReport.getCreatedAt())
+                .imageUrls(imageUrls)
+                .categories(categories)
+                .build();
     }
 
     private Integer tryParseInt(String value) {

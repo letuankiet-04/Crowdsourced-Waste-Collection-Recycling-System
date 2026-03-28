@@ -26,11 +26,11 @@ public class UpdateWasteReportRequest {
 
     @DecimalMin(value = "-90.0", message = "Vĩ độ phải nằm trong khoảng [-90, 90]")
     @DecimalMax(value = "90.0", message = "Vĩ độ phải nằm trong khoảng [-90, 90]")
-    Double latitude;
+    BigDecimal latitude;
 
     @DecimalMin(value = "-180.0", message = "Kinh độ phải nằm trong khoảng [-180, 180]")
     @DecimalMax(value = "180.0", message = "Kinh độ phải nằm trong khoảng [-180, 180]")
-    Double longitude;
+    BigDecimal longitude;
     String address;
     String description;
 }

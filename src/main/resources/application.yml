@@ -2,12 +2,11 @@ spring:
   application:
     name: Crowdsourced-Waste-Collection-Recycling-System
   jackson:
-    time-zone: Asia/Ho_Chi_Minh
+    time-zone: UTC
   datasource:
-    url: jdbc:mysql://${MYSQLHOST:${MYSQL_HOST:mainline.proxy.rlwy.net}}:${MYSQLPORT:${MYSQL_PORT:37671}}/${MYSQLDATABASE:${MYSQL_DATABASE:railway}}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&connectTimeout=10000&socketTimeout=60000
-    username: ${MYSQLUSER:${MYSQL_USER:root}}
-    password: ${MYSQLPASSWORD:${MYSQL_PASSWORD:ndTodFpZUCKFpVehhxHCLbcZXMRHhMYv}}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://${MYSQLHOST:${MYSQL_HOST:mainline.proxy.rlwy.net}}:${MYSQLPORT:${MYSQL_PORT:37671}}/${MYSQLDATABASE:${MYSQL_DATABASE:railway}}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&connectTimeout=10000&socketTimeout=60000}
+    username: ${SPRING_DATASOURCE_USERNAME:${MYSQLUSER:${MYSQL_USER:root}}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${MYSQLPASSWORD:${MYSQL_PASSWORD:ndTodFpZUCKFpVehhxHCLbcZXMRHhMYv}}}
   servlet:
     multipart:
       max-file-size: 10MB
@@ -18,27 +17,27 @@ spring:
       ddl-auto: update
     show-sql: false
     open-in-view: false
+    database-platform: ${SPRING_JPA_DATABASE_PLATFORM:org.hibernate.dialect.MySQLDialect}
     properties:
       hibernate:
         format_sql: false
         jdbc:
-          time_zone: Asia/Ho_Chi_Minh
-        dialect: org.hibernate.dialect.MySQLDialect
+          time_zone: UTC
 
 server:
   port: ${PORT:8080}
 
 workrule:
-  accept-timeout-hours: 4
+  accept-timeout-hours: 24
   sla-hours: 72
   suspend-threshold: 3
-  working-start-hour: 7
-  working-end-hour: 17
+  working-start-hour: 0
+  working-end-hour: 23
   reassign-radius-km: 10.0
 
 jwt:
-  signerKey: 72d6236b1a543277ad6973b2693a14ab13c437f8749b185a301f5034bbe3de36
-  valid-duration: 3600
+  signerKey: ${JWT_SIGNER_KEY:72d6236b1a543277ad6973b2693a14ab13c437f8749b185a301f5034bbe3de36}
+  valid-duration: ${JWT_VALID_DURATION:3600}
 
 open:
   api:
@@ -61,9 +60,46 @@ app:
     enabled: ${APP_SEED_ENABLED:false}
     modular: true
   cors:
-    allowed-origins: "https://crowdsourced-waste-collection-recyc-khaki.vercel.app, https://*.vercel.app, http://localhost:5173"
+    allowed-origins: "${APP_CORS_ALLOWED_ORIGINS:https://crowdsourced-waste-collection-recyc-khaki.vercel.app, https://*.vercel.app, http://localhost:5173}"
 
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:dawzawtbz}
   api-key: ${CLOUDINARY_API_KEY:647161479214626}
   api-secret: ${CLOUDINARY_API_SECRET:vFNgCCXljSShEbrbn7EAls1Lfh0}
+
+vnpt:
+  ekyc:
+    base-url: ${VNPT_EKYC_BASE_URL:https://api.idg.vnpt.vn}
+    access-token: ${VNPT_EKYC_ACCESS_TOKEN:bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0cmFuc2FjdGlvbl9pZCI6IjU0MmViN2RmLTA5Y2ItNGViNy1hZjU1LWY5ODI2ZmViYThmMiIsInN1YiI6IjAzMWI0YThkLTI4NTQtMTFmMS05ZGUwLTFiN2FjOTQwYTY0YSIsImF1ZCI6WyJyZXN0c2VydmljZSJdLCJ1c2VyX25hbWUiOiJsZWtpZXQuYWFhYTIwMTlAZ21haWwuY29tIiwic2NvcGUiOlsicmVhZCJdLCJpc3MiOiJodHRwczovL2xvY2FsaG9zdCIsIm5hbWUiOiJsZWtpZXQuYWFhYTIwMTlAZ21haWwuY29tIiwiZXhwIjoxNzc0NzYxMjkxLCJ1dWlkX2FjY291bnQiOiIwMzFiNGE4ZC0yODU0LTExZjEtOWRlMC0xYjdhYzk0MGE2NGEiLCJhdXRob3JpdGllcyI6WyJVU0VSIl0sImp0aSI6IjQ2NjZjYmI5LTczOTUtNDYwZS04OTZhLTVlNTA5NWM4YjlmZCIsImNsaWVudF9pZCI6ImNsaWVudGFwcCJ9.PQRdG3Y_w-oLBOwPhaiOp6W7OjmaIc1IIkP9rxSSEVKSQli9dOy2uQXIsTNCJTIgeROrQBSgUNpW7VEzUWwgV6R6qmN4Z1Lj8omRSbOyxmhY5OGtwJ1n4W3-OXMQRx-vdr7WVW5kyj6-d7u-UvpUxzD6S9VaoTm4vL3yAN2VtVrxIARjf7TC1_7a2cYzYxYn2L2heSePyef8h-pRPh2EMYFyXFZz3fBDj2dbHJMsbJ7j5DiOIWX5vJ6OUYneGLcyqUzvK9-WadzuR9MzHjtRQDre4JjEU0QnWBqC9_ZDBbPuS51YackaL5lElbZfe5mNpnTJ_YtdaKuQZr4WqaXpVA}
+    token-id: ${VNPT_EKYC_TOKEN_ID:4ddacb2c-0504-19e5-e063-62199f0ae98a}
+    token-key: ${VNPT_EKYC_TOKEN_KEY:MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAKKniOum9zYzkT087cKaEUlsZM6rj075FYaPaA1NlHjxVODzOAgqpJNRQi3rjPDPKwU2K+z+n2VEagW7WSuracsCAwEAAQ==}
+    mac-address: ${VNPT_EKYC_MAC_ADDRESS:TEST1}
+    timeout-ms: ${VNPT_EKYC_TIMEOUT_MS:15000}
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: dev
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC

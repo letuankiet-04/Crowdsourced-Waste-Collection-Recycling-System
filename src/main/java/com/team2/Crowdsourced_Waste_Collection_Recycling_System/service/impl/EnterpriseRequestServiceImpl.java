@@ -150,9 +150,6 @@ public class EnterpriseRequestServiceImpl implements EnterpriseRequestService {
         wasteReportRepository.save(wasteReport);
     }
 
-    /**
-     * Generate unique request code with format: CR-YYYYMMDD-XXXXX
-     */
     private String generateRequestCode() {
         String dateStr = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String randomStr = String.format("%05d", new Random().nextInt(100000));

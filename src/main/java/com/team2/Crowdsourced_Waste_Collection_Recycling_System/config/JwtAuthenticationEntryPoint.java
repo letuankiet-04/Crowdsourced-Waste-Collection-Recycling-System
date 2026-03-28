@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.stereotype.Component;
 
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.ErrorCode;
@@ -25,8 +26,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  *
  * Spring Security sẽ gọi lớp này để trả về response JSON theo format ApiResponse của dự án.
  */
+@Component
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
     private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationEntryPoint.class);
+    private final ObjectMapper objectMapper;
+
+    public JwtAuthenticationEntryPoint(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public void commence(
@@ -47,8 +54,6 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
                 .code(errorCode.getCode())
                 .message(errorCode.getMessage())
                 .build();
-
-        ObjectMapper objectMapper = new ObjectMapper();
 
         response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
         response.flushBuffer();

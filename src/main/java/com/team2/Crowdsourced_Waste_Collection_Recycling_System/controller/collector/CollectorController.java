@@ -10,6 +10,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.Chan
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCollectorStatusRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorService;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
+import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 
@@ -160,7 +161,7 @@ public class CollectorController {
     @PutMapping("/password")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Đổi mật khẩu", description = "Đổi mật khẩu tài khoản collector hiện tại")
-    public ApiResponse<Void> changePassword(@AuthenticationPrincipal Jwt jwt, @RequestBody ChangePasswordRequest request) {
+    public ApiResponse<Void> changePassword(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ChangePasswordRequest request) {
         passwordService.changePassword(jwt != null ? jwt.getSubject() : null, request);
         return ApiResponse.<Void>builder().message("Đổi mật khẩu thành công").build();
     }

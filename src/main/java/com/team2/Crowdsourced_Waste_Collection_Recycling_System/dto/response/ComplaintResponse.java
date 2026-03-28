@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 public class ComplaintResponse {
     Integer id;
     Integer reportId;
+    String reportCode;
     String type;
     String content;
     String status;

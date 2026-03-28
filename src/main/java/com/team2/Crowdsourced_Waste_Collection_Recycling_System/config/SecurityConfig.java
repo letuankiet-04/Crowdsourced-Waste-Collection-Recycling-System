@@ -34,6 +34,7 @@ import java.util.List;
 public class SecurityConfig {
     private final String[] PUBLIC_ENDPOINTS = {
         "/", "/api/auth/login", "/api/auth/register", "/api/auth/introspect", "/api/auth/logout",
+        "/api/auth/ekyc/**",
         "/actuator/health", "/actuator/info",
         "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml", "/swagger-resources/**", "/webjars/**"
     };
@@ -47,6 +48,9 @@ public class SecurityConfig {
     @Autowired
     private TokenDenylistService tokenDenylistService;
 
+    @Autowired
+    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    
     
 
     @Bean
@@ -60,7 +64,7 @@ public class SecurityConfig {
         httpSecurity.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwtConfigurer -> jwtConfigurer
                         .decoder(jwtDecoder())
                         .jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                .authenticationEntryPoint(new JwtAuthenticationEntryPoint()));
+                .authenticationEntryPoint(jwtAuthenticationEntryPoint));
 
         httpSecurity.csrf(AbstractHttpConfigurer::disable);
         httpSecurity.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS));

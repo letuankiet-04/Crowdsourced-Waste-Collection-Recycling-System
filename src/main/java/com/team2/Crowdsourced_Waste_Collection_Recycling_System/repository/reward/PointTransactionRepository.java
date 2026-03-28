@@ -19,6 +19,7 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
     
     List<PointTransaction> findByTransactionType(String transactionType);
     
+    @EntityGraph(attributePaths = { "createdBy" })
     List<PointTransaction> findByCollectionRequestId(Integer collectionRequestId);
     
     List<PointTransaction> findByReportId(Integer reportId);

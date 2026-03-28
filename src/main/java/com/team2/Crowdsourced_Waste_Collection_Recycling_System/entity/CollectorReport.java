@@ -46,10 +46,10 @@ public class CollectorReport {
     @Column(name = "collected_at")
     private LocalDateTime collectedAt;
 
-    @Column(name = "latitude")
+    @Column(name = "latitude", precision = 10, scale = 8)
     private BigDecimal latitude;
 
-    @Column(name = "longitude")
+    @Column(name = "longitude", precision = 11, scale = 8)
     private BigDecimal longitude;
 
     @Column(name = "created_at")

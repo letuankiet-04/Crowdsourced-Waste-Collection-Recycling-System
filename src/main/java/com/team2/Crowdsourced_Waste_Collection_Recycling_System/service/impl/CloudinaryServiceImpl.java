@@ -70,6 +70,37 @@ public class CloudinaryServiceImpl implements CloudinaryService {
         }
     }
 
+    @Override
+    public CloudinaryResponse uploadImageBytes(byte[] bytes, String fileName, String module) {
+        assertConfigured();
+        if (bytes == null || bytes.length == 0) {
+            throw new IllegalArgumentException("File không hợp lệ");
+        }
+        try {
+            Map<String, Object> options = new HashMap<>();
+            options.put("resource_type", "image");
+            options.put("filename_override", fileName == null ? "file.jpg" : fileName);
+            options.put("use_filename", true);
+            options.put("unique_filename", true);
+            String folder = buildFolder(module);
+            if (folder != null && !folder.isBlank()) {
+                options.put("folder", folder);
+            }
+
+            Map<?, ?> result = cloudinary.uploader().upload(bytes, options);
+            String publicId = String.valueOf(result.get("public_id"));
+            Object secureUrl = result.get("secure_url");
+            String url = secureUrl != null ? String.valueOf(secureUrl) : String.valueOf(result.get("url"));
+
+            return CloudinaryResponse.builder()
+                    .publicId(publicId)
+                    .url(url)
+                    .build();
+        } catch (IOException e) {
+            throw new IllegalStateException("Upload Cloudinary thất bại", e);
+        }
+    }
+
     private String buildFolder(String module) {
         String normalizedModule = normalizeModule(module);
         if (defaultFolder == null || defaultFolder.isBlank()) {
@@ -89,6 +120,10 @@ public class CloudinaryServiceImpl implements CloudinaryService {
                 .toLowerCase(Locale.ROOT)
                 .replace('-', '_')
                 .replace(' ', '_');
+        if ("ekyc".equals(normalized)
+                || "kyc".equals(normalized)) {
+            return "ekyc";
+        }
         if ("reports".equals(normalized)
                 || "report".equals(normalized)
                 || "waste_report".equals(normalized)

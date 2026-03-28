@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Data
@@ -29,6 +30,6 @@ public class ReportCollectorRequest {
     @Size(max = 500, message = "Địa chỉ không được vượt quá 500 ký tự.")
     String address;
 
-    Double latitude;
-    Double longitude;
+    BigDecimal latitude;
+    BigDecimal longitude;
 }
