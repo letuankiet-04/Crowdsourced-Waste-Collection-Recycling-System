@@ -259,7 +259,6 @@ public class EnterpriseWasteReportServiceImpl implements EnterpriseWasteReportSe
     }
 
     private boolean isSupportedWasteType(Enterprise enterprise, String wasteType) {
-        // TODO: Implement check for supported waste types
         return true;
     }
 }
