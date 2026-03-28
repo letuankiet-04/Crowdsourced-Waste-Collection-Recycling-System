@@ -19,4 +19,6 @@ public interface WasteReportItemRepository extends JpaRepository<WasteReportItem
     List<WasteReportItem> findWithCategoryByReportIdIn(@Param("reportIds") List<Integer> reportIds);
 
     void deleteByReport_Id(Integer reportId);
+
+    void deleteByReport_Citizen_Id(Integer citizenId);
 }

@@ -15,28 +15,30 @@ import java.util.Optional;
 public interface FeedbackRepository extends JpaRepository<Feedback, Integer> {
 
     @Override
-    @EntityGraph(attributePaths = { "citizen", "citizen.user", "collectionRequest", "collectionRequest.collector", "collectionRequest.enterprise" })
+    @EntityGraph(attributePaths = { "citizen", "citizen.user", "collectionRequest", "collectionRequest.collector",
+            "collectionRequest.enterprise" })
     List<Feedback> findAll();
 
     @Override
-    @EntityGraph(attributePaths = { "citizen", "citizen.user", "collectionRequest", "collectionRequest.collector", "collectionRequest.enterprise" })
+    @EntityGraph(attributePaths = { "citizen", "citizen.user", "collectionRequest", "collectionRequest.collector",
+            "collectionRequest.enterprise" })
     Optional<Feedback> findById(Integer id);
-    
+
     Optional<Feedback> findByFeedbackCode(String feedbackCode);
-    
+
     List<Feedback> findByCitizenId(Integer citizenId);
-    
+
     List<Feedback> findByStatus(String status);
-    
+
     List<Feedback> findByFeedbackType(String feedbackType);
-    
+
     List<Feedback> findByCollectionRequestId(Integer collectionRequestId);
 
-    
-    @EntityGraph(attributePaths = { "citizen", "citizen.user", "collectionRequest", "collectionRequest.collector", "collectionRequest.enterprise" })
+    @EntityGraph(attributePaths = { "citizen", "citizen.user", "collectionRequest", "collectionRequest.collector",
+            "collectionRequest.enterprise" })
     @Query("SELECT f FROM Feedback f WHERE f.collectionRequest.enterprise.id = :enterpriseId ORDER BY f.createdAt DESC")
     List<Feedback> findByEnterpriseId(@Param("enterpriseId") Integer enterpriseId);
-    
+
     @Query("SELECT f FROM Feedback f WHERE f.citizen.id = :citizenId ORDER BY f.createdAt DESC")
     List<Feedback> findByCitizenIdOrderByCreatedAtDesc(@Param("citizenId") Integer citizenId);
 
@@ -49,21 +51,22 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Integer> {
             ORDER BY f.createdAt DESC
             """)
     List<Object[]> findComplaintRowsByCitizenId(@Param("citizenId") Integer citizenId);
-    
+
     @Query("SELECT f FROM Feedback f WHERE f.createdAt BETWEEN :startDate AND :endDate")
     List<Feedback> findByDateRange(
-        @Param("startDate") LocalDateTime startDate,
-        @Param("endDate") LocalDateTime endDate
-    );
-    
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
     @Query("SELECT f FROM Feedback f WHERE f.feedbackType = :type AND f.createdAt BETWEEN :startDate AND :endDate")
     List<Feedback> findByFeedbackTypeAndDateRange(
-        @Param("type") String type,
-        @Param("startDate") LocalDateTime startDate,
-        @Param("endDate") LocalDateTime endDate
-    );
-    
+            @Param("type") String type,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
     @Query("SELECT COUNT(f) FROM Feedback f WHERE f.status = :status")
     Long countByStatus(@Param("status") String status);
-}
 
+    void deleteByCitizenId(Integer citizenId);
+
+    long countByCitizenId(Integer citizenId);
+}

@@ -19,4 +19,10 @@ public interface CollectorFeedbackRepository extends JpaRepository<CollectorFeed
     Optional<CollectorFeedback> findById(Integer id);
 
     List<CollectorFeedback> findByCollector_IdOrderByCreatedAtDesc(Integer collectorId);
+
+    void deleteByCollectionRequest_Report_Citizen_Id(Integer citizenId);
+
+    void deleteByCollector_Id(Integer collectorId);
+
+    long countByCollector_Id(Integer collectorId);
 }

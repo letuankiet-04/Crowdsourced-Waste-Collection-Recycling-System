@@ -5,6 +5,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.Admi
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateEnterpriseAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminUserResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.DeleteUserPreviewResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.AdminAccountService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -125,18 +126,35 @@ public class AdminAccountController {
     }
 
     /**
-     * Soft-delete tài khoản (status → "deleted").
-     * Dữ liệu lịch sử được giữ nguyên. Admin không thể tự xóa chính mình.
+     * Preview data sẽ bị xóa khi hard-delete tài khoản.
+     * Gọi endpoint này trước khi xác nhận xóa.
      */
-    @DeleteMapping("/{userId}")
-    @Operation(summary = "Xóa tài khoản (soft-delete)", description = "Đánh dấu status='deleted'. Dữ liệu được giữ nguyên. Admin không thể tự xóa mình.")
-    public ApiResponse<AdminUserResponse> deleteUser(
+    @GetMapping("/{userId}/delete-preview")
+    @Operation(summary = "Preview dữ liệu trước khi xóa",
+               description = "Trả về thông tin user và số lượng dữ liệu liên quan sẽ bị xóa vĩnh viễn. Admin không thể xóa chính mình hoặc tài khoản ADMIN.")
+    public ApiResponse<DeleteUserPreviewResponse> previewDeleteUser(
             @PathVariable Integer userId,
             @AuthenticationPrincipal Jwt jwt) {
         String adminEmail = extractAdminEmail(jwt);
-        return ApiResponse.<AdminUserResponse>builder()
-                .result(adminAccountService.deleteUser(userId, adminEmail))
-                .message("Tài khoản đã được đánh dấu xóa thành công")
+        return ApiResponse.<DeleteUserPreviewResponse>builder()
+                .result(adminAccountService.previewDeleteUser(userId, adminEmail))
+                .build();
+    }
+
+    /**
+     * Hard-delete tài khoản: xóa vĩnh viễn user và toàn bộ dữ liệu liên quan.
+     * Admin không thể xóa chính mình hoặc tài khoản ADMIN.
+     */
+    @DeleteMapping("/{userId}")
+    @Operation(summary = "Xóa tài khoản vĩnh viễn (hard-delete)",
+               description = "Xóa vĩnh viễn user và toàn bộ dữ liệu liên quan. Hành động này không thể hoàn tác. Nên gọi preview trước.")
+    public ApiResponse<Void> hardDeleteUser(
+            @PathVariable Integer userId,
+            @AuthenticationPrincipal Jwt jwt) {
+        String adminEmail = extractAdminEmail(jwt);
+        adminAccountService.hardDeleteUser(userId, adminEmail);
+        return ApiResponse.<Void>builder()
+                .message("Tài khoản và toàn bộ dữ liệu liên quan đã được xóa vĩnh viễn")
                 .build();
     }
 

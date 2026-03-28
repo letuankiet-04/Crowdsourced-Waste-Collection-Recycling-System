@@ -4,6 +4,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.Admi
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCollectorAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateEnterpriseAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminUserResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.DeleteUserPreviewResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Citizen;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Collector;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Enterprise;
@@ -13,11 +14,25 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectorS
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.VehicleType;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.AppException;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.ErrorCode;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.EkycSessionRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.RoleRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.authentication.UserRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionRequestRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectionTrackingRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportImageRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportItemRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorReportRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.enterprise.EnterpriseRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.feedback.CollectorFeedbackRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.feedback.FeedbackRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.profile.CitizenRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.reward.LeaderboardRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.reward.PointTransactionRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.reward.VoucherRedemptionRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.waste.ReportImageRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.waste.WasteReportItemRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.waste.WasteReportRepository;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.AdminAccountService;
 
 import lombok.RequiredArgsConstructor;
@@ -30,6 +45,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,11 +60,28 @@ public class AdminAccountServiceImpl implements AdminAccountService {
     private final EnterpriseRepository enterpriseRepository;
     private final PasswordEncoder passwordEncoder;
 
+    // Repositories cần cho hard-delete
+    private final EkycSessionRepository ekycSessionRepository;
+    private final PointTransactionRepository pointTransactionRepository;
+    private final VoucherRedemptionRepository voucherRedemptionRepository;
+    private final FeedbackRepository feedbackRepository;
+    private final WasteReportRepository wasteReportRepository;
+    private final ReportImageRepository reportImageRepository;
+    private final WasteReportItemRepository wasteReportItemRepository;
+    private final CollectorReportImageRepository collectorReportImageRepository;
+    private final CollectorReportItemRepository collectorReportItemRepository;
+    private final CollectorReportRepository collectorReportRepository;
+    private final CollectorFeedbackRepository collectorFeedbackRepository;
+    private final CollectionTrackingRepository collectionTrackingRepository;
+    private final CollectionRequestRepository collectionRequestRepository;
+    private final LeaderboardRepository leaderboardRepository;
+
     @Override
     @Transactional
     public AdminUserResponse createCitizenAccount(AdminCreateCitizenAccountRequest request, String adminEmail) {
         validateBaseFields(request.getEmail(), request.getPassword(), request.getFullName());
-        User savedUser = createUserByRoleCode(request.getEmail(), request.getPassword(), request.getFullName(), request.getPhone(),
+        User savedUser = createUserByRoleCode(request.getEmail(), request.getPassword(), request.getFullName(),
+                request.getPhone(),
                 "CITIZEN");
 
         Citizen citizen = new Citizen();
@@ -77,7 +110,8 @@ public class AdminAccountServiceImpl implements AdminAccountService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "enterpriseId là bắt buộc với role COLLECTOR");
         }
 
-        User savedUser = createUserByRoleCode(request.getEmail(), request.getPassword(), request.getFullName(), request.getPhone(),
+        User savedUser = createUserByRoleCode(request.getEmail(), request.getPassword(), request.getFullName(),
+                request.getPhone(),
                 "COLLECTOR");
 
         Enterprise enterprise = enterpriseRepository.findById(request.getEnterpriseId())
@@ -120,7 +154,8 @@ public class AdminAccountServiceImpl implements AdminAccountService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "enterpriseName là bắt buộc với role ENTERPRISE");
         }
 
-        User savedUser = createUserByRoleCode(request.getEmail(), request.getPassword(), request.getFullName(), request.getPhone(),
+        User savedUser = createUserByRoleCode(request.getEmail(), request.getPassword(), request.getFullName(),
+                request.getPhone(),
                 "ENTERPRISE");
 
         Enterprise enterprise = new Enterprise();
@@ -163,10 +198,8 @@ public class AdminAccountServiceImpl implements AdminAccountService {
         }
 
         return users.stream()
-                .filter(user -> adminEmail == null || user.getEmail() == null || !user.getEmail().equalsIgnoreCase(adminEmail))
-                // Ẩn user đã bị soft-delete khỏi danh sách mặc định.
-                // Chỉ hiển thị khi admin lọc cụ thể ?status=deleted
-                .filter(user -> hasStatus || !"deleted".equalsIgnoreCase(user.getStatus()))
+                .filter(user -> adminEmail == null || user.getEmail() == null
+                        || !user.getEmail().equalsIgnoreCase(adminEmail))
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
@@ -179,10 +212,6 @@ public class AdminAccountServiceImpl implements AdminAccountService {
     @Transactional(readOnly = true)
     public AdminUserResponse getUserDetail(Integer userId) {
         User user = findUserById(userId);
-        // Ẩn user đã bị soft-delete khỏi chi tiết
-        if ("deleted".equalsIgnoreCase(user.getStatus())) {
-            throw new AppException(ErrorCode.USER_NOT_EXISTED);
-        }
         return toResponse(user);
     }
 
@@ -202,10 +231,6 @@ public class AdminAccountServiceImpl implements AdminAccountService {
 
         User user = findUserById(userId);
 
-        // Không thể thao tác trên tài khoản đã bị xóa
-        if ("deleted".equalsIgnoreCase(user.getStatus())) {
-            throw new AppException(ErrorCode.USER_ALREADY_DELETED);
-        }
         if ("suspended".equalsIgnoreCase(user.getStatus())) {
             throw new AppException(ErrorCode.USER_ALREADY_SUSPENDED);
         }
@@ -226,10 +251,6 @@ public class AdminAccountServiceImpl implements AdminAccountService {
     public AdminUserResponse activateUser(Integer userId, String adminEmail) {
         User user = findUserById(userId);
 
-        // Không thể activate tài khoản đã bị xóa (dùng deleteUser để restore nếu cần)
-        if ("deleted".equalsIgnoreCase(user.getStatus())) {
-            throw new AppException(ErrorCode.USER_ALREADY_DELETED);
-        }
         if ("active".equalsIgnoreCase(user.getStatus())) {
             throw new AppException(ErrorCode.USER_ALREADY_ACTIVE);
         }
@@ -242,36 +263,173 @@ public class AdminAccountServiceImpl implements AdminAccountService {
     }
 
     // ─────────────────────────────────────────────
-    // Soft-delete tài khoản
+    // Preview data trước khi hard-delete
+    // ─────────────────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public DeleteUserPreviewResponse previewDeleteUser(Integer userId, String adminEmail) {
+        User user = findUserById(userId);
+        validateDeleteGuards(user, adminEmail);
+
+        String roleCode = user.getRole() != null ? user.getRole().getRoleCode() : "";
+
+        DeleteUserPreviewResponse.DeleteUserPreviewResponseBuilder builder = DeleteUserPreviewResponse.builder()
+                .userId(user.getId())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .roleCode(roleCode)
+                .status(user.getStatus())
+                .createdAt(user.getCreatedAt());
+
+        if ("CITIZEN".equalsIgnoreCase(roleCode)) {
+            Optional<Citizen> citizenOpt = citizenRepository.findByUserId(userId);
+            if (citizenOpt.isPresent()) {
+                Integer citizenId = citizenOpt.get().getId();
+                builder.wasteReportCount(wasteReportRepository.countByCitizen_Id(citizenId))
+                        .feedbackCount(feedbackRepository.countByCitizenId(citizenId))
+                        .pointTransactionCount(pointTransactionRepository.countByCitizenId(citizenId))
+                        .voucherRedemptionCount(voucherRedemptionRepository.countByCitizen_Id(citizenId))
+                        .leaderboardEntryCount(leaderboardRepository.countByCitizenId(citizenId));
+            }
+        } else if ("COLLECTOR".equalsIgnoreCase(roleCode)) {
+            Optional<Collector> collectorOpt = collectorRepository.findByUserId(userId);
+            if (collectorOpt.isPresent()) {
+                Integer collectorId = collectorOpt.get().getId();
+                builder.collectorReportCount(collectorReportRepository.countByCollector_Id(collectorId))
+                        .collectionRequestCount(collectionRequestRepository.countByCollector_Id(collectorId))
+                        .collectorFeedbackCount(collectorFeedbackRepository.countByCollector_Id(collectorId));
+            }
+        }
+
+        return builder.build();
+    }
+
+    // ─────────────────────────────────────────────
+    // Hard-delete tài khoản
     // ─────────────────────────────────────────────
 
     @Override
     @Transactional
-    public AdminUserResponse deleteUser(Integer userId, String adminEmail) {
-        // Guard: Admin không thể tự xóa chính mình
-        User adminUser = userRepository.findByEmail(adminEmail)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-        if (userId.equals(adminUser.getId())) {
-            throw new AppException(ErrorCode.CANNOT_DELETE_SELF);
-        }
-
+    public void hardDeleteUser(Integer userId, String adminEmail) {
         User user = findUserById(userId);
+        validateDeleteGuards(user, adminEmail);
 
-        // Guard: tránh soft-delete 2 lần
-        if ("deleted".equalsIgnoreCase(user.getStatus())) {
-            throw new AppException(ErrorCode.USER_ALREADY_DELETED);
+        String roleCode = user.getRole() != null ? user.getRole().getRoleCode() : "";
+
+        // 1. Xóa EkycSession (tham chiếu trực tiếp User)
+        ekycSessionRepository.deleteByUser_Id(userId);
+
+        // 2. Xóa PointTransaction theo createdBy (tham chiếu trực tiếp User)
+        pointTransactionRepository.deleteByCreatedBy_Id(userId);
+
+        // 3. Xóa dữ liệu theo role
+        if ("CITIZEN".equalsIgnoreCase(roleCode)) {
+            deleteCitizenData(userId);
+        } else if ("COLLECTOR".equalsIgnoreCase(roleCode)) {
+            deleteCollectorData(userId);
         }
 
-        user.setStatus("deleted");
-        User saved = userRepository.save(user);
+        // 4. Xóa User
+        userRepository.delete(user);
 
-        log.info("Admin {} đã soft-delete tài khoản user id={}", adminEmail, userId);
-        return toResponse(saved);
+        log.info("Admin {} đã hard-delete tài khoản user id={} (role={})", adminEmail, userId, roleCode);
     }
 
     // ─────────────────────────────────────────────
-    // Private helpers
+    // Private helpers — Cascading delete
     // ─────────────────────────────────────────────
+
+    /**
+     * Xóa toàn bộ dữ liệu liên quan đến Citizen (con → cha).
+     */
+    private void deleteCitizenData(Integer userId) {
+        Optional<Citizen> citizenOpt = citizenRepository.findByUserId(userId);
+        if (citizenOpt.isEmpty())
+            return;
+
+        Integer citizenId = citizenOpt.get().getId();
+
+        // Xóa các bảng tham chiếu Citizen
+        voucherRedemptionRepository.deleteByCitizen_Id(citizenId);
+        pointTransactionRepository.deleteByCitizenId(citizenId);
+        leaderboardRepository.deleteByCitizenId(citizenId);
+        feedbackRepository.deleteByCitizenId(citizenId);
+
+        // Xóa các bảng con phụ thuộc CollectionRequest của citizen
+        collectorReportImageRepository.deleteByCollectorReport_CollectionRequest_Report_Citizen_Id(citizenId);
+        collectorReportItemRepository.deleteByCollectorReport_CollectionRequest_Report_Citizen_Id(citizenId);
+        collectorFeedbackRepository.deleteByCollectionRequest_Report_Citizen_Id(citizenId);
+        collectorReportRepository.deleteByCollectionRequest_Report_Citizen_Id(citizenId);
+        collectionTrackingRepository.deleteByCollectionRequest_Report_Citizen_Id(citizenId);
+        collectionRequestRepository.deleteByReport_Citizen_Id(citizenId);
+
+        // Xóa con của WasteReport rồi xóa WasteReport
+        reportImageRepository.deleteByReport_Citizen_Id(citizenId);
+        wasteReportItemRepository.deleteByReport_Citizen_Id(citizenId);
+        wasteReportRepository.deleteByCitizen_Id(citizenId);
+
+        // Xóa Citizen
+        citizenRepository.deleteByUserId(userId);
+    }
+
+    /**
+     * Xóa toàn bộ dữ liệu liên quan đến Collector (con → cha).
+     */
+    private void deleteCollectorData(Integer userId) {
+        Optional<Collector> collectorOpt = collectorRepository.findByUserId(userId);
+        if (collectorOpt.isEmpty())
+            return;
+
+        Integer collectorId = collectorOpt.get().getId();
+
+        // Xóa con của CollectorReport trước
+        collectorReportImageRepository.deleteByCollectorReport_Collector_Id(collectorId);
+        collectorReportItemRepository.deleteByCollectorReport_Collector_Id(collectorId);
+
+        // Xóa CollectorReport
+        collectorReportRepository.deleteByCollector_Id(collectorId);
+
+        // Xóa CollectorFeedback
+        collectorFeedbackRepository.deleteByCollector_Id(collectorId);
+
+        // Xóa CollectionTracking
+        collectionTrackingRepository.deleteByCollector_Id(collectorId);
+
+        // Xóa CollectionRequest
+        collectionRequestRepository.deleteByCollector_Id(collectorId);
+
+        // Xóa Collector
+        collectorRepository.deleteByUserId(userId);
+    }
+
+    // ─────────────────────────────────────────────
+    // Private helpers — Validation
+    // ─────────────────────────────────────────────
+
+    /**
+     * Guard chung cho preview + hard-delete:
+     * - Admin không thể xóa chính mình
+        * - Admin không thể xóa tài khoản ADMIN / ENTERPRISE
+     */
+    private void validateDeleteGuards(User targetUser, String adminEmail) {
+        // Guard: Admin không thể tự xóa chính mình
+        User adminUser = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        if (targetUser.getId().equals(adminUser.getId())) {
+            throw new AppException(ErrorCode.CANNOT_DELETE_SELF);
+        }
+
+        // Guard: Không thể xóa tài khoản có role ADMIN
+        if (targetUser.getRole() != null && "ADMIN".equalsIgnoreCase(targetUser.getRole().getRoleCode())) {
+            throw new AppException(ErrorCode.CANNOT_DELETE_ADMIN);
+        }
+
+        // Guard: Không thể xóa tài khoản có role ENTERPRISE
+        if (targetUser.getRole() != null && "ENTERPRISE".equalsIgnoreCase(targetUser.getRole().getRoleCode())) {
+            throw new AppException(ErrorCode.CANNOT_DELETE_ENTERPRISE);
+        }
+    }
 
     private User findUserById(Integer userId) {
         return userRepository.findById(userId)

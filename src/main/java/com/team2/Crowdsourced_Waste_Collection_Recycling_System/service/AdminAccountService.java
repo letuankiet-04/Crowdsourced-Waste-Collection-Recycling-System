@@ -4,6 +4,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.Admi
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCollectorAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateEnterpriseAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminUserResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.DeleteUserPreviewResponse;
 
 import java.util.List;
 
@@ -59,12 +60,20 @@ public interface AdminAccountService {
     AdminUserResponse activateUser(Integer userId, String adminEmail);
 
     /**
-     * Soft-delete tài khoản: đánh dấu status = "deleted".
-     * Dữ liệu lịch sử được giữ nguyên, không có FK violation.
-     * Admin không thể tự xóa chính mình.
+     * Preview data liên quan sẽ bị xóa khi hard-delete tài khoản.
+     * Admin không thể preview xóa chính mình hoặc tài khoản ADMIN khác.
+     *
+     * @param userId     ID tài khoản cần xem preview
+     * @param adminEmail email của admin đang thực hiện
+     */
+    DeleteUserPreviewResponse previewDeleteUser(Integer userId, String adminEmail);
+
+    /**
+     * Hard-delete tài khoản: xóa vĩnh viễn user và toàn bộ dữ liệu liên quan.
+     * Admin không thể xóa chính mình hoặc tài khoản ADMIN khác.
      *
      * @param userId     ID tài khoản cần xóa
      * @param adminEmail email của admin đang thực hiện
      */
-    AdminUserResponse deleteUser(Integer userId, String adminEmail);
+    void hardDeleteUser(Integer userId, String adminEmail);
 }

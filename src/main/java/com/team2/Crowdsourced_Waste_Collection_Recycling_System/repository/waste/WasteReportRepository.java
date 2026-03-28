@@ -53,4 +53,8 @@ public interface WasteReportRepository extends JpaRepository<WasteReport, Intege
             @Param("lng") BigDecimal lng,
             @Param("latDelta") BigDecimal latDelta,
             @Param("lngDelta") BigDecimal lngDelta);
+
+    void deleteByCitizen_Id(Integer citizenId);
+
+    long countByCitizen_Id(Integer citizenId);
 }

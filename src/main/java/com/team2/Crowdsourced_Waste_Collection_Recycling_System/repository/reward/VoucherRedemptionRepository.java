@@ -9,4 +9,8 @@ public interface VoucherRedemptionRepository extends JpaRepository<VoucherRedemp
     List<VoucherRedemption> findAllByCitizen_IdOrderByRedeemedAtDesc(Integer citizenId);
 
     boolean existsByRedemptionCodeIgnoreCase(String redemptionCode);
+
+    void deleteByCitizen_Id(Integer citizenId);
+
+    long countByCitizen_Id(Integer citizenId);
 }
