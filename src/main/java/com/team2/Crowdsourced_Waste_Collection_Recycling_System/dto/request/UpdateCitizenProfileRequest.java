@@ -5,6 +5,7 @@ import lombok.Data;
 @Data
 public class UpdateCitizenProfileRequest {
     private String fullName;
+    private String email;
     private String address;
     private String phone;
     private String ward;

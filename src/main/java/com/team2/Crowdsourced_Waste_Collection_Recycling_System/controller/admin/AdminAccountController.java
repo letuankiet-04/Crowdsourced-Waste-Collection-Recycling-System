@@ -3,6 +3,9 @@ package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.admi
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCitizenAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCollectorAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateEnterpriseAccountRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCitizenProfileRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCollectorProfileRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateEnterpriseProfileRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminUserResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.DeleteUserPreviewResponse;
@@ -95,6 +98,42 @@ public class AdminAccountController {
                 .result(adminAccountService.getUserDetail(userId))
                 .build();
     }
+
+        @PutMapping("/{userId}/citizen-profile")
+        @Operation(summary = "Admin cập nhật hồ sơ CITIZEN")
+        public ApiResponse<AdminUserResponse> updateCitizenProfile(
+            @PathVariable Integer userId,
+                @RequestBody UpdateCitizenProfileRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String adminEmail = extractAdminEmail(jwt);
+        return ApiResponse.<AdminUserResponse>builder()
+            .result(adminAccountService.updateCitizenProfile(userId, request, adminEmail))
+            .build();
+        }
+
+        @PutMapping("/{userId}/collector-profile")
+        @Operation(summary = "Admin cập nhật hồ sơ COLLECTOR")
+        public ApiResponse<AdminUserResponse> updateCollectorProfile(
+            @PathVariable Integer userId,
+                @RequestBody UpdateCollectorProfileRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String adminEmail = extractAdminEmail(jwt);
+        return ApiResponse.<AdminUserResponse>builder()
+            .result(adminAccountService.updateCollectorProfile(userId, request, adminEmail))
+            .build();
+        }
+
+        @PutMapping("/{userId}/enterprise-profile")
+        @Operation(summary = "Admin cập nhật hồ sơ ENTERPRISE")
+        public ApiResponse<AdminUserResponse> updateEnterpriseProfile(
+            @PathVariable Integer userId,
+                @RequestBody UpdateEnterpriseProfileRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String adminEmail = extractAdminEmail(jwt);
+        return ApiResponse.<AdminUserResponse>builder()
+            .result(adminAccountService.updateEnterpriseProfile(userId, request, adminEmail))
+            .build();
+        }
 
     /**
      * Khóa tài khoản (status → suspended).

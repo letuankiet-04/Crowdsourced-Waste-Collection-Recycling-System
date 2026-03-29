@@ -3,6 +3,9 @@ package com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.impl;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCitizenAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCollectorAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateEnterpriseAccountRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCitizenProfileRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCollectorProfileRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateEnterpriseProfileRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminUserResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.DeleteUserPreviewResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Citizen;
@@ -212,6 +215,133 @@ public class AdminAccountServiceImpl implements AdminAccountService {
     @Transactional(readOnly = true)
     public AdminUserResponse getUserDetail(Integer userId) {
         User user = findUserById(userId);
+        return toResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public AdminUserResponse updateCitizenProfile(Integer userId, UpdateCitizenProfileRequest request, String adminEmail) {
+        User user = findUserById(userId);
+        validateRoleForProfileUpdate(user, "CITIZEN");
+
+        Citizen citizen = citizenRepository.findByUserId(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.CITIZEN_NOT_FOUND));
+
+        if (request.getFullName() != null) {
+            String fullName = request.getFullName().trim();
+            user.setFullName(fullName);
+            citizen.setFullName(fullName);
+        }
+        if (request.getEmail() != null) {
+            String email = request.getEmail().trim();
+            validateDuplicateEmailForUpdate(userId, email);
+            user.setEmail(email);
+            citizen.setEmail(email);
+        }
+        if (request.getPhone() != null) {
+            String phone = request.getPhone().trim();
+            user.setPhone(phone);
+            citizen.setPhone(phone);
+        }
+        if (request.getAddress() != null) {
+            citizen.setAddress(request.getAddress().trim());
+        }
+        if (request.getWard() != null) {
+            citizen.setWard(request.getWard().trim());
+        }
+        if (request.getCity() != null) {
+            citizen.setCity(request.getCity().trim());
+        }
+
+        userRepository.save(user);
+        citizenRepository.save(citizen);
+
+        log.info("Admin {} đã cập nhật hồ sơ CITIZEN cho user id={}", adminEmail, userId);
+        return toResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public AdminUserResponse updateCollectorProfile(Integer userId, UpdateCollectorProfileRequest request, String adminEmail) {
+        User user = findUserById(userId);
+        validateRoleForProfileUpdate(user, "COLLECTOR");
+
+        Collector collector = collectorRepository.findByUserId(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.COLLECTOR_NOT_FOUND));
+
+        if (request.getFullName() != null) {
+            String fullName = request.getFullName().trim();
+            user.setFullName(fullName);
+            collector.setFullName(fullName);
+        }
+        if (request.getEmail() != null) {
+            String email = request.getEmail().trim();
+            validateDuplicateEmailForUpdate(userId, email);
+            user.setEmail(email);
+            collector.setEmail(email);
+        }
+        if (request.getVehicleType() != null) {
+            VehicleType vehicleType = VehicleType.fromString(request.getVehicleType().trim());
+            if (vehicleType == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "vehicleType không hợp lệ (CAR|TRUCK|MOTORBIKE)");
+            }
+            collector.setVehicleType(vehicleType.name());
+        }
+        if (request.getVehiclePlate() != null) {
+            collector.setVehiclePlate(request.getVehiclePlate().trim());
+        }
+
+        userRepository.save(user);
+        collectorRepository.save(collector);
+
+        log.info("Admin {} đã cập nhật hồ sơ COLLECTOR cho user id={}", adminEmail, userId);
+        return toResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public AdminUserResponse updateEnterpriseProfile(Integer userId, UpdateEnterpriseProfileRequest request,
+            String adminEmail) {
+        User user = findUserById(userId);
+        validateRoleForProfileUpdate(user, "ENTERPRISE");
+
+        Enterprise linkedEnterprise = user.getEnterprise();
+        if (linkedEnterprise == null || linkedEnterprise.getId() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Enterprise không tồn tại");
+        }
+
+        Enterprise enterprise = enterpriseRepository.findById(linkedEnterprise.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Enterprise không tồn tại"));
+
+        if (request.getName() != null) {
+            enterprise.setName(request.getName().trim());
+        }
+        if (request.getAddress() != null) {
+            enterprise.setAddress(request.getAddress().trim());
+        }
+        if (request.getPhone() != null) {
+            String phone = request.getPhone().trim();
+            enterprise.setPhone(phone);
+            user.setPhone(phone);
+        }
+        if (request.getEmail() != null) {
+            String email = request.getEmail().trim();
+            validateDuplicateEmailForUpdate(userId, email);
+            enterprise.setEmail(email);
+            user.setEmail(email);
+        }
+        if (request.getServiceWards() != null) {
+            enterprise.setServiceWards(request.getServiceWards().trim());
+        }
+        if (request.getServiceCities() != null) {
+            enterprise.setServiceCities(request.getServiceCities().trim());
+        }
+
+        enterpriseRepository.save(enterprise);
+        userRepository.save(user);
+
+        log.info("Admin {} đã cập nhật hồ sơ ENTERPRISE cho user id={}", adminEmail, userId);
         return toResponse(user);
     }
 
@@ -445,6 +575,21 @@ public class AdminAccountServiceImpl implements AdminAccountService {
         }
         if (fullName == null || fullName.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Họ tên không được để trống");
+        }
+    }
+
+    private void validateRoleForProfileUpdate(User user, String expectedRoleCode) {
+        String roleCode = user.getRole() != null ? user.getRole().getRoleCode() : null;
+        if (roleCode == null || !expectedRoleCode.equalsIgnoreCase(roleCode)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Tài khoản không thuộc role " + expectedRoleCode);
+        }
+    }
+
+    private void validateDuplicateEmailForUpdate(Integer currentUserId, String email) {
+        Optional<User> existingUser = userRepository.findByEmail(email);
+        if (existingUser.isPresent() && !existingUser.get().getId().equals(currentUserId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email đã tồn tại trong hệ hệ thống");
         }
     }
 

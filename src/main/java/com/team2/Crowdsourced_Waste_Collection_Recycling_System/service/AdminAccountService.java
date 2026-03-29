@@ -3,6 +3,9 @@ package com.team2.Crowdsourced_Waste_Collection_Recycling_System.service;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCitizenAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCollectorAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateEnterpriseAccountRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCitizenProfileRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCollectorProfileRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateEnterpriseProfileRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminUserResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.DeleteUserPreviewResponse;
 
@@ -41,6 +44,21 @@ public interface AdminAccountService {
      * Xem chi tiết một tài khoản.
      */
     AdminUserResponse getUserDetail(Integer userId);
+
+    /**
+     * Admin cập nhật hồ sơ tài khoản CITIZEN.
+     */
+    AdminUserResponse updateCitizenProfile(Integer userId, UpdateCitizenProfileRequest request, String adminEmail);
+
+    /**
+     * Admin cập nhật hồ sơ tài khoản COLLECTOR.
+     */
+    AdminUserResponse updateCollectorProfile(Integer userId, UpdateCollectorProfileRequest request, String adminEmail);
+
+    /**
+     * Admin cập nhật hồ sơ tài khoản ENTERPRISE.
+     */
+    AdminUserResponse updateEnterpriseProfile(Integer userId, UpdateEnterpriseProfileRequest request, String adminEmail);
 
     /**
      * Khóa tài khoản (status → "suspended").
