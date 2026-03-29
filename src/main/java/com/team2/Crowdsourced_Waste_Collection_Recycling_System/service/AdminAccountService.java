@@ -3,6 +3,7 @@ package com.team2.Crowdsourced_Waste_Collection_Recycling_System.service;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCitizenAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCollectorAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateEnterpriseAccountRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateAdminProfileRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCitizenProfileRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCollectorProfileRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateEnterpriseProfileRequest;
@@ -44,6 +45,11 @@ public interface AdminAccountService {
      * Xem chi tiết một tài khoản.
      */
     AdminUserResponse getUserDetail(Integer userId);
+
+    /**
+     * Admin tự cập nhật hồ sơ của chính mình.
+     */
+    AdminUserResponse updateMyProfile(String adminEmail, UpdateAdminProfileRequest request);
 
     /**
      * Admin cập nhật hồ sơ tài khoản CITIZEN.

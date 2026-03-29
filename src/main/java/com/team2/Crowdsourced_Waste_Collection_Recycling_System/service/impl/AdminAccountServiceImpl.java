@@ -3,6 +3,7 @@ package com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.impl;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCitizenAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCollectorAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateEnterpriseAccountRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateAdminProfileRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCitizenProfileRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCollectorProfileRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateEnterpriseProfileRequest;
@@ -216,6 +217,46 @@ public class AdminAccountServiceImpl implements AdminAccountService {
     public AdminUserResponse getUserDetail(Integer userId) {
         User user = findUserById(userId);
         return toResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public AdminUserResponse updateMyProfile(String adminEmail, UpdateAdminProfileRequest request) {
+        if (adminEmail == null || adminEmail.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thiếu token");
+        }
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu dữ liệu");
+        }
+
+        User adminUser = userRepository.findOneWithRoleByEmailIgnoreCase(adminEmail)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        String roleCode = adminUser.getRole() != null ? adminUser.getRole().getRoleCode() : null;
+        if (roleCode == null || !"ADMIN".equalsIgnoreCase(roleCode)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Chỉ ADMIN mới được cập nhật hồ sơ này");
+        }
+
+        if (request.getFullName() != null) {
+            String fullName = request.getFullName().trim();
+            if (fullName.isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Họ tên không được để trống");
+            }
+            adminUser.setFullName(fullName);
+        }
+
+        if (request.getEmail() != null) {
+            String email = request.getEmail().trim();
+            if (email.isBlank()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email không được để trống");
+            }
+            validateDuplicateEmailForUpdate(adminUser.getId(), email);
+            adminUser.setEmail(email);
+        }
+
+        User saved = userRepository.save(adminUser);
+        log.info("Admin {} đã cập nhật hồ sơ cá nhân", adminEmail);
+        return toResponse(saved);
     }
 
     @Override

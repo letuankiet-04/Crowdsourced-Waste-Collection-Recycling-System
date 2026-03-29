@@ -4,6 +4,8 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.commo
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCitizenAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCollectorAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateEnterpriseAccountRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.ChangePasswordRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateAdminProfileRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCitizenProfileRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCollectorProfileRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateEnterpriseProfileRequest;
@@ -11,9 +13,11 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Adm
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.DeleteUserPreviewResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.AdminAccountService;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.PasswordService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,6 +42,26 @@ import java.util.List;
 public class AdminAccountController {
 
     private final AdminAccountService adminAccountService;
+    private final PasswordService passwordService;
+
+    @PatchMapping("/me/profile")
+    @Operation(summary = "Admin cập nhật hồ sơ", description = "Cập nhật email và họ tên của admin đang đăng nhập")
+    public ApiResponse<AdminUserResponse> updateMyProfile(
+            @RequestBody UpdateAdminProfileRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String adminEmail = extractAdminEmail(jwt);
+        return ApiResponses.ok(adminAccountService.updateMyProfile(adminEmail, request));
+    }
+
+    @PutMapping("/me/password")
+    @Operation(summary = "Admin đổi mật khẩu")
+    public ApiResponse<Void> changeMyPassword(
+            @Valid @RequestBody ChangePasswordRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String adminEmail = extractAdminEmail(jwt);
+        passwordService.changePassword(adminEmail, request);
+        return ApiResponses.message("Đổi mật khẩu thành công");
+    }
 
         @PostMapping("/citizens")
         @Operation(summary = "Tạo tài khoản CITIZEN")
@@ -97,9 +121,7 @@ public class AdminAccountController {
                 @RequestBody UpdateCitizenProfileRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         String adminEmail = extractAdminEmail(jwt);
-        return ApiResponse.<AdminUserResponse>builder()
-            .result(adminAccountService.updateCitizenProfile(userId, request, adminEmail))
-            .build();
+            return ApiResponses.ok(adminAccountService.updateCitizenProfile(userId, request, adminEmail));
         }
 
         @PutMapping("/{userId}/collector-profile")
@@ -109,9 +131,7 @@ public class AdminAccountController {
                 @RequestBody UpdateCollectorProfileRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         String adminEmail = extractAdminEmail(jwt);
-        return ApiResponse.<AdminUserResponse>builder()
-            .result(adminAccountService.updateCollectorProfile(userId, request, adminEmail))
-            .build();
+            return ApiResponses.ok(adminAccountService.updateCollectorProfile(userId, request, adminEmail));
         }
 
         @PutMapping("/{userId}/enterprise-profile")
@@ -121,9 +141,7 @@ public class AdminAccountController {
                 @RequestBody UpdateEnterpriseProfileRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         String adminEmail = extractAdminEmail(jwt);
-        return ApiResponse.<AdminUserResponse>builder()
-            .result(adminAccountService.updateEnterpriseProfile(userId, request, adminEmail))
-            .build();
+            return ApiResponses.ok(adminAccountService.updateEnterpriseProfile(userId, request, adminEmail));
         }
 
     /**
@@ -162,9 +180,7 @@ public class AdminAccountController {
             @PathVariable Integer userId,
             @AuthenticationPrincipal Jwt jwt) {
         String adminEmail = extractAdminEmail(jwt);
-        return ApiResponse.<DeleteUserPreviewResponse>builder()
-                .result(adminAccountService.previewDeleteUser(userId, adminEmail))
-                .build();
+        return ApiResponses.ok(adminAccountService.previewDeleteUser(userId, adminEmail));
     }
 
     /**
@@ -179,10 +195,7 @@ public class AdminAccountController {
             @AuthenticationPrincipal Jwt jwt) {
         String adminEmail = extractAdminEmail(jwt);
         adminAccountService.hardDeleteUser(userId, adminEmail);
-        return ApiResponse.<Void>builder()
-                .message("Tài khoản và toàn bộ dữ liệu liên quan đã được xóa vĩnh viễn")
-                .build();
-//        return ApiResponses.ok(adminAccountService.hardDeleteUser(userId, adminEmail), "Tài khoản và toàn bộ dữ liệu liên quan đã được xóa vĩnh viễn");
+        return ApiResponses.message("Tài khoản và toàn bộ dữ liệu liên quan đã được xóa vĩnh viễn");
     }
 
     // ─────────────────────────────────────────────
