@@ -1,5 +1,7 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.citizen;
 
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.common.ApiResponses;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.common.SecuritySupport;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.CreateWasteReportRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateWasteReportRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
@@ -25,8 +27,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -136,10 +136,7 @@ public class CitizenController {
             @RequestParam(required = false) String region,
             @RequestParam(required = false, defaultValue = "50") Integer limit) {
         List<CitizenLeaderboardResponse> leaderboard = wasteReportService.getLeaderboard(region, limit);
-        return ResponseEntity.ok(ApiResponse.<List<CitizenLeaderboardResponse>>builder()
-                .result(leaderboard)
-                .message("Lấy bảng xếp hạng thành công")
-                .build());
+        return ok(leaderboard, "Lấy bảng xếp hạng thành công");
     }
 
     @GetMapping("/points/summary")
@@ -195,15 +192,14 @@ public class CitizenController {
     }
 
     private String currentEmail() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        return authentication.getName();
+        return SecuritySupport.currentEmail();
     }
 
     private ResponseEntity<ApiResponse<Void>> ok(String message) {
-        return ResponseEntity.ok(ApiResponse.<Void>builder().message(message).build());
+        return ResponseEntity.ok(ApiResponses.message(message));
     }
 
     private <T> ResponseEntity<ApiResponse<T>> ok(T result, String message) {
-        return ResponseEntity.ok(ApiResponse.<T>builder().result(result).message(message).build());
+        return ApiResponses.okEntity(result, message);
     }
 }

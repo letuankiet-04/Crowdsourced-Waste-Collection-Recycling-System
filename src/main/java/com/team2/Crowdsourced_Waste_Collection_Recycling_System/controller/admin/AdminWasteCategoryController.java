@@ -1,5 +1,6 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.admin;
 
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.common.ApiResponses;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateWasteCategoryRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.WasteCategoryRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
@@ -36,19 +37,13 @@ public class AdminWasteCategoryController {
     @GetMapping
     @Operation(summary = "Lấy danh sách tất cả loại rác")
     public ResponseEntity<ApiResponse<List<WasteCategoryAdminResponse>>> getAllCategories() {
-        return ResponseEntity.ok(ApiResponse.<List<WasteCategoryAdminResponse>>builder()
-                .result(wasteCategoryService.getAllCategories())
-                .message("Lấy danh sách loại rác thành công")
-                .build());
+        return ApiResponses.okEntity(wasteCategoryService.getAllCategories(), "Lấy danh sách loại rác thành công");
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Lấy chi tiết một loại rác")
     public ResponseEntity<ApiResponse<WasteCategoryAdminResponse>> getCategory(@PathVariable Integer id) {
-        return ResponseEntity.ok(ApiResponse.<WasteCategoryAdminResponse>builder()
-                .result(wasteCategoryService.getCategory(id))
-                .message("Lấy thông tin loại rác thành công")
-                .build());
+        return ApiResponses.okEntity(wasteCategoryService.getCategory(id), "Lấy thông tin loại rác thành công");
     }
 
     @PostMapping
@@ -56,10 +51,7 @@ public class AdminWasteCategoryController {
     public ResponseEntity<ApiResponse<WasteCategoryAdminResponse>> createCategory(
             @Valid @RequestBody WasteCategoryRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.<WasteCategoryAdminResponse>builder()
-                        .result(wasteCategoryService.createCategory(request))
-                        .message("Tạo loại rác thành công")
-                        .build());
+                .body(ApiResponses.ok(wasteCategoryService.createCategory(request), "Tạo loại rác thành công"));
     }
 
     @PatchMapping("/{id}")
@@ -67,18 +59,13 @@ public class AdminWasteCategoryController {
     public ResponseEntity<ApiResponse<WasteCategoryAdminResponse>> updateCategory(
             @PathVariable Integer id,
             @Valid @RequestBody UpdateWasteCategoryRequest request) {
-        return ResponseEntity.ok(ApiResponse.<WasteCategoryAdminResponse>builder()
-                .result(wasteCategoryService.updateCategory(id, request))
-                .message("Cập nhật loại rác thành công")
-                .build());
+        return ApiResponses.okEntity(wasteCategoryService.updateCategory(id, request), "Cập nhật loại rác thành công");
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Xóa loại rác")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable Integer id) {
         wasteCategoryService.deleteCategory(id);
-        return ResponseEntity.ok(ApiResponse.<Void>builder()
-                .message("Xóa loại rác thành công")
-                .build());
+        return ResponseEntity.ok(ApiResponses.message("Xóa loại rác thành công"));
     }
 }

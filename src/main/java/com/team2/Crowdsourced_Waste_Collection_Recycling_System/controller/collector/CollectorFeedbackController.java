@@ -1,5 +1,6 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.collector;
 
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.common.ApiResponses;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.CreateCollectorFeedbackRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorFeedbackResponse;
@@ -53,6 +54,6 @@ public class CollectorFeedbackController {
     }
 
     private <T> ResponseEntity<ApiResponse<T>> ok(T result, String message) {
-        return ResponseEntity.ok(ApiResponse.<T>builder().result(result).message(message).build());
+        return ApiResponses.okEntity(result, message);
     }
 }

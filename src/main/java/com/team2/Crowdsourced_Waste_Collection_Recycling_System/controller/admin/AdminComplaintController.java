@@ -1,5 +1,6 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.admin;
 
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.common.ApiResponses;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.EnterpriseFeedbackResolveRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.EnterpriseFeedbackResponse;
@@ -26,19 +27,13 @@ public class AdminComplaintController {
     @GetMapping
     @Operation(summary = "Danh sách tất cả khiếu nại", description = "Admin xem toàn bộ khiếu nại")
     public ResponseEntity<ApiResponse<List<EnterpriseFeedbackResponse>>> getAllComplaints() {
-        return ResponseEntity.ok(ApiResponse.<List<EnterpriseFeedbackResponse>>builder()
-                .result(adminComplaintService.getAllComplaints())
-                .message("Lấy danh sách khiếu nại thành công")
-                .build());
+        return ApiResponses.okEntity(adminComplaintService.getAllComplaints(), "Lấy danh sách khiếu nại thành công");
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Chi tiết khiếu nại", description = "Xem chi tiết khiếu nại")
     public ResponseEntity<ApiResponse<EnterpriseFeedbackResponse>> getComplaintDetail(@PathVariable Integer id) {
-        return ResponseEntity.ok(ApiResponse.<EnterpriseFeedbackResponse>builder()
-                .result(adminComplaintService.getComplaintDetail(id))
-                .message("Lấy chi tiết khiếu nại thành công")
-                .build());
+        return ApiResponses.okEntity(adminComplaintService.getComplaintDetail(id), "Lấy chi tiết khiếu nại thành công");
     }
 
     @PostMapping("/{id}/resolve")
@@ -47,8 +42,6 @@ public class AdminComplaintController {
             @PathVariable Integer id,
             @Valid @RequestBody EnterpriseFeedbackResolveRequest request) {
         adminComplaintService.resolveComplaint(id, request);
-        return ResponseEntity.ok(ApiResponse.<Void>builder()
-                .message("Giải quyết khiếu nại thành công")
-                .build());
+        return ResponseEntity.ok(ApiResponses.message("Giải quyết khiếu nại thành công"));
     }
 }

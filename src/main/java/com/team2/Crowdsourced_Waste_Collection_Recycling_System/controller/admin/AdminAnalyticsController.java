@@ -1,5 +1,6 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.admin;
 
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.common.ApiResponses;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminCollectedWeightChartResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminCollectedWeightDailyChartResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
@@ -33,10 +34,7 @@ public class AdminAnalyticsController {
     @Operation(summary = "Thống kê tổng quan toàn hệ thống")
     public ResponseEntity<ApiResponse<AdminSystemAnalyticsResponse>> getSystemAnalytics() {
         AdminSystemAnalyticsResponse result = adminAnalyticsService.getSystemAnalytics();
-        return ResponseEntity.ok(ApiResponse.<AdminSystemAnalyticsResponse>builder()
-                .result(result)
-                .message("Lấy thống kê hệ thống thành công")
-                .build());
+        return ApiResponses.okEntity(result, "Lấy thống kê hệ thống thành công");
     }
 
     @GetMapping("/collected-weight")
@@ -44,10 +42,7 @@ public class AdminAnalyticsController {
     public ResponseEntity<ApiResponse<AdminCollectedWeightChartResponse>> getCollectedWeightChart(
             @RequestParam(name = "year", required = false) Integer year) {
         AdminCollectedWeightChartResponse result = adminAnalyticsService.getCollectedWeightChart(year);
-        return ResponseEntity.ok(ApiResponse.<AdminCollectedWeightChartResponse>builder()
-                .result(result)
-                .message("Lấy dữ liệu biểu đồ khối lượng rác thành công")
-                .build());
+        return ApiResponses.okEntity(result, "Lấy dữ liệu biểu đồ khối lượng rác thành công");
     }
 
     @GetMapping("/collected-weight/daily")
@@ -56,10 +51,7 @@ public class AdminAnalyticsController {
             @RequestParam(name = "year", required = false) Integer year,
             @RequestParam(name = "month", required = false) Integer month) {
         AdminCollectedWeightDailyChartResponse result = adminAnalyticsService.getCollectedWeightDailyChart(year, month);
-        return ResponseEntity.ok(ApiResponse.<AdminCollectedWeightDailyChartResponse>builder()
-                .result(result)
-                .message("Lấy dữ liệu biểu đồ khối lượng rác theo ngày thành công")
-                .build());
+        return ApiResponses.okEntity(result, "Lấy dữ liệu biểu đồ khối lượng rác theo ngày thành công");
     }
 
     @GetMapping("/leaderboard/collectors")
@@ -70,10 +62,7 @@ public class AdminAnalyticsController {
             @RequestParam(name = "month", required = false) Integer month,
             @RequestParam(name = "year", required = false) Integer year) {
         List<CollectorLeaderboardResponse> result = adminAnalyticsService.getCollectorLeaderboard(day, month, year);
-        return ResponseEntity.ok(ApiResponse.<List<CollectorLeaderboardResponse>>builder()
-                .result(result)
-                .message("Lấy bảng xếp hạng Collector thành công")
-                .build());
+        return ApiResponses.okEntity(result, "Lấy bảng xếp hạng Collector thành công");
     }
 
     @GetMapping("/leaderboard/citizens")
@@ -84,19 +73,13 @@ public class AdminAnalyticsController {
             @RequestParam(name = "month", required = false) Integer month,
             @RequestParam(name = "year", required = false) Integer year) {
         List<CitizenLeaderboardResponse> result = adminAnalyticsService.getCitizenLeaderboard(day, month, year);
-        return ResponseEntity.ok(ApiResponse.<List<CitizenLeaderboardResponse>>builder()
-                .result(result)
-                .message("Lấy bảng xếp hạng Citizen thành công")
-                .build());
+        return ApiResponses.okEntity(result, "Lấy bảng xếp hạng Citizen thành công");
     }
 
     @GetMapping("/collected-waste-by-unit")
     @Operation(summary = "Thống kê tổng lượng rác thu gom theo đơn vị (KG, CAN, BOTTLE)")
     public ResponseEntity<ApiResponse<com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminCollectedWasteByUnitResponse>> getCollectedWasteByUnit() {
         com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminCollectedWasteByUnitResponse result = adminAnalyticsService.getCollectedWasteByUnit();
-        return ResponseEntity.ok(ApiResponse.<com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminCollectedWasteByUnitResponse>builder()
-                .result(result)
-                .message("Lấy thống kê rác theo đơn vị thành công")
-                .build());
+        return ApiResponses.okEntity(result, "Lấy thống kê rác theo đơn vị thành công");
     }
 }

@@ -1,5 +1,6 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.admin;
 
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.common.ApiResponses;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCitizenAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCollectorAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateEnterpriseAccountRequest;
@@ -40,9 +41,7 @@ public class AdminAccountController {
             @RequestBody AdminCreateCitizenAccountRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         String adminEmail = extractAdminEmail(jwt);
-        return ApiResponse.<AdminUserResponse>builder()
-            .result(adminAccountService.createCitizenAccount(request, adminEmail))
-            .build();
+        return ApiResponses.ok(adminAccountService.createCitizenAccount(request, adminEmail));
         }
 
         @PostMapping("/collectors")
@@ -51,9 +50,7 @@ public class AdminAccountController {
             @RequestBody AdminCreateCollectorAccountRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         String adminEmail = extractAdminEmail(jwt);
-        return ApiResponse.<AdminUserResponse>builder()
-            .result(adminAccountService.createCollectorAccount(request, adminEmail))
-            .build();
+        return ApiResponses.ok(adminAccountService.createCollectorAccount(request, adminEmail));
         }
 
         @PostMapping("/enterprises")
@@ -62,9 +59,7 @@ public class AdminAccountController {
             @RequestBody AdminCreateEnterpriseAccountRequest request,
             @AuthenticationPrincipal Jwt jwt) {
         String adminEmail = extractAdminEmail(jwt);
-        return ApiResponse.<AdminUserResponse>builder()
-            .result(adminAccountService.createEnterpriseAccount(request, adminEmail))
-                .build();
+        return ApiResponses.ok(adminAccountService.createEnterpriseAccount(request, adminEmail));
     }
 
     /**
@@ -79,9 +74,7 @@ public class AdminAccountController {
             @RequestParam(required = false) String role,
             @AuthenticationPrincipal Jwt jwt) {
         String adminEmail = extractAdminEmail(jwt);
-        return ApiResponse.<List<AdminUserResponse>>builder()
-                .result(adminAccountService.getAllUsers(status, role, adminEmail))
-                .build();
+        return ApiResponses.ok(adminAccountService.getAllUsers(status, role, adminEmail));
     }
 
     /**
@@ -90,9 +83,7 @@ public class AdminAccountController {
     @GetMapping("/{userId}")
     @Operation(summary = "Xem chi tiết tài khoản")
     public ApiResponse<AdminUserResponse> getUserDetail(@PathVariable Integer userId) {
-        return ApiResponse.<AdminUserResponse>builder()
-                .result(adminAccountService.getUserDetail(userId))
-                .build();
+        return ApiResponses.ok(adminAccountService.getUserDetail(userId));
     }
 
     /**
@@ -105,9 +96,7 @@ public class AdminAccountController {
             @PathVariable Integer userId,
             @AuthenticationPrincipal Jwt jwt) {
         String adminEmail = extractAdminEmail(jwt);
-        return ApiResponse.<AdminUserResponse>builder()
-                .result(adminAccountService.suspendUser(userId, adminEmail))
-                .build();
+        return ApiResponses.ok(adminAccountService.suspendUser(userId, adminEmail));
     }
 
     /**
@@ -119,9 +108,7 @@ public class AdminAccountController {
             @PathVariable Integer userId,
             @AuthenticationPrincipal Jwt jwt) {
         String adminEmail = extractAdminEmail(jwt);
-        return ApiResponse.<AdminUserResponse>builder()
-                .result(adminAccountService.activateUser(userId, adminEmail))
-                .build();
+        return ApiResponses.ok(adminAccountService.activateUser(userId, adminEmail));
     }
 
     /**
@@ -134,10 +121,7 @@ public class AdminAccountController {
             @PathVariable Integer userId,
             @AuthenticationPrincipal Jwt jwt) {
         String adminEmail = extractAdminEmail(jwt);
-        return ApiResponse.<AdminUserResponse>builder()
-                .result(adminAccountService.deleteUser(userId, adminEmail))
-                .message("Tài khoản đã được đánh dấu xóa thành công")
-                .build();
+        return ApiResponses.ok(adminAccountService.deleteUser(userId, adminEmail), "Tài khoản đã được đánh dấu xóa thành công");
     }
 
     // ─────────────────────────────────────────────

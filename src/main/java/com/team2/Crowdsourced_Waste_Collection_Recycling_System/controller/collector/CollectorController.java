@@ -1,34 +1,37 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.collector;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.common.ApiResponses;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.ChangePasswordRequest;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCollectorStatusRequest;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorService;
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
-import jakarta.validation.Valid;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
-
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCollectorProfileRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCollectorStatusRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorGeneralStatsResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorLeaderboardResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorPerformanceStatsResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorTaskStatusCountResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorWasteVolumeStatsResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorWorkHistoryItemResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.entity.Collector;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.repository.collector.CollectorRepository;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorService;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.PasswordService;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.ProfileService;
-
-import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.*;
+import jakarta.validation.Valid;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.math.BigDecimal;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/collector")
 @Tag(name = "Collector", description = "Endpoint dành cho người thu gom")
 public class CollectorController {
-    private final com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorService collectorService;
+    private final CollectorService collectorService;
     private final CollectorRepository collectorRepository;
     private final ProfileService profileService;
     private final PasswordService passwordService;
@@ -47,58 +50,49 @@ public class CollectorController {
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Trang tổng quan Collector", description = "Thông tin tổng quan nhanh cho Collector")
     public ApiResponse<Map<String, Object>> getDashboard(@AuthenticationPrincipal Jwt jwt) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
+        Integer collectorId = getCollectorId(jwt);
         String status = collectorRepository.findById(collectorId)
-                .map(c -> c.getStatus() != null ? c.getStatus().name() : null)
+                .map(Collector::getStatus)
+                .map(Enum::name)
                 .orElse(null);
         boolean online = "ONLINE".equalsIgnoreCase(status);
-        return ApiResponse.<Map<String, Object>>builder()
-                .result(Map.of(
-                        "collectorId", collectorId,
-                        "status", status,
-                        "online", online
-                ))
-                .build();
+        return ApiResponses.ok(Map.of(
+                "collectorId", collectorId,
+                "status", status,
+                "online", online
+        ));
     }
 
     @GetMapping("/stats/performance")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Hiệu suất thu gom", description = "Thống kê số lượng thu gom theo tháng")
     public ApiResponse<CollectorPerformanceStatsResponse> getPerformanceStats(@AuthenticationPrincipal Jwt jwt, @RequestParam(required = false) Integer year) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        return ApiResponse.<CollectorPerformanceStatsResponse>builder()
-                .result(collectorService.getStats(collectorId, year))
-                .build();
+        Integer collectorId = getCollectorId(jwt);
+        return ApiResponses.ok(collectorService.getStats(collectorId, year));
     }
 
     @GetMapping("/stats/waste-volume")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Khối lượng rác thu gom", description = "Thống kê khối lượng rác theo tháng/quý")
     public ApiResponse<CollectorWasteVolumeStatsResponse> getWasteVolumeStats(@AuthenticationPrincipal Jwt jwt, @RequestParam(required = false) Integer year) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        return ApiResponse.<CollectorWasteVolumeStatsResponse>builder()
-                .result(collectorService.getWasteVolumeStats(collectorId, year))
-                .build();
+        Integer collectorId = getCollectorId(jwt);
+        return ApiResponses.ok(collectorService.getWasteVolumeStats(collectorId, year));
     }
 
     @GetMapping("/stats/waste-type")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Thống kê theo loại rác", description = "Tổng khối lượng rác theo từng loại")
     public ApiResponse<Map<String, BigDecimal>> getWasteTypeStats(@AuthenticationPrincipal Jwt jwt) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        return ApiResponse.<Map<String, BigDecimal>>builder()
-                .result(collectorService.getWasteTypeStats(collectorId))
-                .build();
+        Integer collectorId = getCollectorId(jwt);
+        return ApiResponses.ok(collectorService.getWasteTypeStats(collectorId));
     }
 
     @GetMapping("/stats/tasks")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Thống kê trạng thái task", description = "Số lượng task theo từng trạng thái")
     public ApiResponse<List<CollectorTaskStatusCountResponse>> getTaskStatusCounts(@AuthenticationPrincipal Jwt jwt) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        return ApiResponse.<List<CollectorTaskStatusCountResponse>>builder()
-                .result(collectorService.getTaskStatusCounts(collectorId))
-                .build();
+        Integer collectorId = getCollectorId(jwt);
+        return ApiResponses.ok(collectorService.getTaskStatusCounts(collectorId));
     }
 
     @GetMapping("/stats/general")
@@ -109,10 +103,8 @@ public class CollectorController {
             @RequestParam(required = false) Integer day,
             @RequestParam(required = false) Integer month,
             @RequestParam(required = false) Integer year) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        return ApiResponse.<CollectorGeneralStatsResponse>builder()
-                .result(collectorService.getGeneralStats(collectorId, day, month, year))
-                .build();
+        Integer collectorId = getCollectorId(jwt);
+        return ApiResponses.ok(collectorService.getGeneralStats(collectorId, day, month, year));
     }
 
     @GetMapping("/leaderboard")
@@ -121,28 +113,24 @@ public class CollectorController {
     public ApiResponse<List<CollectorLeaderboardResponse>> getLeaderboard(
             @RequestParam(required = false) Integer month,
             @RequestParam(required = false) Integer year) {
-        return ApiResponse.<List<CollectorLeaderboardResponse>>builder()
-                .result(collectorService.getLeaderboard(month, year))
-                .build();
+        return ApiResponses.ok(collectorService.getLeaderboard(month, year));
     }
 
     @GetMapping("/history")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Lịch sử thu gom", description = "Danh sách các task đã xử lý")
     public ApiResponse<List<CollectorWorkHistoryItemResponse>> getWorkHistory(@AuthenticationPrincipal Jwt jwt, @RequestParam(required = false) String status) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        return ApiResponse.<List<CollectorWorkHistoryItemResponse>>builder()
-                .result(collectorService.getWorkHistory(collectorId, status))
-                .build();
+        Integer collectorId = getCollectorId(jwt);
+        return ApiResponses.ok(collectorService.getWorkHistory(collectorId, status));
     }
 
     @PatchMapping("/status")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Cập nhật trạng thái", description = "Chuyển ACTIVE/INACTIVE")
     public ApiResponse<Void> updateMyStatus(@AuthenticationPrincipal Jwt jwt, @RequestBody UpdateCollectorStatusRequest request) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        collectorService.updateAvailabilityStatus(collectorId, request != null ? request.getStatus() : null);
-        return ApiResponse.<Void>builder().message("Updated").build();
+        Integer collectorId = getCollectorId(jwt);
+        collectorService.updateAvailabilityStatus(collectorId, request == null ? null : request.getStatus());
+        return ApiResponses.message("Updated");
     }
 
     @PutMapping("/profile")
@@ -150,19 +138,20 @@ public class CollectorController {
     @Operation(summary = "Cập nhật hồ sơ Collector", description = "Cập nhật tên, email, phương tiện, biển số")
     public ApiResponse<Collector> updateMyProfile(@AuthenticationPrincipal Jwt jwt,
                                                   @RequestBody UpdateCollectorProfileRequest request) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
+        Integer collectorId = getCollectorId(jwt);
         Collector updated = profileService.updateCollectorProfile(collectorId, request);
-        return ApiResponse.<Collector>builder()
-                .result(updated)
-                .message("Cập nhật hồ sơ thành công")
-                .build();
+        return ApiResponses.ok(updated, "Cập nhật hồ sơ thành công");
     }
 
     @PutMapping("/password")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Đổi mật khẩu", description = "Đổi mật khẩu tài khoản collector hiện tại")
     public ApiResponse<Void> changePassword(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ChangePasswordRequest request) {
-        passwordService.changePassword(jwt != null ? jwt.getSubject() : null, request);
-        return ApiResponse.<Void>builder().message("Đổi mật khẩu thành công").build();
+        passwordService.changePassword(jwt == null ? null : jwt.getSubject(), request);
+        return ApiResponses.message("Đổi mật khẩu thành công");
+    }
+
+    private Integer getCollectorId(Jwt jwt) {
+        return CollectorJwtSupport.extractCollectorId(jwt);
     }
 }

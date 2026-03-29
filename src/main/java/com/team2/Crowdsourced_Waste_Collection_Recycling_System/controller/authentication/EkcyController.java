@@ -1,6 +1,7 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.authentication;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.common.ApiResponses;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.EkcyClassifyRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.EkcyLivenessRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.EkcyOcrBackRequest;
@@ -35,37 +36,37 @@ public class EkcyController {
             @RequestParam(value = "enhance", required = false, defaultValue = "false") boolean enhance
     ) {
         String hash = ekcyService.upload(EkcyUploadRequest.builder().title(title).description(description).build(), file, enhance);
-        return ApiResponse.<EkcyUploadResponse>builder().result(EkcyUploadResponse.builder().hash(hash).build()).build();
+        return ApiResponses.ok(EkcyUploadResponse.builder().hash(hash).build());
     }
 
     @PostMapping("/classify")
     @Operation(summary = "Classify document", description = "Nhận diện loại giấy tờ từ ảnh (hash)")
     public ApiResponse<JsonNode> classify(@RequestBody EkcyClassifyRequest request) {
-        return ApiResponse.<JsonNode>builder().result(ekcyService.classify(request)).build();
+        return ApiResponses.ok(ekcyService.classify(request));
     }
 
     @PostMapping("/liveness")
     @Operation(summary = "Liveness check", description = "Kiểm tra giấy tờ thật/giả")
     public ApiResponse<JsonNode> liveness(@RequestBody EkcyLivenessRequest request) {
-        return ApiResponse.<JsonNode>builder().result(ekcyService.liveness(request)).build();
+        return ApiResponses.ok(ekcyService.liveness(request));
     }
 
     @PostMapping("/ocr/front")
     @Operation(summary = "OCR front", description = "OCR mặt trước giấy tờ")
     public ApiResponse<JsonNode> ocrFront(@RequestBody EkcyOcrFrontRequest request) {
-        return ApiResponse.<JsonNode>builder().result(ekcyService.ocrFront(request)).build();
+        return ApiResponses.ok(ekcyService.ocrFront(request));
     }
 
     @PostMapping("/ocr/back")
     @Operation(summary = "OCR back", description = "OCR mặt sau giấy tờ")
     public ApiResponse<JsonNode> ocrBack(@RequestBody EkcyOcrBackRequest request) {
-        return ApiResponse.<JsonNode>builder().result(ekcyService.ocrBack(request)).build();
+        return ApiResponses.ok(ekcyService.ocrBack(request));
     }
 
     @PostMapping("/ocr/full")
     @Operation(summary = "OCR full", description = "OCR full (front + back)")
     public ApiResponse<JsonNode> ocrFull(@RequestBody EkcyOcrFullRequest request) {
-        return ApiResponse.<JsonNode>builder().result(ekcyService.ocrFull(request)).build();
+        return ApiResponses.ok(ekcyService.ocrFull(request));
     }
 
     @PostMapping(value = "/flow", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -80,16 +81,12 @@ public class EkcyController {
             @RequestParam(value = "cropParam", required = false) String cropParam,
             @RequestParam(value = "enhance", required = false, defaultValue = "false") boolean enhance
     ) {
-        return ApiResponse.<EkcyFullFlowResponse>builder()
-                .result(ekcyService.fullFlow(front, back, clientSession, token, type, validatePostcode, cropParam, enhance))
-                .build();
+        return ApiResponses.ok(ekcyService.fullFlow(front, back, clientSession, token, type, validatePostcode, cropParam, enhance));
     }
 
     @GetMapping("/sessions/{id}")
     @Operation(summary = "Lấy kết quả eKYC đã lưu", description = "Trả về kết quả eKYC theo sessionId")
     public ApiResponse<EkycSessionResponse> getSession(@PathVariable("id") String id) {
-        return ApiResponse.<EkycSessionResponse>builder()
-                .result(ekcyService.getSession(id))
-                .build();
+        return ApiResponses.ok(ekcyService.getSession(id));
     }
 }
