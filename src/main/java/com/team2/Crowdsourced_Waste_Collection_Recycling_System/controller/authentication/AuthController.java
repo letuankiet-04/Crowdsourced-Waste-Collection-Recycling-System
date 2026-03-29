@@ -1,5 +1,6 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.authentication;
 
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.common.ApiResponses;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.*;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.*;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.AuthService;
@@ -30,25 +31,21 @@ public class AuthController {
             throws ParseException, JOSEException {
         // Trả về valid=true/false để phục vụ kiểm tra token (CustomJwtDecoder cũng dùng luồng này)
         var result = authService.introspect(request);
-        return ApiResponse.<IntrospectResponse>builder().result(result).build();
+        return ApiResponses.ok(result);
     }
 
     @PostMapping("/register")
     @Operation(summary = "Đăng ký tài khoản", description = "Tạo tài khoản mới và trả về JWT")
     public ApiResponse<AuthenticationResponse> register(@RequestBody RegisterRequest request) {
         // Đăng ký tài khoản và trả về token luôn để client đăng nhập ngay
-        return ApiResponse.<AuthenticationResponse>builder()
-                .result(authService.register(request))
-                .build();
+        return ApiResponses.ok(authService.register(request));
     }
 
     @PostMapping("/login")
     @Operation(summary = "Đăng nhập lấy token", description = "Trả về JWT trong ApiResponse")
     public ApiResponse<AuthenticationResponse> login(@RequestBody AuthenticationRequest request) {
         // Đăng nhập
-        return ApiResponse.<AuthenticationResponse>builder()
-                .result(authService.login(request))
-                .build();
+        return ApiResponses.ok(authService.login(request));
     }
 
     @PostMapping("/logout")

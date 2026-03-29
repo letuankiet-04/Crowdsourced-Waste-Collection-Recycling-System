@@ -1,5 +1,6 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.citizen;
 
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.common.ApiResponses;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.VoucherRedemptionResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.VoucherResponse;
@@ -65,6 +66,6 @@ public class CitizenVoucherController {
     }
 
     private <T> ResponseEntity<ApiResponse<T>> ok(T result, String message) {
-        return ResponseEntity.ok(ApiResponse.<T>builder().result(result).message(message).build());
+        return ApiResponses.okEntity(result, message);
     }
 }

@@ -4,6 +4,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.Crea
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.RejectTaskRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateTaskStatusRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.*;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.common.ApiResponses;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.impl.CollectorReportCreationService;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorReportService;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CollectorService;
@@ -49,9 +50,8 @@ public class CollectionController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "all", required = false, defaultValue = "false") boolean all) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        java.util.List<CollectorTaskResponse> tasks = collectorService.getTasks(collectorId, status, all);
-        return ApiResponse.<java.util.List<CollectorTaskResponse>>builder().result(tasks).build();
+        Integer collectorId = getCollectorId(jwt);
+        return ApiResponses.ok(collectorService.getTasks(collectorId, status, all));
     }
 
     @GetMapping("/tasks/{requestId}")
@@ -60,9 +60,8 @@ public class CollectionController {
     public ApiResponse<EnterpriseWasteReportResponse> getTaskDetail(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Integer requestId) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        EnterpriseWasteReportResponse result = collectorService.getTaskDetail(collectorId, requestId);
-        return ApiResponse.<EnterpriseWasteReportResponse>builder().result(result).build();
+        Integer collectorId = getCollectorId(jwt);
+        return ApiResponses.ok(collectorService.getTaskDetail(collectorId, requestId));
     }
 
     @GetMapping("/tasks/status_counts")
@@ -70,9 +69,8 @@ public class CollectionController {
     @Operation(summary = "Đếm task theo trạng thái", description = "Trả về số lượng task của collector theo từng status")
     public ApiResponse<java.util.List<CollectorTaskStatusCountResponse>> getTaskStatusCounts(
             @AuthenticationPrincipal Jwt jwt) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        java.util.List<CollectorTaskStatusCountResponse> result = collectorService.getTaskStatusCounts(collectorId);
-        return ApiResponse.<java.util.List<CollectorTaskStatusCountResponse>>builder().result(result).build();
+        Integer collectorId = getCollectorId(jwt);
+        return ApiResponses.ok(collectorService.getTaskStatusCounts(collectorId));
     }
 
     @GetMapping("/work_history")
@@ -81,11 +79,8 @@ public class CollectionController {
     public ApiResponse<java.util.List<CollectorWorkHistoryItemResponse>> getWorkHistory(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(value = "status", required = false) String status) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        java.util.List<CollectorWorkHistoryItemResponse> result = collectorService.getWorkHistory(collectorId, status);
-        return ApiResponse.<java.util.List<CollectorWorkHistoryItemResponse>>builder()
-                .result(result)
-                .build();
+        Integer collectorId = getCollectorId(jwt);
+        return ApiResponses.ok(collectorService.getWorkHistory(collectorId, status));
     }
 
     @GetMapping("/stats")
@@ -94,11 +89,8 @@ public class CollectionController {
     public ApiResponse<CollectorPerformanceStatsResponse> getStats(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(value = "year", required = false) Integer year) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        CollectorPerformanceStatsResponse stats = collectorService.getStats(collectorId, year);
-        return ApiResponse.<CollectorPerformanceStatsResponse>builder()
-                .result(stats)
-                .build();
+        Integer collectorId = getCollectorId(jwt);
+        return ApiResponses.ok(collectorService.getStats(collectorId, year));
     }
 
     @GetMapping("/waste-volume")
@@ -107,11 +99,8 @@ public class CollectionController {
     public ApiResponse<CollectorWasteVolumeStatsResponse> getWasteVolumeStats(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(value = "year", required = false) Integer year) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        CollectorWasteVolumeStatsResponse stats = collectorService.getWasteVolumeStats(collectorId, year);
-        return ApiResponse.<CollectorWasteVolumeStatsResponse>builder()
-                .result(stats)
-                .build();
+        Integer collectorId = getCollectorId(jwt);
+        return ApiResponses.ok(collectorService.getWasteVolumeStats(collectorId, year));
     }
 
     @GetMapping("/history")
@@ -119,14 +108,12 @@ public class CollectionController {
     @Operation(summary = "Lịch sử task và report", description = "Danh sách tất cả task và các báo cáo đã tạo")
     public ApiResponse<CollectorHistoryResponse> getHistory(
             @AuthenticationPrincipal Jwt jwt) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        CollectorHistoryResponse response = CollectorHistoryResponse.builder()
+        Integer collectorId = getCollectorId(jwt);
+        CollectorHistoryResponse history = CollectorHistoryResponse.builder()
                 .tasks(collectorService.getTasks(collectorId, null, true))
                 .reports(collectorReportService.getReportsByCollector(collectorId))
                 .build();
-        return ApiResponse.<CollectorHistoryResponse>builder()
-                .result(response)
-                .build();
+        return ApiResponses.ok(history);
     }
 
     /**
@@ -138,15 +125,13 @@ public class CollectionController {
     public ApiResponse<CollectionRequestActionResponse> acceptTask(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Integer requestId) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
+        Integer collectorId = getCollectorId(jwt);
         collectorService.acceptTask(requestId, collectorId);
-        return ApiResponse.<CollectionRequestActionResponse>builder()
-                .result(CollectionRequestActionResponse.builder()
-                        .collectionRequestId(requestId)
-                        .status("accepted_collector")
-                        .actionAt(LocalDateTime.now())
-                        .build())
-                .build();
+        return ApiResponses.ok(CollectionRequestActionResponse.builder()
+                .collectionRequestId(requestId)
+                .status("accepted_collector")
+                .actionAt(LocalDateTime.now())
+                .build());
     }
 
     /**
@@ -158,15 +143,13 @@ public class CollectionController {
     public ApiResponse<CollectionRequestActionResponse> startTask(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Integer requestId) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
+        Integer collectorId = getCollectorId(jwt);
         collectorService.startTask(requestId, collectorId);
-        return ApiResponse.<CollectionRequestActionResponse>builder()
-                .result(CollectionRequestActionResponse.builder()
-                        .collectionRequestId(requestId)
-                        .status("on_the_way")
-                        .actionAt(LocalDateTime.now())
-                        .build())
-                .build();
+        return ApiResponses.ok(CollectionRequestActionResponse.builder()
+                .collectionRequestId(requestId)
+                .status("on_the_way")
+                .actionAt(LocalDateTime.now())
+                .build());
     }
 
     /**
@@ -181,16 +164,14 @@ public class CollectionController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Integer requestId,
             @RequestBody(required = false) RejectTaskRequest request) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
+        Integer collectorId = getCollectorId(jwt);
         String reason = request != null ? request.getReason() : null;
         collectorService.rejectTask(requestId, collectorId, reason);
-        return ApiResponse.<CollectionRequestActionResponse>builder()
-                .result(CollectionRequestActionResponse.builder()
-                        .collectionRequestId(requestId)
-                        .status("reassign")
-                        .actionAt(LocalDateTime.now())
-                        .build())
-                .build();
+        return ApiResponses.ok(CollectionRequestActionResponse.builder()
+                .collectionRequestId(requestId)
+                .status("reassign")
+                .actionAt(LocalDateTime.now())
+                .build());
     }
 
     /**
@@ -203,15 +184,13 @@ public class CollectionController {
     public ApiResponse<CollectionRequestActionResponse> markCollected(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Integer requestId) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
+        Integer collectorId = getCollectorId(jwt);
         collectorService.completeTask(requestId, collectorId);
-        return ApiResponse.<CollectionRequestActionResponse>builder()
-                .result(CollectionRequestActionResponse.builder()
-                        .collectionRequestId(requestId)
-                        .status("collected")
-                        .actionAt(LocalDateTime.now())
-                        .build())
-                .build();
+        return ApiResponses.ok(CollectionRequestActionResponse.builder()
+                .collectionRequestId(requestId)
+                .status("collected")
+                .actionAt(LocalDateTime.now())
+                .build());
     }
 
     /**
@@ -225,15 +204,13 @@ public class CollectionController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Integer requestId,
             @RequestBody UpdateTaskStatusRequest request) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
+        Integer collectorId = getCollectorId(jwt);
         collectorService.updateStatus(requestId, collectorId, request.getStatus());
-        return ApiResponse.<CollectionRequestActionResponse>builder()
-                .result(CollectionRequestActionResponse.builder()
-                        .collectionRequestId(requestId)
-                        .status(request.getStatus().toLowerCase())
-                        .actionAt(LocalDateTime.now())
-                        .build())
-                .build();
+        return ApiResponses.ok(CollectionRequestActionResponse.builder()
+                .collectionRequestId(requestId)
+                .status(request.getStatus().toLowerCase())
+                .actionAt(LocalDateTime.now())
+                .build());
     }
 
     @GetMapping("/{requestId}/create_report")
@@ -242,11 +219,8 @@ public class CollectionController {
     public ApiResponse<ReportCollectorResponse> getCreateReport(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Integer requestId) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        ReportCollectorResponse response = collectorReportService.getCreateReport(requestId, collectorId);
-        return ApiResponse.<ReportCollectorResponse>builder()
-                .result(response)
-                .build();
+        Integer collectorId = getCollectorId(jwt);
+        return ApiResponses.ok(collectorReportService.getCreateReport(requestId, collectorId));
     }
 
     @PostMapping(value = "/{requestId}/complete", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -256,11 +230,8 @@ public class CollectionController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Integer requestId,
             @Valid @ModelAttribute CreateCollectorReportRequest request) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        CollectorReportResponse response = collectorReportCreationService.createCollectorReport(requestId, collectorId, request);
-        return ApiResponse.<CollectorReportResponse>builder()
-                .result(response)
-                .build();
+        Integer collectorId = getCollectorId(jwt);
+        return ApiResponses.ok(collectorReportCreationService.createCollectorReport(requestId, collectorId, request));
     }
     @GetMapping("/{requestId}/report")
     @PreAuthorize("hasRole('COLLECTOR')")
@@ -268,16 +239,14 @@ public class CollectionController {
     public ApiResponse<CollectorReportResponse> getReportByCollectionRequest(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Integer requestId) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        CollectorReportResponse response = collectorReportService.getReportByCollectionRequest(requestId, collectorId);
+        Integer collectorId = getCollectorId(jwt);
+        CollectorReportResponse report = collectorReportService.getReportByCollectionRequest(requestId, collectorId);
 
-        if (response == null) {
+        if (report == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Report chưa được tạo cho collection request này");
         }
 
-        return ApiResponse.<CollectorReportResponse>builder()
-                .result(response)
-                .build();
+        return ApiResponses.ok(report);
     }
 
     /**
@@ -288,12 +257,8 @@ public class CollectionController {
     @Operation(summary = "Danh sách report của tôi", description = "Danh sách báo cáo đã gửi")
     public ApiResponse<java.util.List<CollectorReportResponse>> getMyReports(
             @AuthenticationPrincipal Jwt jwt) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        java.util.List<CollectorReportResponse> reports = collectorReportService.getReportsByCollector(collectorId);
-
-        return ApiResponse.<java.util.List<CollectorReportResponse>>builder()
-                .result(reports)
-                .build();
+        Integer collectorId = getCollectorId(jwt);
+        return ApiResponses.ok(collectorReportService.getReportsByCollector(collectorId));
     }
 
     /**
@@ -305,12 +270,12 @@ public class CollectionController {
     public ApiResponse<CollectorReportResponse> getReportById(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Integer reportId) {
-        Integer collectorId = CollectorJwtSupport.extractCollectorId(jwt);
-        CollectorReportResponse response = collectorReportService.getReportById(reportId, collectorId);
+        Integer collectorId = getCollectorId(jwt);
+        return ApiResponses.ok(collectorReportService.getReportById(reportId, collectorId));
+    }
 
-        return ApiResponse.<CollectorReportResponse>builder()
-                .result(response)
-                .build();
+    private Integer getCollectorId(Jwt jwt) {
+        return CollectorJwtSupport.extractCollectorId(jwt);
     }
 
 }

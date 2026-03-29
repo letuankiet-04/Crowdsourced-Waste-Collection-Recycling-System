@@ -398,7 +398,6 @@ public class WasteReportServiceImpl implements WasteReportService {
                 .build();
     }
 
-    // Helper: Lấy tên người gửi
     private String resolveSubmitBy(WasteReport report) {
         if (report == null || report.getCitizen() == null) {
             return null;
@@ -486,7 +485,6 @@ public class WasteReportServiceImpl implements WasteReportService {
     public List<CitizenRewardHistoryResponse> getRewardHistory(String citizenEmail, LocalDateTime startDate, LocalDateTime endDate) {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
         List<PointTransaction> transactions;
-        // Nếu có khoảng thời gian, lọc trực tiếp ở tầng repository để giảm dữ liệu load lên
         if (startDate != null && endDate != null) {
             transactions = pointTransactionRepository.findByCitizenIdAndDateRange(
                     citizen.getId(),
@@ -532,18 +530,15 @@ public class WasteReportServiceImpl implements WasteReportService {
         LocalDateTime from = null;
         LocalDateTime to = null;
 
-        // Xử lý logic thời gian: Năm, Quý, Tháng
         if (year != null || quarter != null || month != null) {
             int y = normalizeYearOrThrow(year);
             if (month != null) {
-                // Lọc theo tháng
                 if (month < 1 || month > 12) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "month phải từ 1 đến 12");
                 }
                 from = LocalDate.of(y, month, 1).atStartOfDay();
                 to = from.plusMonths(1);
             } else if (quarter != null) {
-                // Lọc theo quý
                 if (quarter < 1 || quarter > 4) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "quarter phải từ 1 đến 4");
                 }
@@ -551,7 +546,6 @@ public class WasteReportServiceImpl implements WasteReportService {
                 from = LocalDate.of(y, fromMonth, 1).atStartOfDay();
                 to = from.plusMonths(3);
             } else {
-                // Lọc theo năm
                 from = LocalDate.of(y, 1, 1).atStartOfDay();
                 to = from.plusYears(1);
             }
@@ -608,8 +602,7 @@ public class WasteReportServiceImpl implements WasteReportService {
 
         String normalizedType = normalizeComplaintType(request.getType());
         request.setType(normalizedType);
-        
-        // Chỉ cho phép 3 loại complaint: COMPLAINT_COLLECTION, COMPLAINT_REWARD, COMPLAINT_SYSTEM
+
         if (!"COMPLAINT_COLLECTION".equals(normalizedType) 
                 && !"COMPLAINT_REWARD".equals(normalizedType) 
                 && !"COMPLAINT_SYSTEM".equals(normalizedType)) {
@@ -619,13 +612,12 @@ public class WasteReportServiceImpl implements WasteReportService {
         Feedback feedback = citizenFeatureMapper.toFeedback(request);
         feedback.setCitizen(citizen);
         
-        // Tạo mã tạm thời để pass constraint
+
         feedback.setFeedbackCode("TEMP-" + System.nanoTime());
         feedback.setCollectionRequest(collectionRequest);
         
         Feedback saved = feedbackRepository.save(feedback);
-        
-        // Cập nhật mã feedback chuẩn: F + 3 số ID
+
         String finalCode = String.format("F%03d", saved.getId());
         saved.setFeedbackCode(finalCode);
         feedbackRepository.save(saved);
@@ -637,10 +629,8 @@ public class WasteReportServiceImpl implements WasteReportService {
         if (type == null) {
             return null;
         }
-        // Normalize và map các giá trị cũ nếu cần
         String normalized = type.trim().replaceAll("\\s+", "_").toUpperCase(Locale.ROOT);
-        
-        // Map các giá trị cũ sang mới (nếu cần thiết)
+
         if ("POINT".equals(normalized)) return "COMPLAINT_REWARD";
         if ("COLLECTOR".equals(normalized)) return "COMPLAINT_COLLECTION";
         if ("SERVICE".equals(normalized)) return "COMPLAINT_COLLECTION";
@@ -743,7 +733,6 @@ public class WasteReportServiceImpl implements WasteReportService {
     public CitizenReportStatsResponse getMyReportStats(String citizenEmail) {
         Citizen citizen = requireCitizenByEmail(citizenEmail, ErrorCode.USER_NOT_EXISTED);
 
-        // 1. Thống kê số lượng báo cáo theo trạng thái
         List<Object[]> statusCounts = wasteReportRepository.countStatusByCitizenId(citizen.getId());
         Map<String, Long> reportsByStatus = new HashMap<>();
         for (Object[] row : statusCounts) {
@@ -752,7 +741,6 @@ public class WasteReportServiceImpl implements WasteReportService {
             reportsByStatus.put(status, count);
         }
 
-        // 2. Thống kê khối lượng rác theo loại
         List<Object[]> weightCounts = collectorReportItemRepository.sumWeightByWasteTypeForCitizen(citizen.getId());
         Map<String, BigDecimal> wasteWeightByType = new HashMap<>();
         for (Object[] row : weightCounts) {
@@ -777,7 +765,7 @@ public class WasteReportServiceImpl implements WasteReportService {
         return responses;
     }
     
-    // Hàm build response cho createReport
+
     private WasteReportResponse buildReportResponse(WasteReport saved, List<WasteCategory> categories) {
         List<WasteCategoryResponse> catResponses = new ArrayList<>();
         for (WasteCategory c : categories) {
@@ -981,7 +969,6 @@ public class WasteReportServiceImpl implements WasteReportService {
         if (value == null) {
             return false;
         }
-        // Kiểm tra xem value có nằm trong khoảng [start, end] không
         return (value.isEqual(start) || value.isAfter(start)) &&
                 (value.isEqual(end) || value.isBefore(end));
     }
@@ -1026,7 +1013,7 @@ public class WasteReportServiceImpl implements WasteReportService {
             if (raw == null || raw.isBlank()) {
                 continue;
             }
-            // Tách chuỗi bằng dấu phẩy
+
             String[] parts = raw.split(",");
             for (String part : parts) {
                 String token = part != null ? part.trim() : null;
@@ -1034,7 +1021,7 @@ public class WasteReportServiceImpl implements WasteReportService {
                     continue;
                 }
                 
-                // Thử parse số nguyên (ID)
+
                 Integer id = tryParseInt(token);
                 if (id != null) {
                     parsed.add(id);

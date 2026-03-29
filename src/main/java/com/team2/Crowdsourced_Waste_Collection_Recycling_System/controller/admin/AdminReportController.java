@@ -1,5 +1,6 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.admin;
 
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.common.ApiResponses;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CollectorReportResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.EnterpriseWasteReportResponse;
@@ -35,10 +36,7 @@ public class AdminReportController {
 
         List<EnterpriseWasteReportResponse> result = enterpriseWasteReportService.getReports(enterpriseId, status);
 
-        return ResponseEntity.ok(ApiResponse.<List<EnterpriseWasteReportResponse>>builder()
-                .result(result)
-                .message("Lấy danh sách báo cáo rác thành công")
-                .build());
+        return ApiResponses.okEntity(result, "Lấy danh sách báo cáo rác thành công");
     }
 
     @GetMapping("/waste-reports/pending")
@@ -49,10 +47,7 @@ public class AdminReportController {
 
         List<EnterpriseWasteReportResponse> result = enterpriseWasteReportService.getPendingReports(enterpriseId);
 
-        return ResponseEntity.ok(ApiResponse.<List<EnterpriseWasteReportResponse>>builder()
-                .result(result)
-                .message("Lấy danh sách báo cáo rác PENDING thành công")
-                .build());
+        return ApiResponses.okEntity(result, "Lấy danh sách báo cáo rác PENDING thành công");
     }
 
     @GetMapping("/waste/{id}")
@@ -63,10 +58,7 @@ public class AdminReportController {
             
         EnterpriseWasteReportResponse result = enterpriseWasteReportService.getReportById(enterpriseId, id);
 
-        return ResponseEntity.ok(ApiResponse.<EnterpriseWasteReportResponse>builder()
-                .result(result)
-                .message("Lấy chi tiết báo cáo rác thành công")
-                .build());
+        return ApiResponses.okEntity(result, "Lấy chi tiết báo cáo rác thành công");
     }
 
     // ---------------- Collector Reports (Collectors) ----------------
@@ -81,9 +73,6 @@ public class AdminReportController {
 
         List<CollectorReportResponse> result = enterpriseCollectorReportService.getCollectorReports(enterpriseId);
 
-        return ResponseEntity.ok(ApiResponse.<List<CollectorReportResponse>>builder()
-                .result(result)
-                .message("Lấy danh sách báo cáo thu gom thành công")
-                .build());
+        return ApiResponses.okEntity(result, "Lấy danh sách báo cáo thu gom thành công");
     }
 }

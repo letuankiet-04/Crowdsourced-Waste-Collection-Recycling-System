@@ -17,15 +17,7 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.Api
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.exception.ErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-/**
- * EntryPoint cho lỗi unauthenticated (401).
- *
- * Khi request đi vào endpoint cần xác thực nhưng:
- * - không có token, hoặc
- * - token không hợp lệ/không decode được
- *
- * Spring Security sẽ gọi lớp này để trả về response JSON theo format ApiResponse của dự án.
- */
+
 @Component
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
     private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationEntryPoint.class);

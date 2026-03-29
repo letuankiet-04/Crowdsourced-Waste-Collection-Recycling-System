@@ -1,5 +1,6 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.cloudinary;
 
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.common.ApiResponses;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.CloudinaryResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.CloudinaryService;
@@ -32,9 +33,7 @@ public class FileController {
             @RequestParam(value = "module", defaultValue = "reports") String module
     ) {
         try {
-            return ApiResponse.<CloudinaryResponse>builder()
-                    .result(cloudinaryService.uploadImage(file, module))
-                    .build();
+            return ApiResponses.ok(cloudinaryService.uploadImage(file, module));
         } catch (IllegalArgumentException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
         } catch (IllegalStateException ex) {

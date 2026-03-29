@@ -1,5 +1,6 @@
 package com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.admin;
 
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.common.ApiResponses;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.PointRuleRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.PointRuleResponse;
@@ -24,19 +25,13 @@ public class AdminPointRuleController {
     @GetMapping
     @Operation(summary = "Xem quy tắc tính điểm hiện tại")
     public ResponseEntity<ApiResponse<PointRuleResponse>> getPointRule() {
-        return ResponseEntity.ok(ApiResponse.<PointRuleResponse>builder()
-                .result(pointRuleService.getPointRule())
-                .message("Lấy quy tắc tính điểm thành công")
-                .build());
+        return ApiResponses.okEntity(pointRuleService.getPointRule(), "Lấy quy tắc tính điểm thành công");
     }
 
     @PutMapping
     @Operation(summary = "Cập nhật quy tắc tính điểm")
     public ResponseEntity<ApiResponse<PointRuleResponse>> updatePointRule(
             @Valid @RequestBody PointRuleRequest request) {
-        return ResponseEntity.ok(ApiResponse.<PointRuleResponse>builder()
-                .result(pointRuleService.updatePointRule(request))
-                .message("Cập nhật quy tắc tính điểm thành công")
-                .build());
+        return ApiResponses.okEntity(pointRuleService.updatePointRule(request), "Cập nhật quy tắc tính điểm thành công");
     }
 }
