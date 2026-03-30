@@ -77,7 +77,9 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
 
     interface EnterpriseMonthlyReportCountView {
         Integer getYearValue();
+
         Integer getMonthValue();
+
         Long getTotalReports();
     }
 
@@ -101,8 +103,11 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
 
     interface EnterpriseDailyReportCountView {
         Integer getYearValue();
+
         Integer getMonthValue();
+
         Integer getDayValue();
+
         Long getTotalReports();
     }
 
@@ -236,23 +241,23 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
      * Lấy danh sách task của collector theo trạng thái.
      */
     @Query(value = """
-                SELECT
-                    cr.id AS id,
-                    cr.request_code AS requestCode,
-                    cr.status AS status,
-                    wr.address AS address,
-                    cr.assigned_at AS assignedAt,
-                    cr.created_at AS createdAt,
-                    cr.updated_at AS updatedAt
-        FROM collection_requests cr
-        LEFT JOIN waste_reports wr ON cr.report_id = wr.id
-        WHERE cr.collector_id = :collectorId
-          AND cr.status = :status
-        ORDER BY
-            CASE WHEN cr.assigned_at IS NULL THEN 1 ELSE 0 END,
-            cr.assigned_at DESC,
-            cr.id DESC
-        """, nativeQuery = true)
+                    SELECT
+                        cr.id AS id,
+                        cr.request_code AS requestCode,
+                        cr.status AS status,
+                        wr.address AS address,
+                        cr.assigned_at AS assignedAt,
+                        cr.created_at AS createdAt,
+                        cr.updated_at AS updatedAt
+            FROM collection_requests cr
+            LEFT JOIN waste_reports wr ON cr.report_id = wr.id
+            WHERE cr.collector_id = :collectorId
+              AND cr.status = :status
+            ORDER BY
+                CASE WHEN cr.assigned_at IS NULL THEN 1 ELSE 0 END,
+                cr.assigned_at DESC,
+                cr.id DESC
+            """, nativeQuery = true)
     List<CollectorTaskView> findTasksForCollectorByStatus(
             @Param("collectorId") Integer collectorId,
             @Param("status") String status);
@@ -262,23 +267,23 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
      * và ON_THE_WAY
      */
     @Query(value = """
-                SELECT
-                    cr.id AS id,
-                    cr.request_code AS requestCode,
-                    cr.status AS status,
-                    wr.address AS address,
-                    cr.assigned_at AS assignedAt,
-                    cr.created_at AS createdAt,
-                    cr.updated_at AS updatedAt
-        FROM collection_requests cr
-        LEFT JOIN waste_reports wr ON cr.report_id = wr.id
-        WHERE cr.collector_id = :collectorId
-          AND UPPER(cr.status) IN ('ASSIGNED', 'ACCEPTED_COLLECTOR', 'ON_THE_WAY', 'COLLECTED')
-        ORDER BY
-            CASE WHEN cr.assigned_at IS NULL THEN 1 ELSE 0 END,
-            cr.assigned_at DESC,
-            cr.id DESC
-        """, nativeQuery = true)
+                    SELECT
+                        cr.id AS id,
+                        cr.request_code AS requestCode,
+                        cr.status AS status,
+                        wr.address AS address,
+                        cr.assigned_at AS assignedAt,
+                        cr.created_at AS createdAt,
+                        cr.updated_at AS updatedAt
+            FROM collection_requests cr
+            LEFT JOIN waste_reports wr ON cr.report_id = wr.id
+            WHERE cr.collector_id = :collectorId
+              AND UPPER(cr.status) IN ('ASSIGNED', 'ACCEPTED_COLLECTOR', 'ON_THE_WAY', 'COLLECTED')
+            ORDER BY
+                CASE WHEN cr.assigned_at IS NULL THEN 1 ELSE 0 END,
+                cr.assigned_at DESC,
+                cr.id DESC
+            """, nativeQuery = true)
     List<CollectorTaskView> findActiveTasksForCollector(@Param("collectorId") Integer collectorId);
 
     @Query(value = """
@@ -295,11 +300,11 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     List<Object[]> countStatusByEnterpriseId(@Param("enterpriseId") Integer enterpriseId);
 
     @Query("""
-        SELECT req.collector.id, req.collector.fullName, COUNT(req), SUM(COALESCE(req.actualWeightKg, 0))
-        FROM CollectionRequest req
-        WHERE req.enterprise.id = :enterpriseId AND req.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
-        GROUP BY req.collector.id, req.collector.fullName
-    """)
+                SELECT req.collector.id, req.collector.fullName, COUNT(req), SUM(COALESCE(req.actualWeightKg, 0))
+                FROM CollectionRequest req
+                WHERE req.enterprise.id = :enterpriseId AND req.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
+                GROUP BY req.collector.id, req.collector.fullName
+            """)
     List<Object[]> getCollectorPerformanceForEnterprise(@Param("enterpriseId") Integer enterpriseId);
 
     interface CollectorWorkHistoryView {
@@ -329,12 +334,12 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     }
 
     @Query("""
-        SELECT c.id, c.fullName, COUNT(req), COALESCE(SUM(req.actualWeightKg), 0)
-        FROM Collector c
-        LEFT JOIN CollectionRequest req ON req.collector.id = c.id AND req.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
-        GROUP BY c.id, c.fullName
-        ORDER BY COALESCE(SUM(req.actualWeightKg), 0) DESC
-    """)
+                SELECT c.id, c.fullName, COUNT(req), COALESCE(SUM(req.actualWeightKg), 0)
+                FROM Collector c
+                LEFT JOIN CollectionRequest req ON req.collector.id = c.id AND req.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
+                GROUP BY c.id, c.fullName
+                ORDER BY COALESCE(SUM(req.actualWeightKg), 0) DESC
+            """)
     List<Object[]> getGlobalCollectorPerformance();
 
     @Query(value = """
@@ -483,7 +488,8 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
                     COALESCE(cr.completed_at, cr.collected_at, cr.started_at, cr.updated_at) DESC,
                     cr.id DESC
             """, nativeQuery = true)
-    Page<CollectorWorkHistoryView> findWorkHistoryForCollector(@Param("collectorId") Integer collectorId, Pageable pageable);
+    Page<CollectorWorkHistoryView> findWorkHistoryForCollector(@Param("collectorId") Integer collectorId,
+            Pageable pageable);
 
     @Query(value = """
                 SELECT
@@ -753,11 +759,13 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
     /**
      * Từ chối nhiệm vụ theo hướng atomic:
      * - Chỉ khi request đang assigned và thuộc collector hiện tại
-     * - Set status = reassign, lưu lý do, và unassign collector để enterprise gán lại
+     * - Set status = reassign, lưu lý do, và unassign collector để enterprise gán
+     * lại
      */
     @Modifying
     @Query("update CollectionRequest cr " +
-            "set cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.REASSIGN," +
+            "set cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.REASSIGN,"
+            +
             "cr.rejectionReason =:reason," +
             "cr.collector = null," +
             "cr.assignedAt = null," +
@@ -829,29 +837,29 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
             @Param("time") LocalDateTime time);
 
     @Query("""
-        SELECT SUM(COALESCE(cr.actualWeightKg, 0)), COUNT(cr)
-        FROM CollectionRequest cr
-        WHERE cr.collector.id = :collectorId
-          AND cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
-          AND (:year IS NULL OR YEAR(COALESCE(cr.completedAt, cr.collectedAt)) = :year)
-          AND (:month IS NULL OR MONTH(COALESCE(cr.completedAt, cr.collectedAt)) = :month)
-          AND (:day IS NULL OR DAY(COALESCE(cr.completedAt, cr.collectedAt)) = :day)
-    """)
+                SELECT SUM(COALESCE(cr.actualWeightKg, 0)), COUNT(cr)
+                FROM CollectionRequest cr
+                WHERE cr.collector.id = :collectorId
+                  AND cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
+                  AND (:year IS NULL OR YEAR(COALESCE(cr.completedAt, cr.collectedAt)) = :year)
+                  AND (:month IS NULL OR MONTH(COALESCE(cr.completedAt, cr.collectedAt)) = :month)
+                  AND (:day IS NULL OR DAY(COALESCE(cr.completedAt, cr.collectedAt)) = :day)
+            """)
     List<Object[]> getStatsByDate(@Param("collectorId") Integer collectorId,
-                                  @Param("day") Integer day,
-                                  @Param("month") Integer month,
-                                  @Param("year") Integer year);
+            @Param("day") Integer day,
+            @Param("month") Integer month,
+            @Param("year") Integer year);
 
     @Query("""
-        SELECT c.id, c.fullName, COUNT(req), COALESCE(SUM(req.actualWeightKg), 0)
-        FROM Collector c
-        LEFT JOIN CollectionRequest req ON req.collector.id = c.id 
-          AND req.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
-          AND (:year IS NULL OR YEAR(COALESCE(req.completedAt, req.collectedAt)) = :year)
-          AND (:month IS NULL OR MONTH(COALESCE(req.completedAt, req.collectedAt)) = :month)
-        GROUP BY c.id, c.fullName
-        ORDER BY COUNT(req) DESC
-    """)
+                SELECT c.id, c.fullName, COUNT(req), COALESCE(SUM(req.actualWeightKg), 0)
+                FROM Collector c
+                LEFT JOIN CollectionRequest req ON req.collector.id = c.id
+                  AND req.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
+                  AND (:year IS NULL OR YEAR(COALESCE(req.completedAt, req.collectedAt)) = :year)
+                  AND (:month IS NULL OR MONTH(COALESCE(req.completedAt, req.collectedAt)) = :month)
+                GROUP BY c.id, c.fullName
+                ORDER BY COUNT(req) DESC
+            """)
     List<Object[]> getLeaderboardByTaskCount(@Param("month") Integer month, @Param("year") Integer year);
 
     /**
@@ -865,22 +873,28 @@ public interface CollectionRequestRepository extends JpaRepository<CollectionReq
      * @return List Object[] gồm: id, fullName, totalTasks, totalWeight
      */
     @Query("""
-        SELECT 
-            c.id, 
-            c.fullName, 
-            COUNT(cr.id), 
-            COALESCE(SUM(cr.actualWeightKg), 0)
-        FROM Collector c
-        LEFT JOIN CollectionRequest cr ON cr.collector.id = c.id
-          AND cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
-          AND (:day IS NULL OR DAY(COALESCE(cr.completedAt, cr.collectedAt)) = :day)
-          AND (:month IS NULL OR MONTH(COALESCE(cr.completedAt, cr.collectedAt)) = :month)
-          AND (:year IS NULL OR YEAR(COALESCE(cr.completedAt, cr.collectedAt)) = :year)
-        GROUP BY c.id, c.fullName
-        ORDER BY COALESCE(SUM(cr.actualWeightKg), 0) DESC
-    """)
+                SELECT
+                    c.id,
+                    c.fullName,
+                    COUNT(cr.id),
+                    COALESCE(SUM(cr.actualWeightKg), 0)
+                FROM Collector c
+                LEFT JOIN CollectionRequest cr ON cr.collector.id = c.id
+                  AND cr.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectionRequestStatus.COMPLETED
+                  AND (:day IS NULL OR DAY(COALESCE(cr.completedAt, cr.collectedAt)) = :day)
+                  AND (:month IS NULL OR MONTH(COALESCE(cr.completedAt, cr.collectedAt)) = :month)
+                  AND (:year IS NULL OR YEAR(COALESCE(cr.completedAt, cr.collectedAt)) = :year)
+                GROUP BY c.id, c.fullName
+                ORDER BY COALESCE(SUM(cr.actualWeightKg), 0) DESC
+            """)
     List<Object[]> findCollectorLeaderboard(
             @Param("day") Integer day,
             @Param("month") Integer month,
             @Param("year") Integer year);
+
+    void deleteByCollector_Id(Integer collectorId);
+
+    void deleteByReport_Citizen_Id(Integer citizenId);
+
+    long countByCollector_Id(Integer collectorId);
 }

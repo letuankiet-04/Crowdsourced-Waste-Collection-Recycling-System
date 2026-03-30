@@ -12,13 +12,17 @@ import java.util.Optional;
 @Repository
 public interface CollectorReportRepository extends JpaRepository<CollectorReport, Integer> {
     boolean existsByCollectionRequest_Id(Integer requestId);
+
     Optional<CollectorReport> findTopByCollectionRequest_IdOrderByCreatedAtDesc(Integer requestId);
+
     default Optional<CollectorReport> findByCollectionRequest_Id(Integer requestId) {
         return findTopByCollectionRequest_IdOrderByCreatedAtDesc(requestId);
     }
+
     default Optional<CollectorReport> findByCollectionRequestId(Integer requestId) {
         return findTopByCollectionRequest_IdOrderByCreatedAtDesc(requestId);
     }
+
     List<CollectorReport> findByCollector_Id(Integer collectorId);
 
     List<CollectorReport> findByCollector_IdOrderByCreatedAtDesc(Integer collectorId);
@@ -44,4 +48,10 @@ public interface CollectorReportRepository extends JpaRepository<CollectorReport
     List<CollectorReport> findByCollectorIdWithRequest(@Param("collectorId") Integer collectorId);
 
     List<CollectorReport> findByCollectionRequest_Enterprise_IdOrderByCreatedAtDesc(Integer enterpriseId);
+
+    void deleteByCollectionRequest_Report_Citizen_Id(Integer citizenId);
+
+    void deleteByCollector_Id(Integer collectorId);
+
+    long countByCollector_Id(Integer collectorId);
 }

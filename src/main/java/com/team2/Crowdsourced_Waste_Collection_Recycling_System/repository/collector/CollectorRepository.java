@@ -29,5 +29,8 @@ public interface CollectorRepository extends JpaRepository<Collector, Integer> {
             @Param("status") CollectorStatus status);
 
     @org.springframework.data.jpa.repository.Query("SELECT c FROM Collector c WHERE c.enterprise.id = :enterpriseId AND c.status = com.team2.Crowdsourced_Waste_Collection_Recycling_System.enums.CollectorStatus.ONLINE")
-    List<Collector> findAvailableCollectors(@org.springframework.data.repository.query.Param("enterpriseId") Integer enterpriseId);
+    List<Collector> findAvailableCollectors(
+            @org.springframework.data.repository.query.Param("enterpriseId") Integer enterpriseId);
+
+    void deleteByUserId(Integer userId);
 }

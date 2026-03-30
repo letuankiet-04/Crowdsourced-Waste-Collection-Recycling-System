@@ -4,12 +4,20 @@ import com.team2.Crowdsourced_Waste_Collection_Recycling_System.controller.commo
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCitizenAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCollectorAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateEnterpriseAccountRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.ChangePasswordRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateAdminProfileRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCitizenProfileRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCollectorProfileRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateEnterpriseProfileRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminUserResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.ApiResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.DeleteUserPreviewResponse;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.AdminAccountService;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.service.PasswordService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -34,6 +42,26 @@ import java.util.List;
 public class AdminAccountController {
 
     private final AdminAccountService adminAccountService;
+    private final PasswordService passwordService;
+
+    @PatchMapping("/me/profile")
+    @Operation(summary = "Admin cập nhật hồ sơ", description = "Cập nhật email và họ tên của admin đang đăng nhập")
+    public ApiResponse<AdminUserResponse> updateMyProfile(
+            @RequestBody UpdateAdminProfileRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String adminEmail = extractAdminEmail(jwt);
+        return ApiResponses.ok(adminAccountService.updateMyProfile(adminEmail, request));
+    }
+
+    @PutMapping("/me/password")
+    @Operation(summary = "Admin đổi mật khẩu")
+    public ApiResponse<Void> changeMyPassword(
+            @Valid @RequestBody ChangePasswordRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String adminEmail = extractAdminEmail(jwt);
+        passwordService.changePassword(adminEmail, request);
+        return ApiResponses.message("Đổi mật khẩu thành công");
+    }
 
         @PostMapping("/citizens")
         @Operation(summary = "Tạo tài khoản CITIZEN")
@@ -86,6 +114,36 @@ public class AdminAccountController {
         return ApiResponses.ok(adminAccountService.getUserDetail(userId));
     }
 
+        @PutMapping("/{userId}/citizen-profile")
+        @Operation(summary = "Admin cập nhật hồ sơ CITIZEN")
+        public ApiResponse<AdminUserResponse> updateCitizenProfile(
+            @PathVariable Integer userId,
+                @RequestBody UpdateCitizenProfileRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String adminEmail = extractAdminEmail(jwt);
+            return ApiResponses.ok(adminAccountService.updateCitizenProfile(userId, request, adminEmail));
+        }
+
+        @PutMapping("/{userId}/collector-profile")
+        @Operation(summary = "Admin cập nhật hồ sơ COLLECTOR")
+        public ApiResponse<AdminUserResponse> updateCollectorProfile(
+            @PathVariable Integer userId,
+                @RequestBody UpdateCollectorProfileRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String adminEmail = extractAdminEmail(jwt);
+            return ApiResponses.ok(adminAccountService.updateCollectorProfile(userId, request, adminEmail));
+        }
+
+        @PutMapping("/{userId}/enterprise-profile")
+        @Operation(summary = "Admin cập nhật hồ sơ ENTERPRISE")
+        public ApiResponse<AdminUserResponse> updateEnterpriseProfile(
+            @PathVariable Integer userId,
+                @RequestBody UpdateEnterpriseProfileRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
+        String adminEmail = extractAdminEmail(jwt);
+            return ApiResponses.ok(adminAccountService.updateEnterpriseProfile(userId, request, adminEmail));
+        }
+
     /**
      * Khóa tài khoản (status → suspended).
      * Admin không thể tự khóa chính mình.
@@ -112,16 +170,32 @@ public class AdminAccountController {
     }
 
     /**
-     * Soft-delete tài khoản (status → "deleted").
-     * Dữ liệu lịch sử được giữ nguyên. Admin không thể tự xóa chính mình.
+     * Preview data sẽ bị xóa khi hard-delete tài khoản.
+     * Gọi endpoint này trước khi xác nhận xóa.
      */
-    @DeleteMapping("/{userId}")
-    @Operation(summary = "Xóa tài khoản (soft-delete)", description = "Đánh dấu status='deleted'. Dữ liệu được giữ nguyên. Admin không thể tự xóa mình.")
-    public ApiResponse<AdminUserResponse> deleteUser(
+    @GetMapping("/{userId}/delete-preview")
+    @Operation(summary = "Preview dữ liệu trước khi xóa",
+               description = "Trả về thông tin user và số lượng dữ liệu liên quan sẽ bị xóa vĩnh viễn. Admin không thể xóa chính mình hoặc tài khoản ADMIN.")
+    public ApiResponse<DeleteUserPreviewResponse> previewDeleteUser(
             @PathVariable Integer userId,
             @AuthenticationPrincipal Jwt jwt) {
         String adminEmail = extractAdminEmail(jwt);
-        return ApiResponses.ok(adminAccountService.deleteUser(userId, adminEmail), "Tài khoản đã được đánh dấu xóa thành công");
+        return ApiResponses.ok(adminAccountService.previewDeleteUser(userId, adminEmail));
+    }
+
+    /**
+     * Hard-delete tài khoản: xóa vĩnh viễn user và toàn bộ dữ liệu liên quan.
+     * Admin không thể xóa chính mình hoặc tài khoản ADMIN.
+     */
+    @DeleteMapping("/{userId}")
+    @Operation(summary = "Xóa tài khoản vĩnh viễn (hard-delete)",
+               description = "Xóa vĩnh viễn user và toàn bộ dữ liệu liên quan. Hành động này không thể hoàn tác. Nên gọi preview trước.")
+    public ApiResponse<Void> hardDeleteUser(
+            @PathVariable Integer userId,
+            @AuthenticationPrincipal Jwt jwt) {
+        String adminEmail = extractAdminEmail(jwt);
+        adminAccountService.hardDeleteUser(userId, adminEmail);
+        return ApiResponses.message("Tài khoản và toàn bộ dữ liệu liên quan đã được xóa vĩnh viễn");
     }
 
     // ─────────────────────────────────────────────

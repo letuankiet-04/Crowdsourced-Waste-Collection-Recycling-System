@@ -7,5 +7,7 @@ import java.util.Optional;
 
 public interface EkycSessionRepository extends JpaRepository<EkycSession, String> {
     Optional<EkycSession> findByIdAndUser_Id(String id, Integer userId);
+
+    void deleteByUser_Id(Integer userId);
 }
 

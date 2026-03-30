@@ -31,5 +31,7 @@ public interface CitizenRepository extends JpaRepository<Citizen, Integer> {
             order by coalesce(c.totalPoints, 0) desc, c.id asc
             """)
     Page<Citizen> findLeaderboard(@Param("region") String region, Pageable pageable);
+
+    void deleteByUserId(Integer userId);
 }
 

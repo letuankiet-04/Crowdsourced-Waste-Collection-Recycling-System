@@ -13,4 +13,8 @@ public interface CollectionTrackingRepository extends JpaRepository<CollectionTr
     Optional<CollectionTracking> findFirstByCollectionRequest_IdAndActionOrderByCreatedAtDesc(
             Integer collectionRequestId,
             String action);
+
+    void deleteByCollectionRequest_Report_Citizen_Id(Integer citizenId);
+
+    void deleteByCollector_Id(Integer collectorId);
 }

@@ -3,7 +3,12 @@ package com.team2.Crowdsourced_Waste_Collection_Recycling_System.service;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCitizenAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateCollectorAccountRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.AdminCreateEnterpriseAccountRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateAdminProfileRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCitizenProfileRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateCollectorProfileRequest;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.request.UpdateEnterpriseProfileRequest;
 import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.AdminUserResponse;
+import com.team2.Crowdsourced_Waste_Collection_Recycling_System.dto.response.DeleteUserPreviewResponse;
 
 import java.util.List;
 
@@ -42,6 +47,26 @@ public interface AdminAccountService {
     AdminUserResponse getUserDetail(Integer userId);
 
     /**
+     * Admin tự cập nhật hồ sơ của chính mình.
+     */
+    AdminUserResponse updateMyProfile(String adminEmail, UpdateAdminProfileRequest request);
+
+    /**
+     * Admin cập nhật hồ sơ tài khoản CITIZEN.
+     */
+    AdminUserResponse updateCitizenProfile(Integer userId, UpdateCitizenProfileRequest request, String adminEmail);
+
+    /**
+     * Admin cập nhật hồ sơ tài khoản COLLECTOR.
+     */
+    AdminUserResponse updateCollectorProfile(Integer userId, UpdateCollectorProfileRequest request, String adminEmail);
+
+    /**
+     * Admin cập nhật hồ sơ tài khoản ENTERPRISE.
+     */
+    AdminUserResponse updateEnterpriseProfile(Integer userId, UpdateEnterpriseProfileRequest request, String adminEmail);
+
+    /**
      * Khóa tài khoản (status → "suspended").
      *
      * @param userId     ID tài khoản cần khóa
@@ -59,12 +84,20 @@ public interface AdminAccountService {
     AdminUserResponse activateUser(Integer userId, String adminEmail);
 
     /**
-     * Soft-delete tài khoản: đánh dấu status = "deleted".
-     * Dữ liệu lịch sử được giữ nguyên, không có FK violation.
-     * Admin không thể tự xóa chính mình.
+     * Preview data liên quan sẽ bị xóa khi hard-delete tài khoản.
+     * Admin không thể preview xóa chính mình hoặc tài khoản ADMIN khác.
+     *
+     * @param userId     ID tài khoản cần xem preview
+     * @param adminEmail email của admin đang thực hiện
+     */
+    DeleteUserPreviewResponse previewDeleteUser(Integer userId, String adminEmail);
+
+    /**
+     * Hard-delete tài khoản: xóa vĩnh viễn user và toàn bộ dữ liệu liên quan.
+     * Admin không thể xóa chính mình hoặc tài khoản ADMIN khác.
      *
      * @param userId     ID tài khoản cần xóa
      * @param adminEmail email của admin đang thực hiện
      */
-    AdminUserResponse deleteUser(Integer userId, String adminEmail);
+    void hardDeleteUser(Integer userId, String adminEmail);
 }

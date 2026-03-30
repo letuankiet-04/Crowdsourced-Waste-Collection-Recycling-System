@@ -40,7 +40,8 @@ public enum ErrorCode {
     WASTE_CATEGORY_NOT_FOUND(1029, "Waste category not found", HttpStatus.NOT_FOUND),
     WASTE_CATEGORY_NAME_EXISTED(1030, "Waste category name already exists", HttpStatus.BAD_REQUEST),
     CANNOT_DELETE_SELF(1031, "Admin cannot delete their own account", HttpStatus.FORBIDDEN),
-    USER_ALREADY_DELETED(1032, "User account is already deleted", HttpStatus.BAD_REQUEST),
+    CANNOT_DELETE_ADMIN(1032, "Cannot delete an account with ADMIN role", HttpStatus.FORBIDDEN),
+    CANNOT_DELETE_ENTERPRISE(1033, "Cannot delete an account with ENTERPRISE role", HttpStatus.FORBIDDEN),
     ;
 
     ErrorCode(int code, String message, HttpStatusCode statusCode) {

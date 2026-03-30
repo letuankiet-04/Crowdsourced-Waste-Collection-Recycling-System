@@ -62,41 +62,41 @@ public interface CollectorReportItemRepository extends JpaRepository<CollectorRe
     List<AdminCategoryCollectedWeightView> sumCollectedWeightByCategoryForYear(@Param("year") Integer year);
 
     @Query("""
-        SELECT c.name, SUM(i.quantity) 
-        FROM CollectorReportItem i 
-        JOIN i.wasteCategory c 
-        JOIN i.collectorReport cr 
-        JOIN cr.collectionRequest req 
-        JOIN req.report wr 
-        WHERE wr.citizen.id = :citizenId 
-        GROUP BY c.name
-    """)
+                SELECT c.name, SUM(i.quantity)
+                FROM CollectorReportItem i
+                JOIN i.wasteCategory c
+                JOIN i.collectorReport cr
+                JOIN cr.collectionRequest req
+                JOIN req.report wr
+                WHERE wr.citizen.id = :citizenId
+                GROUP BY c.name
+            """)
     List<Object[]> sumWeightByWasteTypeForCitizen(@Param("citizenId") Integer citizenId);
 
     @Query("""
-        SELECT c.name, SUM(i.quantity) 
-        FROM CollectorReportItem i 
-        JOIN i.wasteCategory c 
-        JOIN i.collectorReport cr 
-        JOIN cr.collectionRequest req 
-        WHERE req.enterprise.id = :enterpriseId 
-        GROUP BY c.name
-    """)
+                SELECT c.name, SUM(i.quantity)
+                FROM CollectorReportItem i
+                JOIN i.wasteCategory c
+                JOIN i.collectorReport cr
+                JOIN cr.collectionRequest req
+                WHERE req.enterprise.id = :enterpriseId
+                GROUP BY c.name
+            """)
     List<Object[]> sumWeightByWasteTypeForEnterprise(@Param("enterpriseId") Integer enterpriseId);
 
     @Query("""
-        SELECT c.name, SUM(i.quantity) 
-        FROM CollectorReportItem i 
-        JOIN i.wasteCategory c 
-        JOIN i.collectorReport cr 
-        JOIN cr.collectionRequest req 
-        WHERE req.collector.id = :collectorId 
-        GROUP BY c.name
-    """)
+                SELECT c.name, SUM(i.quantity)
+                FROM CollectorReportItem i
+                JOIN i.wasteCategory c
+                JOIN i.collectorReport cr
+                JOIN cr.collectionRequest req
+                WHERE req.collector.id = :collectorId
+                GROUP BY c.name
+            """)
     List<Object[]> sumWeightByWasteTypeForCollector(@Param("collectorId") Integer collectorId);
 
     @Query(value = """
-            SELECT 
+            SELECT
                 cri.unit_snapshot,
                 COALESCE(SUM(cri.quantity), 0)
             FROM collector_report_items cri
@@ -106,4 +106,8 @@ public interface CollectorReportItemRepository extends JpaRepository<CollectorRe
             GROUP BY cri.unit_snapshot
             """, nativeQuery = true)
     List<Object[]> sumGlobalCollectedWasteByUnit();
+
+    void deleteByCollectorReport_CollectionRequest_Report_Citizen_Id(Integer citizenId);
+
+    void deleteByCollectorReport_Collector_Id(Integer collectorId);
 }

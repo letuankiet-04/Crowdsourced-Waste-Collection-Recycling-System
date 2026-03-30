@@ -13,4 +13,6 @@ public interface ReportImageRepository extends JpaRepository<ReportImage, Intege
     List<ReportImage> findByReport_IdIn(List<Integer> reportIds);
 
     void deleteByReport_Id(Integer reportId);
+
+    void deleteByReport_Citizen_Id(Integer citizenId);
 }

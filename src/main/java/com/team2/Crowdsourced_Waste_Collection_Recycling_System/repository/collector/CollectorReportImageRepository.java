@@ -11,4 +11,8 @@ public interface CollectorReportImageRepository extends JpaRepository<CollectorR
     List<CollectorReportImage> findByCollectorReport_Id(Integer collectorReportId);
 
     List<CollectorReportImage> findByCollectorReport_IdIn(List<Integer> collectorReportIds);
+
+    void deleteByCollectorReport_CollectionRequest_Report_Citizen_Id(Integer citizenId);
+
+    void deleteByCollectorReport_Collector_Id(Integer collectorId);
 }
