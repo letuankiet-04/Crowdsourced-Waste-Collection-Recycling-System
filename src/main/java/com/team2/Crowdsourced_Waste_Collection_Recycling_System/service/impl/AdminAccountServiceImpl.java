@@ -407,6 +407,13 @@ public class AdminAccountServiceImpl implements AdminAccountService {
         }
 
         user.setStatus("suspended");
+        String roleCode = user.getRole() != null ? user.getRole().getRoleCode() : null;
+        if ("COLLECTOR".equalsIgnoreCase(roleCode)) {
+            Collector collector = collectorRepository.findByUserId(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.COLLECTOR_NOT_FOUND));
+            collector.setStatus(CollectorStatus.SUSPEND);
+            collectorRepository.save(collector);
+        }
         User saved = userRepository.save(user);
 
         log.info("Admin {} đã khóa tài khoản user id={}", adminEmail, userId);
@@ -427,6 +434,13 @@ public class AdminAccountServiceImpl implements AdminAccountService {
         }
 
         user.setStatus("active");
+        String roleCode = user.getRole() != null ? user.getRole().getRoleCode() : null;
+        if ("COLLECTOR".equalsIgnoreCase(roleCode)) {
+            Collector collector = collectorRepository.findByUserId(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.COLLECTOR_NOT_FOUND));
+            collector.setStatus(CollectorStatus.OFFLINE);
+            collectorRepository.save(collector);
+        }
         User saved = userRepository.save(user);
 
         log.info("Admin {} đã mở khóa tài khoản user id={}", adminEmail, userId);
