@@ -23,8 +23,6 @@ public class CollectorStatusConverter implements AttributeConverter<CollectorSta
         try {
             return CollectorStatus.valueOf(dbData.toUpperCase());
         } catch (IllegalArgumentException e) {
-            // Handle unknown values, maybe log or return null/default
-            // For now, let's try to match loosely or throw clearer error
             return null; 
         }
     }

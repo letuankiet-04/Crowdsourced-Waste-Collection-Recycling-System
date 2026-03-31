@@ -30,9 +30,7 @@ public class FileUpLoadUtil {
 
     public static final String FILE_NAME_FORMAT = "%s_%s_%s";
 
-    /**
-     * Kiểm tra file name có đúng extension cho phép không
-     */
+
     public static boolean isAllowedExtension(String fileName, String pattern) {
         return Pattern
                 .compile(pattern, Pattern.CASE_INSENSITIVE)
@@ -80,14 +78,11 @@ public class FileUpLoadUtil {
 
         BufferedImage originalImage = ImageIO.read(file.getInputStream());
         if (originalImage == null) {
-            // Cannot read image (e.g. corrupted or unsupported format), return original bytes
             return file.getBytes();
         }
 
-        // Resize một lần về kích thước mục tiêu để tránh phải xử lý lại nhiều lần
         BufferedImage resizedBase = resizeImage(originalImage, 1920, 1080);
 
-        // Thử nén với một vài mức chất lượng khác nhau (giảm dần) cho đến khi đạt < 1MB
         float[] qualities = new float[] {0.85f, 0.7f, 0.55f, 0.4f};
         byte[] result = null;
 
@@ -98,7 +93,6 @@ public class FileUpLoadUtil {
             }
         }
 
-        // Fallback cuối cùng: giảm kích thước mạnh hơn và nén lại với chất lượng trung bình
         BufferedImage fallback = resizeImage(originalImage, 800, 800);
         return compressToJpg(fallback, 0.6f);
     }
@@ -107,10 +101,8 @@ public class FileUpLoadUtil {
         int originalWidth = original.getWidth();
         int originalHeight = original.getHeight();
 
-        // Calculate scale to fit within bounds while maintaining aspect ratio
         double scale = Math.min((double) maxWidth / originalWidth, (double) maxHeight / originalHeight);
         
-        // Do not upscale small images
         if (scale > 1.0) {
             scale = 1.0;
         }
@@ -118,18 +110,15 @@ public class FileUpLoadUtil {
         int newWidth = (int) (originalWidth * scale);
         int newHeight = (int) (originalHeight * scale);
         
-        // Ensure at least 1px
         newWidth = Math.max(1, newWidth);
         newHeight = Math.max(1, newHeight);
 
         BufferedImage outputImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = outputImage.createGraphics();
         
-        // Fill white background (handles transparency for JPG conversion)
         g2d.setColor(Color.WHITE);
         g2d.fillRect(0, 0, newWidth, newHeight);
 
-        // Quality settings for resizing
         g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
         g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);

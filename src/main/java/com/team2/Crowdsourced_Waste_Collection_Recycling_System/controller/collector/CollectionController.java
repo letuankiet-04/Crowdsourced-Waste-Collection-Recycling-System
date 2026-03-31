@@ -23,10 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 
-/**
- * Controller dành cho Người thu gom (Collector).
- * Sử dụng @PreAuthorize để đảm bảo chỉ Collector mới có quyền truy cập.
- */
+
 @RestController
 @RequestMapping("/api/collector/collections")
 @RequiredArgsConstructor
@@ -37,12 +34,6 @@ public class CollectionController {
     private final CollectorReportService collectorReportService;
     private final CollectorReportCreationService collectorReportCreationService;
 
-    /**
-     * Lấy danh sách task của collector.
-     * - Mặc định: chỉ hiển thị task active (assigned/accepted_collector/on_the_way)
-     * - status: lọc theo trạng thái cụ thể
-     * - all=true: lấy toàn bộ task
-     */
     @GetMapping("/tasks")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Danh sách task", description = "Hiển thị task active theo mặc định; hỗ trợ lọc status hoặc all=true")
@@ -116,9 +107,7 @@ public class CollectionController {
         return ApiResponses.ok(history);
     }
 
-    /**
-     * Collector bắt đầu di chuyển: assigned -> on_the_way.
-     */
+
     @PostMapping("/{requestId}/accept")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Chấp nhận nhiệm vụ", description = "Chuyển ASSIGNED → ACCEPTED_COLLECTOR")
@@ -134,9 +123,7 @@ public class CollectionController {
                 .build());
     }
 
-    /**
-     * Collector bắt đầu di chuyển: accepted_collector -> on_the_way.
-     */
+
     @PostMapping("/{requestId}/start")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Bắt đầu di chuyển", description = "Chuyển ACCEPTED_COLLECTOR → ON_THE_WAY")
@@ -152,11 +139,6 @@ public class CollectionController {
                 .build());
     }
 
-    /**
-     * Collector từ chối task (chỉ khi đang assigned):
-     * - status -> reassign
-     * - unassign collector để enterprise phân công lại
-     */
     @PostMapping("/{requestId}/reject")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Từ chối nhiệm vụ", description = "Chỉ khi đang ASSIGNED; chuyển về REASSIGN để gán collector khác")
@@ -174,10 +156,7 @@ public class CollectionController {
                 .build());
     }
 
-    /**
-     * Collector xác nhận đã thu gom tại điểm:
-     * - Cập nhật collection_request.status: on_the_way -> collected
-     */
+
     @PostMapping("/{requestId}/collected")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Đánh dấu đã thu gom", description = "Chuyển ON_THE_WAY → COLLECTED")
@@ -193,10 +172,7 @@ public class CollectionController {
                 .build());
     }
 
-    /**
-     * Cập nhật trạng thái nhiệm vụ (chỉ tiến về phía trước).
-     * Hiện tại hỗ trợ: ON_THE_WAY.
-     */
+
     @PatchMapping("/{requestId}/status")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Cập nhật trạng thái", description = "Cập nhật trạng thái nhiệm vụ (chỉ tiến về phía trước)")
@@ -249,9 +225,6 @@ public class CollectionController {
         return ApiResponses.ok(report);
     }
 
-    /**
-     * Lấy danh sách report của collector hiện tại.
-     */
     @GetMapping("/list_reports")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Danh sách report của tôi", description = "Danh sách báo cáo đã gửi")
@@ -261,9 +234,7 @@ public class CollectionController {
         return ApiResponses.ok(collectorReportService.getReportsByCollector(collectorId));
     }
 
-    /**
-     * Lấy chi tiết report theo reportId (chỉ cho report thuộc collector hiện tại).
-     */
+
     @GetMapping("/reports/{reportId}")
     @PreAuthorize("hasRole('COLLECTOR')")
     @Operation(summary = "Chi tiết report", description = "Lấy chi tiết báo cáo theo reportId (thuộc collector hiện tại)")

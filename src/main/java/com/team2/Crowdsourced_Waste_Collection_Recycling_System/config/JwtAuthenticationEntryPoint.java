@@ -38,7 +38,6 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         }
         ErrorCode errorCode = ErrorCode.UNAUTHENTICATED;
 
-        // Trả về đúng HTTP status và content-type JSON để frontend dễ xử lý
         response.setStatus(errorCode.getStatusCode().value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 

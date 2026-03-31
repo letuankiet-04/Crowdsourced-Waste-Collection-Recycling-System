@@ -23,7 +23,7 @@ public class CollectionRequestStatusConverter implements AttributeConverter<Coll
         try {
             return CollectionRequestStatus.valueOf(dbData.toUpperCase());
         } catch (IllegalArgumentException e) {
-            // Log warning or handle unknown status
+
             return null;
         }
     }
