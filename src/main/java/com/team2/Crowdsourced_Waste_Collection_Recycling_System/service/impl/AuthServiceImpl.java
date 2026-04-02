@@ -41,17 +41,7 @@ import java.util.StringJoiner;
 @RequiredArgsConstructor
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-/**
- * Hiện thực các nghiệp vụ xác thực/ủy quyền dựa trên JWT (Nimbus JOSE + JWT).
- *
- * Cách hoạt động tổng quát:
- * - Đăng nhập: kiểm tra email/password, sau đó phát hành JWT (HS512) chứa claim
- * "scope".
- * - Logout/Refresh: thu hồi token cũ bằng cách lưu jti vào bảng
- * invalidated_tokens.
- * - Introspect: kiểm tra token hợp lệ + chưa bị thu hồi (CustomJwtDecoder gọi
- * để quyết định cho phép truy cập).
- */
+
 public class AuthServiceImpl implements AuthService {
     static final String ROLE_CITIZEN = "CITIZEN";
     static final String ROLE_COLLECTOR = "COLLECTOR";

@@ -86,9 +86,7 @@ public class EnterpriseController extends EnterpriseControllerSupport {
         return ok(result);
     }
 
-    /**
-     * Enterprise accept một WasteReport và tự động tạo CollectionRequest
-     */
+
     @PostMapping("/accept/{reportCode}")
     @PreAuthorize("hasRole('ENTERPRISE')")
     @Operation(summary = "Accept WasteReport và tạo CollectionRequest", description = "Enterprise accept báo cáo rác và tạo mới yêu cầu thu gom ở trạng thái PENDING")

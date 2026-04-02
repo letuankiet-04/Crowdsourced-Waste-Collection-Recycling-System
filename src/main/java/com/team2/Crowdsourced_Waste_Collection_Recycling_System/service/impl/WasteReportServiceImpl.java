@@ -613,7 +613,8 @@ public class WasteReportServiceImpl implements WasteReportService {
         feedback.setCitizen(citizen);
         
 
-        feedback.setFeedbackCode("TEMP-" + System.nanoTime());
+        long temp = Math.floorMod(System.nanoTime(), 1_000_000_000_000_000L);
+        feedback.setFeedbackCode("TEMP-" + String.format("%015d", temp));
         feedback.setCollectionRequest(collectionRequest);
         
         Feedback saved = feedbackRepository.save(feedback);

@@ -125,8 +125,7 @@ public class EnterpriseReportDetailServiceImpl implements EnterpriseReportDetail
         }
 
         var citizen = report.getCitizen();
-        
-        // Ưu tiên 1: Thông tin từ tài khoản User (nếu đã liên kết)
+
         if (citizen.getUser() != null) {
             String userFullName = citizen.getUser().getFullName();
             if (userFullName != null && !userFullName.isBlank()) {
@@ -139,7 +138,7 @@ public class EnterpriseReportDetailServiceImpl implements EnterpriseReportDetail
             }
         }
 
-        // Ưu tiên 2: Thông tin trực tiếp từ bảng Citizen
+
         if (citizen.getFullName() != null && !citizen.getFullName().isBlank()) {
             return citizen.getFullName();
         }

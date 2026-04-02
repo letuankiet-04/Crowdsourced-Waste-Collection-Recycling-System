@@ -1,0 +1,1934 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Crowdsourced Waste Collection & Recycling System - Giải thích hệ thống & cấu hình</title>
+    <style>
+      :root {
+        --bg: #0b1220;
+        --card: #0f1a2e;
+        --text: #e7eefc;
+        --muted: #a8b7da;
+        --border: rgba(255, 255, 255, 0.12);
+        --link: #7bb2ff;
+        --code-bg: rgba(255, 255, 255, 0.06);
+        --accent: #45d39e;
+        --warn: #ffcc66;
+        --danger: #ff6b6b;
+      }
+      body {
+        margin: 0;
+        background: radial-gradient(1200px 800px at 20% 0%, rgba(69, 211, 158, 0.16), transparent 60%),
+          radial-gradient(1200px 800px at 80% 10%, rgba(123, 178, 255, 0.14), transparent 60%),
+          var(--bg);
+        color: var(--text);
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        line-height: 1.55;
+      }
+      a {
+        color: var(--link);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      .container {
+        max-width: 1100px;
+        padding: 28px 18px 60px;
+        margin: 0 auto;
+      }
+      header {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 22px 20px;
+        background: rgba(15, 26, 46, 0.7);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        backdrop-filter: blur(8px);
+      }
+      header h1 {
+        margin: 0;
+        font-size: 22px;
+        letter-spacing: 0.2px;
+      }
+      header p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 16px;
+        margin-top: 16px;
+      }
+      @media (max-width: 980px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      nav {
+        position: sticky;
+        top: 14px;
+        height: fit-content;
+        background: rgba(15, 26, 46, 0.7);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px 14px 10px;
+        backdrop-filter: blur(8px);
+      }
+      nav h2 {
+        margin: 0 0 8px 0;
+        font-size: 14px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+      }
+      nav ul {
+        margin: 0;
+        padding-left: 16px;
+      }
+      nav li {
+        margin: 6px 0;
+      }
+      main {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      section {
+        background: rgba(15, 26, 46, 0.7);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 18px 18px 16px;
+        backdrop-filter: blur(8px);
+      }
+      section h2 {
+        margin: 0 0 10px 0;
+        font-size: 18px;
+      }
+      section h3 {
+        margin: 14px 0 8px 0;
+        font-size: 15px;
+        color: var(--text);
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 10px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--muted);
+        font-size: 12px;
+        margin-right: 8px;
+      }
+      .pill strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .callout {
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--accent);
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 12px;
+        padding: 12px 12px 10px;
+        margin: 12px 0;
+      }
+      .callout.warn {
+        border-left-color: var(--warn);
+      }
+      .callout.danger {
+        border-left-color: var(--danger);
+      }
+      code,
+      pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      }
+      pre {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+        overflow: auto;
+        margin: 10px 0;
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 10px 14px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        margin: 10px 0;
+      }
+      @media (max-width: 640px) {
+        .kv {
+          grid-template-columns: 1fr;
+        }
+      }
+      .k {
+        color: var(--muted);
+      }
+      .v {
+        color: var(--text);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 10px 10px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+      }
+      th {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--muted);
+        font-weight: 600;
+        font-size: 13px;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      .path {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 2px 10px;
+        display: inline-block;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      footer {
+        margin-top: 16px;
+        color: var(--muted);
+        font-size: 12px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Crowdsourced Waste Collection & Recycling System</h1>
+        <p>
+          Tài liệu giải thích hệ thống và các cấu hình quan trọng (Spring Boot backend).
+        </p>
+        <div>
+          <span class="pill"><strong>Backend</strong> Spring Boot 3.x</span>
+          <span class="pill"><strong>Java</strong> 21</span>
+          <span class="pill"><strong>Auth</strong> JWT (HS512) + denylist</span>
+          <span class="pill"><strong>DB</strong> MySQL + JPA</span>
+        </div>
+      </header>
+
+      <div class="grid">
+        <nav>
+          <h2>Mục lục</h2>
+          <ul>
+            <li><a href="#tong-quan">Tổng quan</a></li>
+            <li><a href="#kien-truc">Kiến trúc & vai trò</a></li>
+            <li><a href="#cau-truc-code">Cấu trúc code</a></li>
+            <li><a href="#danh-muc-file">Danh mục file</a></li>
+            <li><a href="#mo-hinh-du-lieu">Mô hình dữ liệu</a></li>
+            <li><a href="#chuan-api">Chuẩn API & lỗi</a></li>
+            <li><a href="#cau-hinh-ung-dung">Cấu hình ứng dụng</a></li>
+            <li><a href="#bao-mat">Bảo mật (Security/JWT)</a></li>
+            <li><a href="#seed">Seed dữ liệu ban đầu</a></li>
+            <li><a href="#automation">Tự động hóa (Scheduled jobs)</a></li>
+            <li><a href="#tich-hop">Tích hợp bên thứ 3</a></li>
+            <li><a href="#docker">Docker & triển khai</a></li>
+            <li><a href="#goi-y">Gợi ý vận hành</a></li>
+          </ul>
+        </nav>
+
+        <main>
+          <section id="tong-quan">
+            <h2>Tổng quan</h2>
+            <p>
+              Hệ thống hỗ trợ thu gom và tái chế rác dựa trên cộng đồng. Luồng chính:
+              người dân báo cáo rác (kèm vị trí/ảnh), doanh nghiệp tiếp nhận/duyệt và phân công nhân viên thu gom,
+              nhân viên thu gom xử lý và cập nhật trạng thái. Hệ thống có điểm thưởng và voucher để khuyến khích báo cáo đúng.
+            </p>
+            <div class="callout">
+              <div><strong>Entry point</strong></div>
+              <div class="muted">Khởi động ứng dụng, bật scheduling và chuẩn hóa timezone UTC.</div>
+              <div style="margin-top: 6px"><span class="path">src/main/java/.../CrowdsourcedWasteCollectionRecyclingSystemApplication.java</span></div>
+            </div>
+          </section>
+
+          <section id="kien-truc">
+            <h2>Kiến trúc & vai trò</h2>
+            <h3>Vai trò (RBAC)</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Role</th>
+                  <th>Trách nhiệm chính</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>ADMIN</td>
+                  <td>Quản trị toàn hệ thống: tài khoản, danh mục rác, khiếu nại, luật cộng điểm, phân tích số liệu.</td>
+                </tr>
+                <tr>
+                  <td>ENTERPRISE</td>
+                  <td>Quản lý hoạt động thu gom: duyệt báo cáo, phân công collector, theo dõi thống kê, tạo voucher.</td>
+                </tr>
+                <tr>
+                  <td>COLLECTOR</td>
+                  <td>Nhận nhiệm vụ thu gom, cập nhật tiến độ, báo cáo hoàn thành, gửi phản hồi.</td>
+                </tr>
+                <tr>
+                  <td>CITIZEN</td>
+                  <td>Báo cáo rác, theo dõi trạng thái xử lý, tích điểm và đổi voucher.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>Luồng nghiệp vụ mẫu (mức khái quát)</h3>
+            <div class="kv">
+              <div class="k">Citizen</div>
+              <div class="v">Tạo báo cáo rác → đính kèm ảnh/vị trí → chờ Enterprise duyệt/điều phối.</div>
+              <div class="k">Enterprise</div>
+              <div class="v">Duyệt báo cáo → tạo yêu cầu thu gom (task) → gán Collector → giám sát SLA.</div>
+              <div class="k">Collector</div>
+              <div class="v">Nhận task → bắt đầu → hoàn thành → upload ảnh minh chứng → hệ thống cập nhật trạng thái.</div>
+              <div class="k">Rewards</div>
+              <div class="v">Cộng điểm theo luật → Citizen đổi voucher → lưu lịch sử giao dịch/voucher redemption.</div>
+            </div>
+          </section>
+
+          <section id="cau-truc-code">
+            <h2>Cấu trúc code</h2>
+            <p class="muted">
+              Project theo kiểu 3-layer: controller (API) → service (nghiệp vụ) → repository (DB).
+            </p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Package</th>
+                  <th>Vai trò</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="path">config/</span></td>
+                  <td>Các cấu hình Security/JWT/CORS/Swagger/Cloudinary/eKYC/seed/work rules.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/</span></td>
+                  <td>HTTP endpoints chia theo nhóm admin/citizen/collector/enterprise/authentication.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/</span>, <span class="path">service/impl/</span></td>
+                  <td>Nghiệp vụ: phân công, xử lý report, điểm thưởng, automation, auth.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/</span></td>
+                  <td>Spring Data JPA repositories, query chuyên dụng cho từng domain.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">entity/</span>, <span class="path">enums/</span></td>
+                  <td>Domain model và các trạng thái (status) của report/task/collector.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">dto/</span></td>
+                  <td>Request/Response payloads; chuẩn hóa dữ liệu đi/đến API.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">exception/</span></td>
+                  <td>AppException/ErrorCode và xử lý lỗi tập trung.</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section id="danh-muc-file">
+            <h2>Danh mục file</h2>
+            <p class="muted">
+              Phần này giải thích “từng file dùng để làm gì” theo từng nhóm thư mục. Với các file DTO (rất nhiều),
+              tài liệu mô tả theo tên file + mục đích (request/response cho endpoint tương ứng).
+            </p>
+
+            <h3>1) File gốc của project</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>File</th>
+                  <th>Dùng để làm gì</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="path">pom.xml</span></td>
+                  <td>Khai báo dependencies và cấu hình build Maven (Spring Boot, JPA, Security, MySQL, springdoc...).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">Dockerfile</span></td>
+                  <td>Build jar và chạy bằng Docker (multi-stage: Maven build → JRE run).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">README.md</span></td>
+                  <td>Giới thiệu dự án, mô tả tính năng, hướng dẫn chạy, link Swagger.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">SWPver1.sql</span></td>
+                  <td>SQL schema/DDL (tài liệu DB) cho phiên bản hệ thống.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">SWPver1_data.sql</span></td>
+                  <td>SQL dữ liệu mẫu/seed cho DB (nếu dùng import trực tiếp).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">mvnw</span>, <span class="path">mvnw.cmd</span></td>
+                  <td>Maven Wrapper: chạy Maven mà không cần cài Maven global.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>2) Cấu hình resources</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>File</th>
+                  <th>Dùng để làm gì</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="path">src/main/resources/application.yml</span></td>
+                  <td>Cấu hình runtime: datasource, JPA, JWT, CORS, Swagger, seed, workrule, Cloudinary, VNPT eKYC, profiles.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">src/test/resources/application-test.yml</span></td>
+                  <td>Cấu hình test: H2 in-memory, ddl-auto create-drop, seed off, Cloudinary rỗng.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>3) File cấu hình (package config)</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>File</th>
+                  <th>Dùng để làm gì</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="path">config/SecurityConfig.java</span></td>
+                  <td>Cấu hình Spring Security: public endpoints, CORS, Resource Server JWT, PasswordEncoder, JwtDecoder + validators.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">config/JwtAuthenticationEntryPoint.java</span></td>
+                  <td>Trả lỗi 401 dạng JSON <code>ApiResponse</code> khi request chưa xác thực.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">config/JtiDenylistValidator.java</span></td>
+                  <td>Validator chặn token nếu <code>jti</code> nằm trong denylist (logout).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">config/SwaggerConfig.java</span></td>
+                  <td>Cấu hình OpenAPI/Swagger: info và bearerAuth để test JWT trên Swagger UI.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">config/JacksonConfig.java</span></td>
+                  <td>Chuẩn hóa serialize <code>LocalDateTime</code> sang ISO_OFFSET_DATE_TIME tại UTC.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">config/WorkRuleProperties.java</span></td>
+                  <td>Bind cấu hình <code>workrule.*</code> sang object để dùng trong service (timeout, SLA, giờ làm, ngưỡng suspend...).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">config/DataInit.java</span></td>
+                  <td>Seed user/role/profile demo khi <code>app.seed.enabled=true</code>.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">config/WasteCategoryInit.java</span></td>
+                  <td>Seed danh mục rác (waste category) phục vụ report và tính điểm.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">config/VoucherInit.java</span></td>
+                  <td>Seed voucher demo.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">config/CloudinaryConfig.java</span></td>
+                  <td>Tạo bean Cloudinary từ <code>cloudinary.*</code> để upload ảnh.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">config/VnptEkycProperties.java</span></td>
+                  <td>Khai báo properties <code>vnpt.ekyc.*</code> (baseUrl/token/timeout...).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">config/VnptEkycConfig.java</span></td>
+                  <td>Tạo RestTemplate cho VNPT eKYC và interceptor tự gắn headers auth.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>4) Controller (API endpoints)</h3>
+            <p class="muted">
+              Controller là nơi định nghĩa URL, method (GET/POST/...), validate request và gọi service.
+            </p>
+            <table>
+              <thead>
+                <tr>
+                  <th>File</th>
+                  <th>Dùng để làm gì</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="path">controller/HomeController.java</span></td>
+                  <td>Endpoint cơ bản cho trang chủ/health đơn giản (tùy implementation).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/authentication/AuthController.java</span></td>
+                  <td>API xác thực: login/register/introspect/logout.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/authentication/EkcyController.java</span></td>
+                  <td>API eKYC: gọi luồng VNPT (upload/ocr/liveness/full flow).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/cloudinary/FileController.java</span></td>
+                  <td>API upload file/ảnh lên Cloudinary và trả URL.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/citizen/CitizenController.java</span></td>
+                  <td>API cho Citizen: tạo/xem report, xem điểm, lịch sử, leaderboard (tùy endpoint bên trong).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/citizen/CitizenVoucherController.java</span></td>
+                  <td>API cho Citizen liên quan voucher: xem danh sách/đổi voucher/lịch sử đổi.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/collector/CollectionController.java</span></td>
+                  <td>API collector thao tác task thu gom: nhận/bắt đầu/cập nhật/trả/hoàn thành.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/collector/CollectorController.java</span></td>
+                  <td>API collector: thông tin cá nhân, thống kê, leaderboard, trạng thái (tùy endpoint).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/collector/CollectorCollectionController.java</span></td>
+                  <td>API phụ trợ cho luồng task của collector (liệt kê nhiệm vụ, lịch sử...).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/collector/CollectorFeedbackController.java</span></td>
+                  <td>API collector gửi phản hồi/đánh giá/khiếu nại liên quan thu gom.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/collector/CollectorJwtSupport.java</span></td>
+                  <td>Tiện ích/controller-support để lấy thông tin collector từ JWT/Authentication.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/enterprise/EnterpriseController.java</span></td>
+                  <td>API chung cho Enterprise (dashboard/chức năng tổng quan).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/enterprise/EnterpriseAccountController.java</span></td>
+                  <td>API quản lý tài khoản thuộc doanh nghiệp (tạo/sửa/xem danh sách...).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/enterprise/EnterpriseProfileController.java</span></td>
+                  <td>API cập nhật/xem profile doanh nghiệp.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/enterprise/EnterpriseCollectorController.java</span></td>
+                  <td>API quản lý nhân sự Collector của doanh nghiệp (tạo/khóa/mở/điều phối).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/enterprise/EnterpriseCollectionController.java</span></td>
+                  <td>API liên quan điều phối/collection tasks phía doanh nghiệp.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/enterprise/EnterpriseWasteReportController.java</span></td>
+                  <td>API duyệt/đổi trạng thái report, phân công collector cho report/task.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/enterprise/EnterpriseStatisticsController.java</span></td>
+                  <td>API thống kê doanh nghiệp (khối lượng rác, số lượng report/task theo thời gian).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/enterprise/EnterpriseVoucherController.java</span></td>
+                  <td>API doanh nghiệp tạo/sửa/đóng/mở voucher.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/enterprise/EnterpriseFeedbackController.java</span></td>
+                  <td>API xử lý phản hồi/khiếu nại từ citizen/collector phía doanh nghiệp.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/enterprise/EnterprisePointAdjustmentController.java</span></td>
+                  <td>API doanh nghiệp điều chỉnh điểm (cộng/trừ) theo nghiệp vụ.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/enterprise/EnterpriseCollectorReportController.java</span></td>
+                  <td>API duyệt/thưởng cho báo cáo của collector (collector report reward).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/enterprise/EnterpriseControllerSupport.java</span></td>
+                  <td>Tiện ích/controller-support để lấy enterpriseId từ JWT/Authentication.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/admin/AdminAccountController.java</span></td>
+                  <td>API admin quản lý tài khoản toàn hệ thống.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/admin/AdminAnalyticsController.java</span></td>
+                  <td>API admin xem phân tích hệ thống (analytics).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/admin/AdminComplaintController.java</span></td>
+                  <td>API admin xử lý khiếu nại.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/admin/AdminPointController.java</span></td>
+                  <td>API admin thao tác điểm (tổng quan/điều chỉnh theo module admin).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/admin/AdminPointRuleController.java</span></td>
+                  <td>API admin quản lý luật cộng điểm (PointRule).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/admin/AdminReportController.java</span></td>
+                  <td>API admin quản lý/giám sát report.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/admin/AdminWasteCategoryController.java</span></td>
+                  <td>API admin quản lý danh mục rác (waste categories).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/common/ApiResponses.java</span></td>
+                  <td>Helper tạo nhanh <code>ApiResponse</code> cho controller.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">controller/common/SecuritySupport.java</span></td>
+                  <td>Helper lấy thông tin user/role/id từ Spring Security context.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>5) Service (nghiệp vụ)</h3>
+            <p class="muted">
+              File trong <span class="path">service/</span> là interface; file trong <span class="path">service/impl/</span> là implement.
+              Ngoài ra có package con cho security/reward.
+            </p>
+            <table>
+              <thead>
+                <tr>
+                  <th>File</th>
+                  <th>Dùng để làm gì</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="path">service/AuthService.java</span>, <span class="path">service/impl/AuthServiceImpl.java</span></td>
+                  <td>Đăng nhập/đăng ký/introspect/logout; phát JWT và quản lý denylist.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/EkcyService.java</span>, <span class="path">service/impl/EkcyServiceImpl.java</span></td>
+                  <td>Luồng eKYC: gọi VNPT, lưu session, parse dữ liệu OCR/liveness.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/CloudinaryService.java</span>, <span class="path">service/impl/CloudinaryServiceImpl.java</span></td>
+                  <td>Upload ảnh/file lên Cloudinary và trả thông tin URL/publicId.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/WasteReportService.java</span>, <span class="path">service/impl/WasteReportServiceImpl.java</span></td>
+                  <td>Nghiệp vụ report rác: tạo/cập nhật/truy vấn/đổi trạng thái.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/WasteCategoryService.java</span>, <span class="path">service/impl/WasteCategoryServiceImpl.java</span></td>
+                  <td>Quản lý danh mục rác.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/PointRuleService.java</span>, <span class="path">service/impl/PointRuleServiceImpl.java</span></td>
+                  <td>Quản lý luật cộng điểm.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/CollectorService.java</span>, <span class="path">service/impl/CollectorServiceImpl.java</span></td>
+                  <td>Nghiệp vụ cho collector: task, thống kê, trạng thái, vi phạm.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/CollectorReportService.java</span>, <span class="path">service/impl/CollectorReportServiceImpl.java</span></td>
+                  <td>Nghiệp vụ báo cáo collector (tạo report, upload ảnh, item...).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/CollectorFeedbackService.java</span>, <span class="path">service/impl/CollectorFeedbackServiceImpl.java</span></td>
+                  <td>Nghiệp vụ phản hồi collector.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/ProfileService.java</span>, <span class="path">service/impl/ProfileServiceImpl.java</span></td>
+                  <td>Cập nhật/xem profile theo role (admin/citizen/collector/enterprise).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/PasswordService.java</span>, <span class="path">service/impl/PasswordServiceImpl.java</span></td>
+                  <td>Đổi mật khẩu và các thao tác liên quan password.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/EnterpriseAssignmentService.java</span>, <span class="path">service/impl/EnterpriseAssignmentServiceImpl.java</span></td>
+                  <td>Doanh nghiệp phân công collector cho task/report.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/EnterpriseWasteReportService.java</span>, <span class="path">service/impl/EnterpriseWasteReportServiceImpl.java</span></td>
+                  <td>Doanh nghiệp duyệt/đổi trạng thái report và quản lý danh sách pending/processing.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/EnterpriseStatisticsService.java</span>, <span class="path">service/impl/EnterpriseStatisticsServiceImpl.java</span></td>
+                  <td>Doanh nghiệp thống kê report/khối lượng rác theo thời gian.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/EnterpriseRequestService.java</span>, <span class="path">service/impl/EnterpriseRequestServiceImpl.java</span></td>
+                  <td>Doanh nghiệp xử lý danh sách yêu cầu/preview/chi tiết.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/EnterpriseReportDetailService.java</span>, <span class="path">service/impl/EnterpriseReportDetailServiceImpl.java</span></td>
+                  <td>Doanh nghiệp lấy chi tiết report (kết hợp report/items/images...).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/EnterpriseFeedbackService.java</span>, <span class="path">service/impl/EnterpriseFeedbackServiceImpl.java</span></td>
+                  <td>Doanh nghiệp xử lý feedback/khiếu nại.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/EnterprisePointAdjustmentService.java</span>, <span class="path">service/impl/EnterprisePointAdjustmentServiceImpl.java</span></td>
+                  <td>Doanh nghiệp điều chỉnh điểm (ghi lịch sử giao dịch).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/EnterpriseCollectorRejectionService.java</span>, <span class="path">service/impl/EnterpriseCollectorRejectionServiceImpl.java</span></td>
+                  <td>Xử lý trường hợp collector từ chối/hoàn trả task.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/EnterpriseCollectorReportService.java</span>, <span class="path">service/impl/EnterpriseCollectorReportServiceImpl.java</span></td>
+                  <td>Doanh nghiệp duyệt/thưởng cho báo cáo collector.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/AdminAccountService.java</span>, <span class="path">service/impl/AdminAccountServiceImpl.java</span></td>
+                  <td>Admin quản lý tài khoản người dùng.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/AdminAnalyticsService.java</span>, <span class="path">service/impl/AdminAnalyticsServiceImpl.java</span></td>
+                  <td>Admin xem analytics hệ thống.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/AdminComplaintService.java</span>, <span class="path">service/impl/AdminComplaintServiceImpl.java</span></td>
+                  <td>Admin xử lý complaint.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/TaskAutomationService.java</span>, <span class="path">service/impl/TaskAutomationServiceImpl.java</span></td>
+                  <td>Job tự động: check timeout nhận việc và SLA violations, ghi tracking, suspend collector.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/security/TokenDenylistService.java</span></td>
+                  <td>Service quản lý danh sách token thu hồi (denylist): check revoke và lưu revoke khi logout.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/reward/RecyclableRewardCalculator.java</span></td>
+                  <td>Tính điểm thưởng dựa trên loại rác/khối lượng/đơn vị (logic tính reward).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/reward/EnterpriseVoucherService.java</span>, <span class="path">service/impl/EnterpriseVoucherServiceImpl.java</span></td>
+                  <td>Doanh nghiệp quản lý voucher.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/reward/VoucherService.java</span>, <span class="path">service/impl/VoucherServiceImpl.java</span></td>
+                  <td>Citizen đổi voucher và quản lý redemption.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">service/impl/CollectorReportCreationService.java</span></td>
+                  <td>Service nội bộ hỗ trợ khởi tạo collector report (gom logic tạo report/items/images).</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>6) Repository (data access)</h3>
+            <p class="muted">
+              Repository là nơi truy vấn DB bằng Spring Data JPA. Một số repo có custom query phục vụ báo cáo, lọc status, thống kê.
+            </p>
+            <table>
+              <thead>
+                <tr>
+                  <th>File</th>
+                  <th>Dùng để làm gì</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="path">repository/authentication/UserRepository.java</span></td>
+                  <td>Truy vấn User theo email/id, phục vụ login và quản trị tài khoản.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/authentication/RoleRepository.java</span></td>
+                  <td>Truy vấn Role theo roleCode, phục vụ seed và phân quyền.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/authentication/PermissionRepository.java</span></td>
+                  <td>Truy vấn Permission (permissionCode).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/authentication/RolePermissionRepository.java</span></td>
+                  <td>Truy vấn quan hệ role-permission.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/authentication/InvalidatedTokenRepository.java</span></td>
+                  <td>Truy vấn/lưu token bị thu hồi (denylist).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/authentication/EkycSessionRepository.java</span></td>
+                  <td>Truy vấn/lưu session eKYC (phục vụ full flow eKYC).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/profile/CitizenRepository.java</span></td>
+                  <td>Truy vấn Citizen profile theo userId/id.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/enterprise/EnterpriseRepository.java</span></td>
+                  <td>Truy vấn Enterprise theo email/id.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/collector/CollectorRepository.java</span></td>
+                  <td>Truy vấn Collector profile theo userId/enterpriseId/status.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/collector/CollectionRequestRepository.java</span></td>
+                  <td>Truy vấn task thu gom; có query cho timeout/SLA phục vụ automation.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/collector/CollectionTrackingRepository.java</span></td>
+                  <td>Lưu và truy vấn log tracking của task.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/collector/CollectorReportRepository.java</span></td>
+                  <td>Truy vấn báo cáo collector.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/collector/CollectorReportItemRepository.java</span></td>
+                  <td>Truy vấn item của collector report.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/collector/CollectorReportImageRepository.java</span></td>
+                  <td>Truy vấn ảnh của collector report.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/feedback/FeedbackRepository.java</span></td>
+                  <td>Truy vấn feedback tổng quát (phía enterprise/admin xử lý).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/feedback/CollectorFeedbackRepository.java</span></td>
+                  <td>Truy vấn feedback của collector.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/waste/WasteReportRepository.java</span></td>
+                  <td>Truy vấn report rác theo status/enterprise/citizen, phục vụ dashboard và phân công.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/waste/WasteReportItemRepository.java</span></td>
+                  <td>Truy vấn item chi tiết của report.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/waste/ReportImageRepository.java</span></td>
+                  <td>Truy vấn ảnh đính kèm report.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/waste/WasteCategoryRepository.java</span></td>
+                  <td>Truy vấn danh mục rác.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/reward/PointTransactionRepository.java</span></td>
+                  <td>Truy vấn lịch sử giao dịch điểm.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/reward/LeaderboardRepository.java</span></td>
+                  <td>Truy vấn dữ liệu leaderboard.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/reward/VoucherRepository.java</span></td>
+                  <td>Truy vấn voucher.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/reward/VoucherRedemptionRepository.java</span></td>
+                  <td>Truy vấn lịch sử đổi voucher.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">repository/PointRuleRepository.java</span></td>
+                  <td>Truy vấn luật cộng điểm.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>7) Entity (domain model)</h3>
+            <p class="muted">
+              Entity mapping với bảng DB (JPA). Một số entity có status enum/converter để lưu xuống DB ổn định.
+            </p>
+            <table>
+              <thead>
+                <tr>
+                  <th>File</th>
+                  <th>Dùng để làm gì</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><span class="path">entity/User.java</span></td><td>Tài khoản đăng nhập chung.</td></tr>
+                <tr><td><span class="path">entity/Role.java</span></td><td>Role của user.</td></tr>
+                <tr><td><span class="path">entity/Permission.java</span></td><td>Permission code.</td></tr>
+                <tr><td><span class="path">entity/RolePermission.java</span></td><td>Bảng liên kết role-permission.</td></tr>
+                <tr><td><span class="path">entity/InvalidatedToken.java</span></td><td>Token bị thu hồi theo jti (denylist).</td></tr>
+                <tr><td><span class="path">entity/Citizen.java</span></td><td>Profile citizen và điểm/thống kê.</td></tr>
+                <tr><td><span class="path">entity/Collector.java</span></td><td>Profile collector và trạng thái/vi phạm.</td></tr>
+                <tr><td><span class="path">entity/Enterprise.java</span></td><td>Thông tin doanh nghiệp.</td></tr>
+                <tr><td><span class="path">entity/WasteCategory.java</span></td><td>Danh mục rác + đơn vị/điểm.</td></tr>
+                <tr><td><span class="path">entity/WasteReport.java</span></td><td>Báo cáo rác.</td></tr>
+                <tr><td><span class="path">entity/WasteReportItem.java</span></td><td>Item chi tiết của report.</td></tr>
+                <tr><td><span class="path">entity/ReportImage.java</span></td><td>Ảnh đính kèm report.</td></tr>
+                <tr><td><span class="path">entity/CollectionRequest.java</span></td><td>Task thu gom (được tạo từ report).</td></tr>
+                <tr><td><span class="path">entity/CollectionTracking.java</span></td><td>Tracking log của task.</td></tr>
+                <tr><td><span class="path">entity/CollectorReport.java</span></td><td>Báo cáo hoàn thành của collector.</td></tr>
+                <tr><td><span class="path">entity/CollectorReportItem.java</span></td><td>Item trong collector report.</td></tr>
+                <tr><td><span class="path">entity/CollectorReportImage.java</span></td><td>Ảnh trong collector report.</td></tr>
+                <tr><td><span class="path">entity/Feedback.java</span></td><td>Feedback/khiếu nại tổng quát.</td></tr>
+                <tr><td><span class="path">entity/CollectorFeedback.java</span></td><td>Feedback do collector tạo.</td></tr>
+                <tr><td><span class="path">entity/PointRule.java</span></td><td>Luật cộng điểm.</td></tr>
+                <tr><td><span class="path">entity/PointTransaction.java</span></td><td>Giao dịch điểm (cộng/trừ).</td></tr>
+                <tr><td><span class="path">entity/Leaderboard.java</span></td><td>Dữ liệu leaderboard.</td></tr>
+                <tr><td><span class="path">entity/Voucher.java</span></td><td>Voucher.</td></tr>
+                <tr><td><span class="path">entity/VoucherRedemption.java</span></td><td>Lịch sử đổi voucher.</td></tr>
+                <tr><td><span class="path">entity/EkycSession.java</span></td><td>Lưu session/metadata của luồng eKYC.</td></tr>
+              </tbody>
+            </table>
+
+            <h3>8) Enums & converters</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>File</th>
+                  <th>Dùng để làm gì</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><span class="path">enums/CollectionRequestStatus.java</span></td><td>Trạng thái task thu gom.</td></tr>
+                <tr><td><span class="path">enums/WasteReportStatus.java</span></td><td>Trạng thái báo cáo rác.</td></tr>
+                <tr><td><span class="path">enums/CollectorStatus.java</span></td><td>Trạng thái collector (ONLINE/OFFLINE/SUSPEND...).</td></tr>
+                <tr><td><span class="path">enums/CollectorReportStatus.java</span></td><td>Trạng thái báo cáo collector.</td></tr>
+                <tr><td><span class="path">enums/WasteUnit.java</span></td><td>Đơn vị đo rác.</td></tr>
+                <tr><td><span class="path">enums/VehicleType.java</span></td><td>Loại phương tiện collector.</td></tr>
+                <tr><td><span class="path">converter/CollectionRequestStatusConverter.java</span></td><td>Chuyển đổi status task khi lưu/đọc DB.</td></tr>
+                <tr><td><span class="path">converter/CollectorStatusConverter.java</span></td><td>Chuyển đổi status collector khi lưu/đọc DB.</td></tr>
+                <tr><td><span class="path">converter/CollectorReportStatusConverter.java</span></td><td>Chuyển đổi status collector report khi lưu/đọc DB.</td></tr>
+              </tbody>
+            </table>
+
+            <h3>9) DTO (Request/Response)</h3>
+            <p class="muted">
+              DTO dùng để tách payload API khỏi entity DB. Tên file nói lên mục đích: <code>*Request</code> là body gửi lên,
+              <code>*Response</code> là dữ liệu trả về. Đây là nhóm file nhiều nhất trong hệ thống.
+            </p>
+
+            <details>
+              <summary style="cursor: pointer"><strong>Danh sách dto/request (body gửi lên)</strong></summary>
+              <table>
+                <thead>
+                  <tr>
+                    <th>File</th>
+                    <th>Dùng để làm gì</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td><span class="path">dto/request/AcceptWasteReportRequest.java</span></td><td>Request duyệt/nhận report rác.</td></tr>
+                  <tr><td><span class="path">dto/request/AdminCreateCitizenAccountRequest.java</span></td><td>Request admin tạo tài khoản citizen.</td></tr>
+                  <tr><td><span class="path">dto/request/AdminCreateCollectorAccountRequest.java</span></td><td>Request admin tạo tài khoản collector.</td></tr>
+                  <tr><td><span class="path">dto/request/AdminCreateEnterpriseAccountRequest.java</span></td><td>Request admin tạo tài khoản enterprise.</td></tr>
+                  <tr><td><span class="path">dto/request/AssignCollectorRequest.java</span></td><td>Request gán collector cho task/report.</td></tr>
+                  <tr><td><span class="path">dto/request/AuthenticationRequest.java</span></td><td>Request đăng nhập (email/password).</td></tr>
+                  <tr><td><span class="path">dto/request/ChangePasswordRequest.java</span></td><td>Request đổi mật khẩu.</td></tr>
+                  <tr><td><span class="path">dto/request/CreateCollectorFeedbackRequest.java</span></td><td>Request tạo feedback của collector.</td></tr>
+                  <tr><td><span class="path">dto/request/CreateCollectorReportRequest.java</span></td><td>Request tạo báo cáo hoàn thành của collector.</td></tr>
+                  <tr><td><span class="path">dto/request/CreateCollectorRequest.java</span></td><td>Request tạo collector (profile/thông tin xe...).</td></tr>
+                  <tr><td><span class="path">dto/request/CreateComplaintRequest.java</span></td><td>Request tạo khiếu nại.</td></tr>
+                  <tr><td><span class="path">dto/request/CreateVoucherRequest.java</span></td><td>Request tạo voucher.</td></tr>
+                  <tr><td><span class="path">dto/request/CreateWasteReportRequest.java</span></td><td>Request tạo báo cáo rác.</td></tr>
+                  <tr><td><span class="path">dto/request/EkcyClassifyRequest.java</span></td><td>Request eKYC classify (phân loại ảnh/tài liệu).</td></tr>
+                  <tr><td><span class="path">dto/request/EkcyLivenessRequest.java</span></td><td>Request eKYC liveness (kiểm tra sống).</td></tr>
+                  <tr><td><span class="path">dto/request/EkcyOcrBackRequest.java</span></td><td>Request eKYC OCR mặt sau giấy tờ.</td></tr>
+                  <tr><td><span class="path">dto/request/EkcyOcrFrontRequest.java</span></td><td>Request eKYC OCR mặt trước giấy tờ.</td></tr>
+                  <tr><td><span class="path">dto/request/EkcyOcrFullRequest.java</span></td><td>Request eKYC OCR full (2 mặt/luồng tổng hợp).</td></tr>
+                  <tr><td><span class="path">dto/request/EkcyUploadRequest.java</span></td><td>Request upload ảnh eKYC.</td></tr>
+                  <tr><td><span class="path">dto/request/EnterpriseCollectorReportRewardRequest.java</span></td><td>Request doanh nghiệp thưởng cho collector report.</td></tr>
+                  <tr><td><span class="path">dto/request/EnterpriseFeedbackResolveRequest.java</span></td><td>Request doanh nghiệp xử lý/resolve feedback.</td></tr>
+                  <tr><td><span class="path">dto/request/EnterprisePointAdjustmentCreateRequest.java</span></td><td>Request tạo điều chỉnh điểm.</td></tr>
+                  <tr><td><span class="path">dto/request/EnterprisePointAdjustmentUpdateRequest.java</span></td><td>Request cập nhật điều chỉnh điểm.</td></tr>
+                  <tr><td><span class="path">dto/request/IntrospectRequest.java</span></td><td>Request kiểm tra token (introspect).</td></tr>
+                  <tr><td><span class="path">dto/request/LogoutRequest.java</span></td><td>Request logout (có thể gửi token trong body).</td></tr>
+                  <tr><td><span class="path">dto/request/PointRuleRequest.java</span></td><td>Request tạo/cập nhật PointRule.</td></tr>
+                  <tr><td><span class="path">dto/request/RegisterRequest.java</span></td><td>Request đăng ký tài khoản.</td></tr>
+                  <tr><td><span class="path">dto/request/RejectTaskRequest.java</span></td><td>Request từ chối task.</td></tr>
+                  <tr><td><span class="path">dto/request/RejectWasteReportRequest.java</span></td><td>Request từ chối report rác.</td></tr>
+                  <tr><td><span class="path">dto/request/ReportCollectorRequest.java</span></td><td>Request report/đánh giá collector.</td></tr>
+                  <tr><td><span class="path">dto/request/UpdateAdminProfileRequest.java</span></td><td>Request cập nhật profile admin.</td></tr>
+                  <tr><td><span class="path">dto/request/UpdateCitizenProfileRequest.java</span></td><td>Request cập nhật profile citizen.</td></tr>
+                  <tr><td><span class="path">dto/request/UpdateCollectorProfileRequest.java</span></td><td>Request cập nhật profile collector.</td></tr>
+                  <tr><td><span class="path">dto/request/UpdateCollectorStatusRequest.java</span></td><td>Request cập nhật status collector.</td></tr>
+                  <tr><td><span class="path">dto/request/UpdateEnterpriseProfileRequest.java</span></td><td>Request cập nhật profile enterprise.</td></tr>
+                  <tr><td><span class="path">dto/request/UpdateTaskStatusRequest.java</span></td><td>Request cập nhật trạng thái task.</td></tr>
+                  <tr><td><span class="path">dto/request/UpdateVoucherRequest.java</span></td><td>Request cập nhật voucher.</td></tr>
+                  <tr><td><span class="path">dto/request/UpdateWasteCategoryRequest.java</span></td><td>Request cập nhật waste category.</td></tr>
+                  <tr><td><span class="path">dto/request/UpdateWasteReportRequest.java</span></td><td>Request cập nhật report rác.</td></tr>
+                  <tr><td><span class="path">dto/request/WasteCategoryRequest.java</span></td><td>Request tạo waste category.</td></tr>
+                </tbody>
+              </table>
+            </details>
+
+            <details>
+              <summary style="cursor: pointer"><strong>Danh sách dto/response (data trả về)</strong></summary>
+              <table>
+                <thead>
+                  <tr>
+                    <th>File</th>
+                    <th>Dùng để làm gì</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td><span class="path">dto/response/ApiResponse.java</span></td><td>Wrapper response chung (code/message/result).</td></tr>
+                  <tr><td><span class="path">dto/response/AuthenticationResponse.java</span></td><td>Response sau login/register (thường gồm token + info).</td></tr>
+                  <tr><td><span class="path">dto/response/IntrospectResponse.java</span></td><td>Response introspect token (valid/claims).</td></tr>
+                  <tr><td><span class="path">dto/response/CloudinaryResponse.java</span></td><td>Response upload Cloudinary (url/publicId...).</td></tr>
+                  <tr><td><span class="path">dto/response/EkcyUploadResponse.java</span></td><td>Response upload eKYC.</td></tr>
+                  <tr><td><span class="path">dto/response/EkcyFullFlowResponse.java</span></td><td>Response full flow eKYC.</td></tr>
+                  <tr><td><span class="path">dto/response/EkycExtractedProfileResponse.java</span></td><td>Response thông tin bóc tách từ OCR (tên, CCCD...).</td></tr>
+                  <tr><td><span class="path">dto/response/EkycSessionResponse.java</span></td><td>Response session eKYC.</td></tr>
+                  <tr><td><span class="path">dto/response/ComplaintResponse.java</span></td><td>Response thông tin khiếu nại.</td></tr>
+                  <tr><td><span class="path">dto/response/CollectorFeedbackResponse.java</span></td><td>Response feedback của collector.</td></tr>
+                  <tr><td><span class="path">dto/response/CollectorTaskResponse.java</span></td><td>Response task collector.</td></tr>
+                  <tr><td><span class="path">dto/response/CollectorHistoryResponse.java</span></td><td>Response lịch sử công việc collector.</td></tr>
+                  <tr><td><span class="path">dto/response/CollectorReportResponse.java</span></td><td>Response báo cáo collector.</td></tr>
+                  <tr><td><span class="path">dto/response/CollectionRequestActionResponse.java</span></td><td>Response sau thao tác với task (accept/start/done...).</td></tr>
+                  <tr><td><span class="path">dto/response/WasteReportResponse.java</span></td><td>Response báo cáo rác.</td></tr>
+                  <tr><td><span class="path">dto/response/WasteCategoryResponse.java</span></td><td>Response waste category cho citizen/enterprise.</td></tr>
+                  <tr><td><span class="path">dto/response/WasteCategoryAdminResponse.java</span></td><td>Response waste category cho admin (thường chi tiết hơn).</td></tr>
+                  <tr><td><span class="path">dto/response/PointRuleResponse.java</span></td><td>Response luật cộng điểm.</td></tr>
+                  <tr><td><span class="path">dto/response/VoucherResponse.java</span></td><td>Response voucher (thông tin hiển thị).</td></tr>
+                  <tr><td><span class="path">dto/response/EnterpriseVoucherResponse.java</span></td><td>Response voucher phía enterprise.</td></tr>
+                  <tr><td><span class="path">dto/response/VoucherRedemptionResponse.java</span></td><td>Response lịch sử đổi voucher.</td></tr>
+                  <tr><td><span class="path">dto/response/CitizenPointSummaryResponse.java</span></td><td>Response tổng hợp điểm citizen.</td></tr>
+                  <tr><td><span class="path">dto/response/CitizenRewardHistoryResponse.java</span></td><td>Response lịch sử thưởng/điểm citizen.</td></tr>
+                  <tr><td><span class="path">dto/response/CitizenLeaderboardResponse.java</span></td><td>Response leaderboard citizen.</td></tr>
+                  <tr><td><span class="path">dto/response/CollectorLeaderboardResponse.java</span></td><td>Response leaderboard collector.</td></tr>
+                  <tr><td><span class="path">dto/response/EnterpriseGeneralStatsResponse.java</span></td><td>Response thống kê tổng quan enterprise.</td></tr>
+                  <tr><td><span class="path">dto/response/EnterpriseMonthlyWasteVolumeResponse.java</span></td><td>Response khối lượng rác theo tháng (enterprise).</td></tr>
+                  <tr><td><span class="path">dto/response/EnterpriseDailyWasteVolumeResponse.java</span></td><td>Response khối lượng rác theo ngày (enterprise).</td></tr>
+                  <tr><td><span class="path">dto/response/EnterpriseQuarterlyWasteVolumeResponse.java</span></td><td>Response khối lượng rác theo quý (enterprise).</td></tr>
+                  <tr><td><span class="path">dto/response/EnterpriseWasteVolumeStatsResponse.java</span></td><td>Response thống kê khối lượng rác.</td></tr>
+                  <tr><td><span class="path">dto/response/EnterpriseWasteReportResponse.java</span></td><td>Response danh sách/chi tiết report phía enterprise.</td></tr>
+                  <tr><td><span class="path">dto/response/EnterpriseReportCountResponse.java</span></td><td>Response thống kê số lượng report.</td></tr>
+                  <tr><td><span class="path">dto/response/EnterpriseRequestReportDetailResponse.java</span></td><td>Response chi tiết report trong danh sách request.</td></tr>
+                  <tr><td><span class="path">dto/response/EnterprisePointAdjustmentResponse.java</span></td><td>Response điều chỉnh điểm (enterprise).</td></tr>
+                  <tr><td><span class="path">dto/response/EnterpriseCollectorRejectionResponse.java</span></td><td>Response trường hợp collector từ chối task.</td></tr>
+                  <tr><td><span class="path">dto/response/EnterpriseCollectorReportRewardResponse.java</span></td><td>Response thưởng collector report.</td></tr>
+                  <tr><td><span class="path">dto/response/EnterpriseFeedbackResponse.java</span></td><td>Response feedback phía enterprise.</td></tr>
+                  <tr><td><span class="path">dto/response/EligibleCollectorResponse.java</span></td><td>Response danh sách collector phù hợp để gán (eligible).</td></tr>
+                  <tr><td><span class="path">dto/response/AssignCollectorResponse.java</span></td><td>Response sau khi gán collector.</td></tr>
+                  <tr><td><span class="path">dto/response/RequestPreviewResponse.java</span></td><td>Response preview cho request/report.</td></tr>
+                  <tr><td><span class="path">dto/response/DeleteUserPreviewResponse.java</span></td><td>Response preview trước khi xóa user (cảnh báo liên quan dữ liệu).</td></tr>
+                  <tr><td><span class="path">dto/response/ReportCollectorResponse.java</span></td><td>Response report collector (tổng hợp).</td></tr>
+                  <tr><td><span class="path">dto/response/ReportCollectorItemResponse.java</span></td><td>Response item trong report collector.</td></tr>
+                  <tr><td><span class="path">dto/response/CreateCollectorResponse.java</span></td><td>Response sau khi tạo collector.</td></tr>
+                  <tr><td><span class="path">dto/response/CollectorGeneralStatsResponse.java</span></td><td>Response thống kê chung collector.</td></tr>
+                  <tr><td><span class="path">dto/response/CollectorPerformanceStatsResponse.java</span></td><td>Response thống kê hiệu suất collector.</td></tr>
+                  <tr><td><span class="path">dto/response/CollectorWasteVolumeStatsResponse.java</span></td><td>Response thống kê khối lượng rác (collector).</td></tr>
+                  <tr><td><span class="path">dto/response/CollectorMonthlyWasteVolumeResponse.java</span></td><td>Response khối lượng rác theo tháng (collector).</td></tr>
+                  <tr><td><span class="path">dto/response/CollectorQuarterlyWasteVolumeResponse.java</span></td><td>Response khối lượng rác theo quý (collector).</td></tr>
+                  <tr><td><span class="path">dto/response/CollectorMonthlyCompletedCountResponse.java</span></td><td>Response số task hoàn thành theo tháng.</td></tr>
+                  <tr><td><span class="path">dto/response/CollectorTaskStatusCountResponse.java</span></td><td>Response đếm task theo trạng thái.</td></tr>
+                  <tr><td><span class="path">dto/response/CollectorWorkHistoryItemResponse.java</span></td><td>Response item lịch sử công việc.</td></tr>
+                  <tr><td><span class="path">dto/response/CitizenReportStatsResponse.java</span></td><td>Response thống kê report của citizen.</td></tr>
+                  <tr><td><span class="path">dto/response/CitizenReportResultResponse.java</span></td><td>Response kết quả report citizen (tổng hợp).</td></tr>
+                  <tr><td><span class="path">dto/response/CitizenReportResultItemResponse.java</span></td><td>Response item kết quả report citizen.</td></tr>
+                  <tr><td><span class="path">dto/response/AdminSystemAnalyticsResponse.java</span></td><td>Response analytics hệ thống cho admin.</td></tr>
+                  <tr><td><span class="path">dto/response/AdminUserResponse.java</span></td><td>Response thông tin user cho admin.</td></tr>
+                  <tr><td><span class="path">dto/response/AdminCollectedWasteByUnitResponse.java</span></td><td>Response tổng hợp rác theo đơn vị.</td></tr>
+                  <tr><td><span class="path">dto/response/AdminCollectedWeightChartResponse.java</span></td><td>Response chart khối lượng rác.</td></tr>
+                  <tr><td><span class="path">dto/response/AdminCollectedWeightDailyChartResponse.java</span></td><td>Response chart khối lượng rác theo ngày.</td></tr>
+                  <tr><td><span class="path">dto/response/AdminDailyCollectedWeightResponse.java</span></td><td>Response khối lượng rác theo ngày (admin).</td></tr>
+                  <tr><td><span class="path">dto/response/AdminMonthlyCollectedWeightResponse.java</span></td><td>Response khối lượng rác theo tháng (admin).</td></tr>
+                  <tr><td><span class="path">dto/response/AdminWasteCategoryCollectedWeightResponse.java</span></td><td>Response khối lượng theo danh mục rác.</td></tr>
+                  <tr><td><span class="path">dto/response/EnterpriseCitizenPointSummaryResponse.java</span></td><td>Response tổng hợp điểm citizen phía enterprise.</td></tr>
+                </tbody>
+              </table>
+            </details>
+
+            <h3>10) Exception / util / integration / mapper</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>File</th>
+                  <th>Dùng để làm gì</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><span class="path">exception/AppException.java</span></td><td>Exception nghiệp vụ, mang theo <code>ErrorCode</code>.</td></tr>
+                <tr><td><span class="path">exception/ErrorCode.java</span></td><td>Enum mã lỗi + message + HTTP status.</td></tr>
+                <tr><td><span class="path">exception/GlobalHandleException.java</span></td><td>Exception handler tập trung, trả về ApiResponse thống nhất.</td></tr>
+                <tr><td><span class="path">util/JWTHelper.java</span></td><td>Phát và verify JWT (HS512), build scope từ role/permissions, check denylist.</td></tr>
+                <tr><td><span class="path">util/FileUpLoadUtil.java</span></td><td>Tiện ích xử lý upload file (đọc/validate/chuyển đổi nếu có).</td></tr>
+                <tr><td><span class="path">util/VnptImagePreprocessUtil.java</span></td><td>Tiện ích tiền xử lý ảnh trước khi gửi VNPT eKYC.</td></tr>
+                <tr><td><span class="path">util/WasteCategoryAllowlist.java</span></td><td>Danh sách/logic allowlist waste category để validate đầu vào (nếu dùng).</td></tr>
+                <tr><td><span class="path">util/AddressMatchUtil.java</span></td><td>Tiện ích so khớp/chuẩn hóa địa chỉ (phục vụ tìm kiếm/gợi ý).</td></tr>
+                <tr><td><span class="path">integration/vnpt/VnptEkycClient.java</span></td><td>Client gọi VNPT eKYC API (wrap HTTP calls và parse response).</td></tr>
+                <tr><td><span class="path">mapper/CitizenFeatureMapper.java</span></td><td>Mapper phục vụ chuyển đổi entity ↔ DTO (MapStruct/ModelMapper tùy triển khai).</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section id="mo-hinh-du-lieu">
+            <h2>Mô hình dữ liệu</h2>
+            <p class="muted">
+              Dữ liệu được tổ chức theo các nhóm domain. Dưới đây là các entity quan trọng và mối liên hệ chính để bạn dễ hình dung luồng.
+            </p>
+
+            <h3>1) Tài khoản & phân quyền</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Entity</th>
+                  <th>Vai trò</th>
+                  <th>Liên quan</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="path">entity/User.java</span></td>
+                  <td>Tài khoản đăng nhập chung, chứa email/passwordHash/fullName/phone/status.</td>
+                  <td>Gắn <code>Role</code>; có thể gắn <code>Enterprise</code> (admin doanh nghiệp).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">entity/Role.java</span></td>
+                  <td>Nhóm quyền theo roleCode (ADMIN/CITIZEN/ENTERPRISE/COLLECTOR).</td>
+                  <td>Danh sách permission đi qua <code>RolePermission</code>.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">entity/Permission.java</span></td>
+                  <td>Một quyền nhỏ (permissionCode).</td>
+                  <td>Ghép vào role để tạo scope JWT.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">entity/RolePermission.java</span></td>
+                  <td>Entity trung gian role-permission.</td>
+                  <td>Dùng để build <code>scope</code> trong JWT.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">entity/InvalidatedToken.java</span></td>
+                  <td>Lưu token đã bị thu hồi theo <code>jti</code>.</td>
+                  <td>Phục vụ logout theo denylist.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>2) Hồ sơ người dùng theo vai trò</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Entity</th>
+                  <th>Vai trò</th>
+                  <th>Liên quan</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="path">entity/Citizen.java</span></td>
+                  <td>Profile của citizen, chứa điểm/địa chỉ/thống kê.</td>
+                  <td>Thường gắn 1-1 với <code>User</code>.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">entity/Collector.java</span></td>
+                  <td>Profile của collector, chứa trạng thái online/offline/suspend, xe, vi phạm.</td>
+                  <td>Gắn 1-1 <code>User</code>, thuộc về <code>Enterprise</code>.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">entity/Enterprise.java</span></td>
+                  <td>Thông tin doanh nghiệp (name/address/phone/email/service wards/cities).</td>
+                  <td>Có nhiều collector; có các voucher và xử lý các report/task thuộc phạm vi.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>3) Báo cáo rác & thu gom</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Entity</th>
+                  <th>Vai trò</th>
+                  <th>Liên quan</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="path">entity/WasteReport.java</span></td>
+                  <td>Báo cáo rác: vị trí, trạng thái, người tạo, doanh nghiệp xử lý.</td>
+                  <td>Liên kết ảnh (<code>ReportImage</code>) và item chi tiết (<code>WasteReportItem</code>).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">entity/WasteReportItem.java</span></td>
+                  <td>Các dòng chi tiết của report (loại rác, khối lượng/đơn vị...).</td>
+                  <td>Thường gắn với <code>WasteCategory</code>.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">entity/ReportImage.java</span></td>
+                  <td>Ảnh đính kèm báo cáo (URL Cloudinary, metadata nếu có).</td>
+                  <td>Phục vụ minh chứng hiện trường.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">entity/CollectionRequest.java</span></td>
+                  <td>Nhiệm vụ thu gom (task) được tạo từ report.</td>
+                  <td>Gắn <code>Collector</code> khi phân công; có status và các mốc thời gian (assigned/accepted/started...).</td>
+                </tr>
+                <tr>
+                  <td><span class="path">entity/CollectionTracking.java</span></td>
+                  <td>Log hành động của task (timeout, sla_violated, ...).</td>
+                  <td>Giúp audit lịch sử xử lý.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">entity/CollectorReport.java</span></td>
+                  <td>Báo cáo của collector sau khi thực hiện task.</td>
+                  <td>Có thể kèm ảnh (<code>CollectorReportImage</code>) và item (<code>CollectorReportItem</code>).</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>4) Điểm thưởng & voucher</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Entity</th>
+                  <th>Vai trò</th>
+                  <th>Liên quan</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="path">entity/PointRule.java</span></td>
+                  <td>Luật cộng điểm (admin cấu hình).</td>
+                  <td>Dùng khi xét điểm cho report/hoạt động.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">entity/PointTransaction.java</span></td>
+                  <td>Lịch sử cộng/trừ điểm.</td>
+                  <td>Gắn với citizen và lý do giao dịch.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">entity/Leaderboard.java</span></td>
+                  <td>Bảng xếp hạng theo điểm/chỉ số.</td>
+                  <td>Truy vấn cho màn hình leaderboard.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">entity/Voucher.java</span></td>
+                  <td>Voucher do doanh nghiệp tạo.</td>
+                  <td>Có tồn kho, trạng thái active/inactive, hạn sử dụng.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">entity/VoucherRedemption.java</span></td>
+                  <td>Lịch sử đổi voucher của citizen.</td>
+                  <td>Gắn citizen + voucher + thời điểm đổi.</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section id="chuan-api">
+            <h2>Chuẩn API & lỗi</h2>
+            <h3>1) Response wrapper</h3>
+            <p>
+              Phần lớn endpoint trả về cấu trúc chung <code>ApiResponse</code>:
+              <span class="path">dto/response/ApiResponse.java</span>.
+              Mục tiêu là thống nhất format, dễ xử lý trên frontend.
+            </p>
+            <pre><code>{
+  "code": 1000,
+  "message": ".... (có thể null)",
+  "result": { ... }
+}</code></pre>
+            <div class="kv">
+              <div class="k">code</div>
+              <div class="v">Mã lỗi/ok của hệ thống. Mặc định <code>1000</code> nghĩa là thành công.</div>
+              <div class="k">message</div>
+              <div class="v">Thông báo kèm theo (khi lỗi hoặc khi muốn trả message).</div>
+              <div class="k">result</div>
+              <div class="v">Payload kết quả (DTO response).</div>
+            </div>
+
+            <h3>2) Xử lý exception tập trung</h3>
+            <p class="muted">
+              Toàn bộ exception được gom về <span class="path">exception/GlobalHandleException.java</span> để map sang HTTP status + ApiResponse.
+              Ví dụ: <code>AppException</code> sẽ lấy <code>ErrorCode</code> và set <code>status/code/message</code>.
+            </p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Nhóm lỗi</th>
+                  <th>HTTP</th>
+                  <th>code/message</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>AppException</code></td>
+                  <td>Theo <span class="path">exception/ErrorCode.java</span></td>
+                  <td>Map trực tiếp từ enum ErrorCode</td>
+                </tr>
+                <tr>
+                  <td><code>BadCredentialsException</code></td>
+                  <td>401</td>
+                  <td>code=UNAUTHENTICATED, message “Email hoặc mật khẩu không chính xác”</td>
+                </tr>
+                <tr>
+                  <td><code>AccessDenied</code></td>
+                  <td>403</td>
+                  <td>code=UNAUTHORIZED</td>
+                </tr>
+                <tr>
+                  <td><code>Validation</code> (<code>@Valid</code>)</td>
+                  <td>400</td>
+                  <td>code=INVALID_REQUEST; message tổng hợp từ field errors</td>
+                </tr>
+                <tr>
+                  <td>Không tìm thấy endpoint</td>
+                  <td>404</td>
+                  <td>code=INVALID_REQUEST; message “Không tìm thấy endpoint: ...”</td>
+                </tr>
+                <tr>
+                  <td>Lỗi hệ thống khác</td>
+                  <td>500</td>
+                  <td>code=UNCATEGORIZED_EXCEPTION; message “Đã xảy ra lỗi hệ thống”</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section id="cau-hinh-ung-dung">
+            <h2>Cấu hình ứng dụng</h2>
+            <div class="callout">
+              <div><strong>File cấu hình chính</strong></div>
+              <div class="muted">Toàn bộ cấu hình runtime nằm ở:</div>
+              <div style="margin-top: 6px"><span class="path">src/main/resources/application.yml</span></div>
+            </div>
+
+            <h3>0) Cách lấy cấu hình và ưu tiên ENV</h3>
+            <p class="muted">
+              Dự án dùng cú pháp Spring property placeholder dạng <code>${ENV_NAME:default}</code>.
+              Nghĩa là: nếu có biến môi trường (ENV) thì lấy ENV, không có thì dùng default.
+              Một số key datasource còn lồng nhiều lớp để tương thích nhiều nền tảng deploy.
+            </p>
+            <table>
+              <thead>
+                <tr>
+                  <th>ENV</th>
+                  <th>Áp vào key</th>
+                  <th>Giải thích</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>SPRING_DATASOURCE_URL</code></td>
+                  <td><code>spring.datasource.url</code></td>
+                  <td>Ưu tiên cao nhất cho URL DB.</td>
+                </tr>
+                <tr>
+                  <td><code>SPRING_DATASOURCE_USERNAME</code>, <code>SPRING_DATASOURCE_PASSWORD</code></td>
+                  <td><code>spring.datasource.username/password</code></td>
+                  <td>Ưu tiên cao nhất cho user/password DB.</td>
+                </tr>
+                <tr>
+                  <td><code>JWT_SIGNER_KEY</code></td>
+                  <td><code>jwt.signerKey</code></td>
+                  <td>Secret ký JWT HS512.</td>
+                </tr>
+                <tr>
+                  <td><code>JWT_VALID_DURATION</code></td>
+                  <td><code>jwt.valid-duration</code></td>
+                  <td>Thời hạn token (giây).</td>
+                </tr>
+                <tr>
+                  <td><code>APP_CORS_ALLOWED_ORIGINS</code></td>
+                  <td><code>app.cors.allowed-origins</code></td>
+                  <td>Danh sách origin/pattern cho CORS.</td>
+                </tr>
+                <tr>
+                  <td><code>APP_SEED_ENABLED</code></td>
+                  <td><code>app.seed.enabled</code></td>
+                  <td>Bật/tắt seed data demo.</td>
+                </tr>
+                <tr>
+                  <td><code>CLOUDINARY_CLOUD_NAME</code>, <code>CLOUDINARY_API_KEY</code>, <code>CLOUDINARY_API_SECRET</code></td>
+                  <td><code>cloudinary.*</code></td>
+                  <td>Thông tin Cloudinary upload.</td>
+                </tr>
+                <tr>
+                  <td><code>VNPT_EKYC_BASE_URL</code>, <code>VNPT_EKYC_ACCESS_TOKEN</code>, <code>VNPT_EKYC_TOKEN_ID</code>, <code>VNPT_EKYC_TOKEN_KEY</code></td>
+                  <td><code>vnpt.ekyc.*</code></td>
+                  <td>Thông tin gọi VNPT eKYC API.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>Ví dụ cấu hình local (chỉ minh họa)</h3>
+            <pre><code>SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/swp?useSSL=false&amp;serverTimezone=UTC
+SPRING_DATASOURCE_USERNAME=root
+SPRING_DATASOURCE_PASSWORD=your_password
+
+JWT_SIGNER_KEY=your_long_secret_key
+JWT_VALID_DURATION=3600
+
+APP_CORS_ALLOWED_ORIGINS=http://localhost:5173
+APP_SEED_ENABLED=true
+</code></pre>
+
+            <h3>1) Spring/DataSource/JPA</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Ý nghĩa</th>
+                  <th>Mặc định/ghi chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>spring.datasource.url</code></td>
+                  <td>JDBC URL kết nối MySQL.</td>
+                  <td>Đọc từ ENV, có fallback railway; có <code>serverTimezone=UTC</code> và timeout.</td>
+                </tr>
+                <tr>
+                  <td><code>spring.datasource.username</code>, <code>spring.datasource.password</code></td>
+                  <td>Tài khoản DB.</td>
+                  <td>Đọc từ ENV; nên không để fallback thật trong repo.</td>
+                </tr>
+                <tr>
+                  <td><code>spring.jpa.hibernate.ddl-auto</code></td>
+                  <td>Chiến lược tạo/cập nhật schema.</td>
+                  <td><code>update</code> (mặc định); profile <code>prod</code> chuyển <code>validate</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>spring.jpa.open-in-view</code></td>
+                  <td>Tắt Open Session in View.</td>
+                  <td><code>false</code> để tránh lazy loading ngoài transaction.</td>
+                </tr>
+                <tr>
+                  <td><code>spring.jackson.time-zone</code>, <code>hibernate.jdbc.time_zone</code></td>
+                  <td>Chuẩn hóa timezone.</td>
+                  <td>UTC, kết hợp với Jackson serializer.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>2) Server & upload</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Ý nghĩa</th>
+                  <th>Mặc định/ghi chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>server.port</code></td>
+                  <td>Port chạy ứng dụng.</td>
+                  <td><code>${PORT:8080}</code></td>
+                </tr>
+                <tr>
+                  <td><code>spring.servlet.multipart.max-file-size</code>, <code>max-request-size</code></td>
+                  <td>Giới hạn upload.</td>
+                  <td>10MB</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>3) JWT</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Ý nghĩa</th>
+                  <th>Liên quan code</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>jwt.signerKey</code></td>
+                  <td>Secret key ký JWT HMAC.</td>
+                  <td><span class="path">config/SecurityConfig.java</span>, <span class="path">util/JWTHelper.java</span></td>
+                </tr>
+                <tr>
+                  <td><code>jwt.valid-duration</code></td>
+                  <td>Thời hạn token (giây).</td>
+                  <td><span class="path">util/JWTHelper.java</span></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="callout warn">
+              <div><strong>Khuyến nghị</strong></div>
+              <div class="muted">Không nên để <code>jwt.signerKey</code> (và các secret khác) có fallback giá trị thật trong file repo. Nên bắt buộc lấy từ ENV trên máy chạy.</div>
+            </div>
+
+            <h3>4) CORS</h3>
+            <div class="kv">
+              <div class="k">Key</div>
+              <div class="v"><code>app.cors.allowed-origins</code> (danh sách cách nhau bởi dấu phẩy)</div>
+              <div class="k">Ý nghĩa</div>
+              <div class="v">Cho phép frontend domain gọi API. Hỗ trợ cả origin thường và origin pattern có <code>*</code> (ví dụ <code>https://*.vercel.app</code>).</div>
+              <div class="k">Code</div>
+              <div class="v"><span class="path">config/SecurityConfig.java</span> tạo <code>CorsConfigurationSource</code> và đăng ký cho tất cả đường dẫn.</div>
+            </div>
+
+            <h3>5) Swagger / OpenAPI</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Ý nghĩa</th>
+                  <th>Mặc định/ghi chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>springdoc.swagger-ui.path</code></td>
+                  <td>Đường dẫn swagger UI</td>
+                  <td><code>/swagger-ui.html</code></td>
+                </tr>
+                <tr>
+                  <td><code>springdoc.api-docs.path</code></td>
+                  <td>Đường dẫn openapi json</td>
+                  <td><code>/v3/api-docs</code></td>
+                </tr>
+                <tr>
+                  <td><code>open.api.title</code>, <code>open.api.version</code>, <code>open.api.description</code></td>
+                  <td>Thông tin hiển thị trên Swagger</td>
+                  <td><span class="path">config/SwaggerConfig.java</span></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>6) Seed dữ liệu</h3>
+            <div class="kv">
+              <div class="k">Key</div>
+              <div class="v"><code>app.seed.enabled</code></div>
+              <div class="k">Ý nghĩa</div>
+              <div class="v">Bật/tắt việc tự tạo dữ liệu mẫu khi app khởi động.</div>
+              <div class="k">Code</div>
+              <div class="v"><span class="path">config/DataInit.java</span> có <code>@ConditionalOnProperty</code> theo <code>app.seed.enabled</code>.</div>
+            </div>
+
+            <h3>7) Work rules (quy tắc vận hành)</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Ý nghĩa</th>
+                  <th>Code sử dụng</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>workrule.accept-timeout-hours</code></td>
+                  <td>Quá hạn chưa nhận việc sau khi được phân công.</td>
+                  <td><span class="path">service/impl/TaskAutomationServiceImpl.java</span></td>
+                </tr>
+                <tr>
+                  <td><code>workrule.sla-hours</code></td>
+                  <td>Ngưỡng SLA cho task (vi phạm nếu quá giờ).</td>
+                  <td><span class="path">service/impl/TaskAutomationServiceImpl.java</span></td>
+                </tr>
+                <tr>
+                  <td><code>workrule.suspend-threshold</code></td>
+                  <td>Số lần vi phạm tối đa trước khi SUSPEND collector.</td>
+                  <td><span class="path">service/impl/TaskAutomationServiceImpl.java</span></td>
+                </tr>
+                <tr>
+                  <td><code>workrule.working-start-hour</code>, <code>workrule.working-end-hour</code></td>
+                  <td>Khung giờ làm việc để quyết định cách xử lý tự động.</td>
+                  <td><span class="path">service/impl/TaskAutomationServiceImpl.java</span></td>
+                </tr>
+                <tr>
+                  <td><code>workrule.report-radius-km</code></td>
+                  <td>Bán kính liên quan xử lý vị trí (đang có trong properties).</td>
+                  <td><span class="path">config/WorkRuleProperties.java</span></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="callout warn">
+              <div><strong>Lưu ý cấu hình không khớp</strong></div>
+              <div class="muted">
+                <code>application.yml</code> hiện có <code>workrule.reassign-radius-km</code> nhưng <code>WorkRuleProperties</code> không có field tương ứng,
+                nên giá trị này không được bind vào code (không có tác dụng).
+              </div>
+            </div>
+
+            <h3>8) Profiles (dev/prod/test)</h3>
+            <p class="muted">
+              Trong <code>application.yml</code> có các khối cấu hình tách bằng <code>---</code> và kích hoạt theo profile:
+              <code>dev</code> bật show-sql/format_sql; <code>prod</code> dùng ddl-auto=validate.
+              Với test, dùng file riêng:
+              <span class="path">src/test/resources/application-test.yml</span>.
+            </p>
+            <pre><code>spring:
+  config:
+    activate:
+      on-profile: dev
+</code></pre>
+          </section>
+
+          <section id="bao-mat">
+            <h2>Bảo mật (Security/JWT)</h2>
+            <h3>1) Tổng quan cơ chế</h3>
+            <div class="kv">
+              <div class="k">Loại auth</div>
+              <div class="v">Bearer JWT (OAuth2 Resource Server) - stateless.</div>
+              <div class="k">Algorithm</div>
+              <div class="v">HMAC HS512.</div>
+              <div class="k">Logout</div>
+              <div class="v">Thu hồi token theo <code>jti</code> (denylist) đến khi token hết hạn.</div>
+              <div class="k">Cấu hình</div>
+              <div class="v"><span class="path">config/SecurityConfig.java</span></div>
+            </div>
+
+            <h3>Chi tiết flow xác thực</h3>
+            <p class="muted">
+              Flow này giúp bạn hiểu rõ “ai verify token”, “verify ở đâu”, và vì sao logout có tác dụng ngay lập tức.
+            </p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Bước</th>
+                  <th>Mô tả</th>
+                  <th>Liên quan</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1</td>
+                  <td>Client gọi <code>/api/auth/login</code> hoặc <code>/api/auth/register</code> để lấy token.</td>
+                  <td><span class="path">controller/authentication/AuthController.java</span></td>
+                </tr>
+                <tr>
+                  <td>2</td>
+                  <td>Token được phát bằng HS512, có <code>jti</code> và <code>scope</code>.</td>
+                  <td><span class="path">util/JWTHelper.java</span></td>
+                </tr>
+                <tr>
+                  <td>3</td>
+                  <td>Client gửi request kèm header <code>Authorization: Bearer &lt;token&gt;</code>.</td>
+                  <td>Frontend/Client</td>
+                </tr>
+                <tr>
+                  <td>4</td>
+                  <td>
+                    Spring Security Resource Server decode/verify token bằng <code>JwtDecoder</code>:
+                    check chữ ký, check exp (timestamp), check denylist theo <code>jti</code>.
+                  </td>
+                  <td><span class="path">config/SecurityConfig.java</span>, <span class="path">config/JtiDenylistValidator.java</span></td>
+                </tr>
+                <tr>
+                  <td>5</td>
+                  <td>
+                    Authorities được lấy từ claim <code>scope</code> (chuỗi cách nhau bởi dấu cách). Prefix authority được đặt rỗng,
+                    nên hệ thống dùng trực tiếp các giá trị như <code>ROLE_ADMIN</code>, <code>PERMISSION_X</code>.
+                  </td>
+                  <td><span class="path">config/SecurityConfig.java</span></td>
+                </tr>
+                <tr>
+                  <td>6</td>
+                  <td>
+                    Logout: client gọi <code>/api/auth/logout</code>. Server lấy token từ header hoặc body,
+                    parse ra <code>jti</code> và lưu vào bảng denylist (InvalidatedToken). Các request sau sẽ bị chặn ngay.
+                  </td>
+                  <td><span class="path">controller/authentication/AuthController.java</span></td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>2) Public endpoints</h3>
+            <p class="muted">
+              Một số endpoint được mở không cần token: login/register/introspect/logout, eKYC, actuator health/info, swagger.
+              Danh sách khai báo ở <span class="path">config/SecurityConfig.java</span>.
+            </p>
+
+            <h3>3) JWT claims (token chứa gì)</h3>
+            <p>
+              Token được phát bởi <span class="path">util/JWTHelper.java</span> với các claim tiêu biểu:
+            </p>
+            <ul>
+              <li><code>sub</code>: email người dùng</li>
+              <li><code>iss</code>: <code>team2.com</code></li>
+              <li><code>exp</code>: thời hạn (dựa trên <code>jwt.valid-duration</code>)</li>
+              <li><code>jti</code>: mã token để revoke khi logout</li>
+              <li><code>scope</code>: gồm <code>ROLE_*</code> và permission codes (cách nhau bằng dấu cách)</li>
+              <li><code>role</code>, <code>citizenId</code>, <code>collectorId</code>, <code>enterpriseId</code>: thông tin hỗ trợ phân quyền/định tuyến nghiệp vụ</li>
+            </ul>
+
+            <h3>4) Denylist validator</h3>
+            <p class="muted">
+              Khi API nhận request, <span class="path">config/JtiDenylistValidator.java</span> sẽ chặn nếu <code>jti</code> đã bị revoke.
+              Trường hợp chưa đăng nhập/invalid token sẽ trả JSON theo <span class="path">config/JwtAuthenticationEntryPoint.java</span>.
+            </p>
+          </section>
+
+          <section id="seed">
+            <h2>Seed dữ liệu ban đầu</h2>
+            <p>
+              Hệ thống có các lớp seed chạy khi bật <code>app.seed.enabled=true</code>.
+              Mục tiêu: tạo dữ liệu demo để test nhanh luồng.
+            </p>
+
+            <h3>1) Tài khoản demo được tạo bởi DataInit</h3>
+            <p class="muted">
+              Danh sách này nằm trong <span class="path">config/DataInit.java</span>. Nếu user đã tồn tại thì seed sẽ bỏ qua hoặc cập nhật một số trường.
+            </p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Password (raw)</th>
+                  <th>Role</th>
+                  <th>Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>admin@gmail.com</code></td>
+                  <td><code>admin123</code></td>
+                  <td>ADMIN</td>
+                  <td>Admin demo</td>
+                </tr>
+                <tr>
+                  <td><code>citizen@gmail.com</code></td>
+                  <td><code>citizen123</code></td>
+                  <td>CITIZEN</td>
+                  <td>Tự tạo Citizen profile kèm điểm/thống kê mẫu</td>
+                </tr>
+                <tr>
+                  <td><code>enterprise@gmail.com</code></td>
+                  <td><code>enterprise123</code></td>
+                  <td>ENTERPRISE</td>
+                  <td>Gắn với Enterprise “Demo Enterprise”</td>
+                </tr>
+                <tr>
+                  <td><code>collector1@gmail.com</code></td>
+                  <td><code>collector123</code></td>
+                  <td>COLLECTOR</td>
+                  <td>Tạo Collector profile thuộc “Demo Enterprise”</td>
+                </tr>
+                <tr>
+                  <td><code>collector2@gmail.com</code></td>
+                  <td><code>collector123</code></td>
+                  <td>COLLECTOR</td>
+                  <td>Tạo Collector profile thuộc “Eco Enterprise”</td>
+                </tr>
+              </tbody>
+            </table>
+            <table>
+              <thead>
+                <tr>
+                  <th>Class</th>
+                  <th>Tạo dữ liệu</th>
+                  <th>Tạo dữ liệu</th>
+                  <th>Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="path">config/DataInit.java</span></td>
+                  <td>Role (ADMIN/CITIZEN/ENTERPRISE/COLLECTOR), user demo, citizen profile, collector profile.</td>
+                  <td>Chạy theo điều kiện property.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">config/WasteCategoryInit.java</span></td>
+                  <td>Danh mục rác + đơn vị + điểm (tùy code seed).</td>
+                  <td>Phục vụ report và tính điểm.</td>
+                </tr>
+                <tr>
+                  <td><span class="path">config/VoucherInit.java</span></td>
+                  <td>Voucher demo.</td>
+                  <td>Phục vụ đổi thưởng.</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section id="automation">
+            <h2>Tự động hóa (Scheduled jobs)</h2>
+            <p class="muted">
+              Job chạy nền giúp tự xử lý các tình huống quá hạn và vi phạm SLA.
+              Bật scheduling tại class khởi động ứng dụng.
+            </p>
+            <div class="callout">
+              <div><strong>Job chính</strong></div>
+              <div class="muted">File:</div>
+              <div style="margin-top: 6px"><span class="path">service/impl/TaskAutomationServiceImpl.java</span></div>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Hàm</th>
+                  <th>Lịch chạy</th>
+                  <th>Tác dụng</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>checkAssignedTasksTimeout()</code></td>
+                  <td>Mỗi 5 phút</td>
+                  <td>
+                    Tìm task đã phân công nhưng quá hạn chưa nhận việc → tăng violation cho collector → hủy phân công về Enterprise
+                    (đổi status phù hợp) và ghi tracking.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>checkSlaViolations()</code></td>
+                  <td>Mỗi 1 giờ</td>
+                  <td>
+                    Tìm task vượt SLA → đánh dấu vi phạm → tăng violation; đủ ngưỡng thì SUSPEND collector; ghi tracking.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>Giải thích thêm về trạng thái và hậu quả</h3>
+            <div class="kv">
+              <div class="k">Timeout nhận việc</div>
+              <div class="v">
+                Nếu task đã gán collector nhưng quá hạn chưa “nhận”, hệ thống sẽ tăng <code>violationCount</code> và hủy phân công về doanh nghiệp để gán lại.
+              </div>
+              <div class="k">SLA violated</div>
+              <div class="v">
+                Khi task vượt SLA, hệ thống đánh dấu vi phạm và tăng <code>violationCount</code>. Nếu đạt ngưỡng <code>workrule.suspend-threshold</code> thì collector bị <code>SUSPEND</code>.
+              </div>
+              <div class="k">Tracking/Audit</div>
+              <div class="v">
+                Mỗi lần auto xử lý sẽ ghi một dòng <code>CollectionTracking</code> (action, note, createdAt) để truy vết.
+              </div>
+            </div>
+          </section>
+
+          <section id="tich-hop">
+            <h2>Tích hợp bên thứ 3</h2>
+
+            <h3>1) Cloudinary (lưu trữ ảnh/file)</h3>
+            <div class="kv">
+              <div class="k">Config keys</div>
+              <div class="v"><code>cloudinary.cloud-name</code>, <code>cloudinary.api-key</code>, <code>cloudinary.api-secret</code></div>
+              <div class="k">Bean</div>
+              <div class="v"><span class="path">config/CloudinaryConfig.java</span> tạo <code>Cloudinary</code> từ các key trên.</div>
+              <div class="k">Sử dụng</div>
+              <div class="v">Controller upload thường nằm ở <span class="path">controller/cloudinary/</span>.</div>
+            </div>
+
+            <h3>2) VNPT eKYC</h3>
+            <div class="kv">
+              <div class="k">Config prefix</div>
+              <div class="v"><code>vnpt.ekyc.*</code></div>
+              <div class="k">Properties</div>
+              <div class="v"><span class="path">config/VnptEkycProperties.java</span></div>
+              <div class="k">HTTP client</div>
+              <div class="v"><span class="path">config/VnptEkycConfig.java</span> cung cấp <code>RestTemplate</code> kèm interceptor tự gắn headers.</div>
+              <div class="k">Public API</div>
+              <div class="v">Các endpoint eKYC được mở public theo pattern <code>/api/auth/ekyc/**</code>.</div>
+            </div>
+
+            <div class="callout danger">
+              <div><strong>An toàn thông tin</strong></div>
+              <div class="muted">
+                Access token / token-id / token-key là thông tin nhạy cảm. Nên cấu hình bằng biến môi trường trên server,
+                không commit vào repository.
+              </div>
+            </div>
+
+            <h3>3) Jackson date-time chuẩn UTC</h3>
+            <div class="kv">
+              <div class="k">Mục tiêu</div>
+              <div class="v">Trả về datetime ổn định cho frontend (ISO_OFFSET_DATE_TIME tại UTC).</div>
+              <div class="k">Code</div>
+              <div class="v"><span class="path">config/JacksonConfig.java</span> custom serializer cho <code>LocalDateTime</code>.</div>
+            </div>
+          </section>
+
+          <section id="docker">
+            <h2>Docker & triển khai</h2>
+            <p class="muted">
+              Dự án có Dockerfile theo kiểu multi-stage: build JAR bằng Maven image, sau đó chạy trên JRE image.
+            </p>
+            <div class="callout">
+              <div><strong>Dockerfile</strong></div>
+              <div style="margin-top: 6px"><span class="path">Dockerfile</span></div>
+            </div>
+            <pre><code>FROM maven:3.9.6-eclipse-temurin-21 AS build
+...
+RUN mvn clean package -DskipTests
+...
+ENTRYPOINT ["java","-jar","app.jar"]</code></pre>
+          </section>
+
+          <section id="goi-y">
+            <h2>Gợi ý vận hành</h2>
+            <h3>1) Các URL hữu ích khi chạy local</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>URL</th>
+                  <th>Mục đích</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>http://localhost:8080/swagger-ui.html</code></td>
+                  <td>Swagger UI để test API (đăng nhập lấy token rồi Authorize).</td>
+                </tr>
+                <tr>
+                  <td><code>http://localhost:8080/v3/api-docs</code></td>
+                  <td>OpenAPI JSON.</td>
+                </tr>
+                <tr>
+                  <td><code>http://localhost:8080/actuator/health</code></td>
+                  <td>Kiểm tra tình trạng app.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>2) Checklist cấu hình tối thiểu để chạy ổn</h3>
+            <ul>
+              <li>DB MySQL chạy được và set đúng <code>SPRING_DATASOURCE_URL/USERNAME/PASSWORD</code></li>
+              <li>Set <code>JWT_SIGNER_KEY</code> đủ dài (HS512 yêu cầu secret đủ mạnh)</li>
+              <li>Nếu dùng upload ảnh: set <code>CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET</code></li>
+              <li>Nếu dùng eKYC: set <code>VNPT_EKYC_ACCESS_TOKEN</code>, <code>VNPT_EKYC_TOKEN_ID</code>, <code>VNPT_EKYC_TOKEN_KEY</code></li>
+              <li>Nếu muốn test nhanh: bật <code>APP_SEED_ENABLED=true</code> để tạo dữ liệu demo</li>
+            </ul>
+
+            <h3>3) Các điểm cần chú ý</h3>
+            <ul>
+              <li>Giữ UTC cho DB và API để tránh lệch giờ khi deploy nhiều môi trường.</li>
+              <li>Nếu frontend chạy domain khác, cần thêm vào <code>app.cors.allowed-origins</code>.</li>
+              <li>Profile <code>prod</code> đặt <code>ddl-auto=validate</code>, cần migration/schema đúng trước khi chạy.</li>
+            </ul>
+          </section>
+        </main>
+      </div>
+
+      <footer>
+        Tài liệu này được tạo để đọc offline trong IDE hoặc mở trực tiếp bằng trình duyệt.
+      </footer>
+    </div>
+  </body>
+</html>

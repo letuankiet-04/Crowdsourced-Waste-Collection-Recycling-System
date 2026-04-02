@@ -29,9 +29,7 @@ public class CollectorReportServiceImpl implements CollectorReportService {
     private final WasteReportItemRepository wasteReportItemRepository;
     private final ReportImageRepository reportImageRepository;
 
-    /**
-     * Lấy báo cáo theo ID của yêu cầu thu gom.
-     */
+
     @Override
     public CollectorReportResponse getReportByCollectionRequest(Integer requestId, Integer collectorId) {
         // Tìm báo cáo trong DB
